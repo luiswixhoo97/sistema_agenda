@@ -42,6 +42,7 @@ class EmpleadoController extends Controller
                 'bio' => $e->bio,
                 'especialidades' => $e->especialidades,
                 'promedio_calificacion' => round($e->promedio_calificacion, 1),
+                'activo' => $e->active && $e->user->active,
                 'servicios' => $e->servicios->map(fn($s) => [
                     'id' => $s->id,
                     'nombre' => $s->nombre,
@@ -332,20 +333,55 @@ class EmpleadoController extends Controller
         $request->validate([
             'horarios' => 'required|array',
             'horarios.*.dia_semana' => 'required|integer|min:1|max:7',
-            'horarios.*.hora_inicio' => 'required|date_format:H:i',
-            'horarios.*.hora_fin' => 'required|date_format:H:i|after:horarios.*.hora_inicio',
-            'horarios.*.active' => 'required|boolean',
+            'horarios.*.active' => 'required',
         ]);
-
+        
+        // Normalizar y validar cada horario, crear nuevo array
+        $horariosNormalizados = [];
         foreach ($request->horarios as $horarioData) {
+            // Convertir active a boolean si viene como string
+            $isActive = filter_var($horarioData['active'], FILTER_VALIDATE_BOOLEAN);
+            
+            if ($isActive) {
+                // Validar horas para días activos
+                if (empty($horarioData['hora_inicio']) || !preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $horarioData['hora_inicio'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "La hora de inicio es requerida y debe tener formato HH:mm para el día {$horarioData['dia_semana']}",
+                    ], 422);
+                }
+                if (empty($horarioData['hora_fin']) || !preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $horarioData['hora_fin'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "La hora de fin es requerida y debe tener formato HH:mm para el día {$horarioData['dia_semana']}",
+                    ], 422);
+                }
+                if ($horarioData['hora_fin'] <= $horarioData['hora_inicio']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "La hora de fin debe ser posterior a la hora de inicio para el día {$horarioData['dia_semana']}",
+                    ], 422);
+                }
+            }
+            
+            // Agregar horario normalizado al nuevo array
+            $horariosNormalizados[] = [
+                'dia_semana' => $horarioData['dia_semana'],
+                'active' => $isActive,
+                'hora_inicio' => $isActive ? $horarioData['hora_inicio'] : '09:00',
+                'hora_fin' => $isActive ? $horarioData['hora_fin'] : '18:00',
+            ];
+        }
+
+        foreach ($horariosNormalizados as $horarioData) {
             HorarioEmpleado::updateOrCreate(
                 [
                     'empleado_id' => $empleado->id,
                     'dia_semana' => $horarioData['dia_semana'],
                 ],
                 [
-                    'hora_inicio' => $horarioData['hora_inicio'],
-                    'hora_fin' => $horarioData['hora_fin'],
+                    'hora_inicio' => $horarioData['active'] ? $horarioData['hora_inicio'] : '09:00',
+                    'hora_fin' => $horarioData['active'] ? $horarioData['hora_fin'] : '18:00',
                     'active' => $horarioData['active'],
                 ]
             );

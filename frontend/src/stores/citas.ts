@@ -152,8 +152,10 @@ export const useCitasStore = defineStore('citas', () => {
     loadingCatalogo.value = true
     try {
       const emps = await catalogoService.obtenerEmpleados(servicioIds.value[0])
-      // Filtrar empleados que ofrecen todos los servicios seleccionados
+      // Filtrar empleados activos que ofrecen todos los servicios seleccionados
       empleados.value = emps.filter(emp => {
+        // Solo mostrar empleados activos
+        if (emp.activo === false) return false
         const serviciosEmpleado = emp.servicios.map(s => s.id)
         return servicioIds.value.every(id => serviciosEmpleado.includes(id))
       })

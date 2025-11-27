@@ -176,7 +176,9 @@ const serviciosFiltrados = computed(() => {
 });
 
 function isActivo(servicio: any): boolean {
-  if (servicio.activo === true || servicio.activo === 1 || servicio.activo === '1' || servicio.activo === 'true') {
+  // El backend devuelve 'active', no 'activo'
+  const activo = servicio.active !== undefined ? servicio.active : servicio.activo;
+  if (activo === true || activo === 1 || activo === '1' || activo === 'true') {
     return true;
   }
   return false;
@@ -230,11 +232,15 @@ function editarServicio(s: any) {
 async function toggleServicio(s: any) { 
   try {
     const nuevoEstado = !isActivo(s);
-    await updateServicio(s.id, { activo: nuevoEstado });
-    s.activo = nuevoEstado;
+    await updateServicio(s.id, { active: nuevoEstado });
+    // Actualizar el estado local
+    s.active = nuevoEstado;
+    s.activo = nuevoEstado; // Mantener compatibilidad
   } catch (error) {
     console.error('Error actualizando servicio:', error);
     alert('Error al actualizar servicio');
+    // Recargar en caso de error para sincronizar
+    await cargarDatos();
   }
 }
 

@@ -35,6 +35,7 @@ export interface EmpleadoPublico {
   bio?: string
   especialidades?: string
   promedio_calificacion: number
+  activo?: boolean
   servicios: {
     id: number
     nombre: string

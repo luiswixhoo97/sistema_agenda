@@ -40,13 +40,13 @@
           v-for="empleado in empleados" 
           :key="empleado.id" 
           class="empleado-card"
-          :class="{ inactivo: !empleado.activo }"
+          :class="{ inactivo: !empleado.active }"
         >
           <div class="empleado-header">
             <div class="empleado-avatar">
               {{ getInitial(empleado.nombre) }}
             </div>
-            <span :class="['status-indicator', empleado.activo ? 'activo' : 'inactivo']"></span>
+            <span :class="['status-indicator', empleado.active ? 'activo' : 'inactivo']"></span>
           </div>
           
           <div class="empleado-body">
@@ -72,8 +72,8 @@
           </div>
           
           <div class="empleado-footer">
-            <span :class="['status-badge', empleado.activo ? 'activo' : 'inactivo']">
-              {{ empleado.activo ? 'Activo' : 'Inactivo' }}
+            <span :class="['status-badge', empleado.active ? 'activo' : 'inactivo']">
+              {{ empleado.active ? 'Activo' : 'Inactivo' }}
             </span>
             <div class="empleado-actions">
               <button class="btn-icon-sm" @click="editarEmpleado(empleado)">
@@ -84,10 +84,10 @@
               </button>
               <button 
                 class="btn-icon-sm" 
-                :class="empleado.activo ? 'danger' : 'success'"
+                :class="empleado.active ? 'danger' : 'success'"
                 @click="toggleEmpleado(empleado)"
               >
-                <i :class="empleado.activo ? 'fa fa-ban' : 'fa fa-check'"></i>
+                <i :class="empleado.active ? 'fa fa-ban' : 'fa fa-check'"></i>
               </button>
             </div>
           </div>
@@ -180,8 +180,8 @@ const diasSemana = ref([
   { value: 0, label: 'Domingo', activo: false, inicio: '', fin: '' },
 ]);
 
-const empleadosActivos = computed(() => empleados.value.filter(e => e.activo).length);
-const empleadosInactivos = computed(() => empleados.value.filter(e => !e.activo).length);
+const empleadosActivos = computed(() => empleados.value.filter(e => e.active).length);
+const empleadosInactivos = computed(() => empleados.value.filter(e => !e.active).length);
 
 const modalTitle = computed(() => {
   if (modalType.value === 'horarios') return 'Horarios';
@@ -234,11 +234,18 @@ async function verHorarios(e: any) {
     if (response.success && response.data) {
       // Mapear horarios del backend a la estructura local
       diasSemana.value.forEach(dia => {
-        const horario = response.data.find((h: any) => h.dia_semana === dia.value);
+        // El backend devuelve domingo como 7, pero el frontend usa 0
+        const diaBackend = dia.value === 0 ? 7 : dia.value;
+        const horario = response.data.find((h: any) => h.dia_semana === diaBackend);
         if (horario) {
-          dia.activo = horario.activo;
+          dia.activo = horario.active;
           dia.inicio = horario.hora_inicio;
           dia.fin = horario.hora_fin;
+        } else {
+          // Si no hay horario, el día está inactivo
+          dia.activo = false;
+          dia.inicio = '09:00';
+          dia.fin = '18:00';
         }
       });
     }
@@ -249,8 +256,11 @@ async function verHorarios(e: any) {
 
 async function toggleEmpleado(e: any) {
   try {
-    await updateEmpleado(e.id, { activo: !e.activo });
-    e.activo = !e.activo;
+    const nuevoEstado = !e.active;
+    await updateEmpleado(e.id, { active: nuevoEstado });
+    e.active = nuevoEstado;
+    // Recargar la lista para asegurar sincronización
+    await cargarEmpleados();
   } catch (error) {
     console.error('Error actualizando empleado:', error);
     alert('Error al actualizar empleado');
@@ -274,18 +284,37 @@ async function guardarHorarios() {
   if (!selectedEmpleado.value) return;
   
   try {
-    const horarios = diasSemana.value.map(dia => ({
-      dia_semana: dia.value,
-      activo: dia.activo,
-      hora_inicio: dia.inicio,
-      hora_fin: dia.fin,
-    }));
+    // Convertir domingo de 0 a 7 para que pase la validación del backend (min:1)
+    const horarios = diasSemana.value.map(dia => {
+      // Si el día está activo, usar las horas ingresadas; si no, usar valores por defecto
+      let horaInicio = dia.activo && dia.inicio ? dia.inicio.trim() : '09:00';
+      let horaFin = dia.activo && dia.fin ? dia.fin.trim() : '18:00';
+      
+      // Validar formato de hora (HH:mm)
+      if (!/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(horaInicio)) {
+        horaInicio = '09:00';
+      }
+      if (!/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(horaFin)) {
+        horaFin = '18:00';
+      }
+      
+      return {
+        dia_semana: dia.value === 0 ? 7 : dia.value,
+        active: !!dia.activo, // Asegurar que sea boolean
+        hora_inicio: horaInicio,
+        hora_fin: horaFin,
+      };
+    });
     
     await updateEmpleadoHorarios(selectedEmpleado.value.id, { horarios });
     closeModal();
-  } catch (error) {
+    cargarEmpleados(); // Recargar para ver cambios
+  } catch (error: any) {
     console.error('Error guardando horarios:', error);
-    alert('Error al guardar horarios');
+    console.error('Response data:', error.response?.data);
+    const mensaje = error.response?.data?.message || 
+                   (error.response?.data?.errors ? JSON.stringify(error.response.data.errors) : 'Error al guardar horarios');
+    alert(mensaje);
   }
 }
 
