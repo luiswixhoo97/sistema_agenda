@@ -1,26 +1,53 @@
 <template>
   <div class="paso-datos">
-    <!-- Banner de Promociones -->
-    <Transition name="fade">
-      <div v-if="promocionActual" class="promo-banner">
-        <div class="promo-image" :style="{ backgroundImage: `url(${promocionActual.imagen || ''})` }">
-          <div class="promo-overlay"></div>
-          <div class="promo-content">
-            <div class="promo-badge" v-if="promocionActual.descuento">
-              <span>{{ promocionActual.descuento }}</span>
-            </div>
-            <h2 class="promo-title">{{ promocionActual.nombre }}.</h2>
-            <p class="promo-description">
-              {{ promocionActual.descripcion || 'Aprovecha esta increíble oferta y agenda tu cita ahora. ¡No te lo pierdas!' }}
-            </p>
-            <div class="promo-footer-info" v-if="promocionActual.dias_restantes !== undefined && promocionActual.dias_restantes > 0">
-              <i class="fa fa-clock"></i>
-              <span>{{ promocionActual.dias_restantes }} {{ promocionActual.dias_restantes === 1 ? 'día' : 'días' }} restantes</span>
+    <!-- Banner de Promociones - Carrusel -->
+    <div 
+      v-if="promociones.length > 0" 
+      class="promo-carousel"
+      @mouseenter="detenerAutoPlay"
+      @mouseleave="iniciarAutoPlay"
+    >
+      <div class="carousel-container">
+        <Transition name="slide" mode="out-in">
+          <div 
+            :key="indiceActual" 
+            class="promo-banner"
+          >
+            <div 
+              class="promo-image" 
+              :style="{ backgroundImage: `url(${promociones[indiceActual]?.imagen || ''})` }"
+            >
+              <div class="promo-overlay"></div>
+              <div class="promo-content">
+                <div class="promo-badge" v-if="promociones[indiceActual]?.descuento">
+                  <span>{{ promociones[indiceActual].descuento }}</span>
+                </div>
+                <h2 class="promo-title">{{ promociones[indiceActual]?.nombre }}.</h2>
+                <p class="promo-description">
+                  {{ promociones[indiceActual]?.descripcion || 'Aprovecha esta increíble oferta y agenda tu cita ahora. ¡No te lo pierdas!' }}
+                </p>
+                <div class="promo-footer-info" v-if="promociones[indiceActual]?.dias_restantes !== undefined && promociones[indiceActual].dias_restantes > 0">
+                  <i class="fa fa-clock"></i>
+                  <span>{{ promociones[indiceActual].dias_restantes }} {{ promociones[indiceActual].dias_restantes === 1 ? 'día' : 'días' }} restantes</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </Transition>
       </div>
-    </Transition>
+      
+      <!-- Indicadores del carrusel -->
+      <div class="carousel-indicators" v-if="promociones.length > 1">
+        <button
+          v-for="(promo, index) in promociones"
+          :key="index"
+          class="indicator-dot"
+          :class="{ active: index === indiceActual }"
+          @click="cambiarBanner(index)"
+          :aria-label="`Ir a promoción ${index + 1}`"
+        ></button>
+      </div>
+    </div>
 
     <!-- Formulario -->
     <div class="form-card">
@@ -91,47 +118,119 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useCitasStore } from '@/stores/citas'
 import catalogoService from '@/services/catalogoService'
 
 const store = useCitasStore()
 
-const promocionActual = ref<any>(null)
+const promociones = ref<any[]>([])
+const indiceActual = ref(0)
+let autoPlayInterval: number | null = null
 
 onMounted(async () => {
   await cargarPromociones()
+  iniciarAutoPlay()
+})
+
+onUnmounted(() => {
+  detenerAutoPlay()
 })
 
 async function cargarPromociones() {
   try {
     const data = await catalogoService.obtenerPromociones()
-    const promociones = data || []
-    if (promociones.length > 0) {
-      promocionActual.value = promociones[0]
+    const promos = data || []
+    if (promos.length > 0) {
+      promociones.value = promos
     } else {
-      // Si no hay promociones, mostrar una promoción de ejemplo
-      promocionActual.value = {
+      // Si no hay promociones, mostrar promociones de ejemplo
+      promociones.value = [
+        {
+          id: 0,
+          nombre: 'Oferta Especial',
+          descripcion: 'Aprovecha nuestros servicios con descuentos increíbles. Agenda tu cita ahora y disfruta de la mejor experiencia.',
+          descuento: '20% OFF',
+          dias_restantes: 7,
+          imagen: null
+        },
+        {
+          id: 1,
+          nombre: 'Promoción de Verano',
+          descripcion: 'Disfruta de tratamientos especiales con hasta 30% de descuento. Perfecto para cuidar tu piel este verano.',
+          descuento: '30% OFF',
+          dias_restantes: 15,
+          imagen: null
+        },
+        {
+          id: 2,
+          nombre: 'Paquete Premium',
+          descripcion: 'Combo especial con múltiples servicios. Ahorra más y obtén el mejor cuidado para ti.',
+          descuento: '25% OFF',
+          dias_restantes: 10,
+          imagen: null
+        }
+      ]
+    }
+  } catch (error) {
+    console.error('Error cargando promociones:', error)
+    // En caso de error, mostrar promociones de ejemplo
+    promociones.value = [
+      {
         id: 0,
         nombre: 'Oferta Especial',
         descripcion: 'Aprovecha nuestros servicios con descuentos increíbles. Agenda tu cita ahora y disfruta de la mejor experiencia.',
         descuento: '20% OFF',
         dias_restantes: 7,
         imagen: null
+      },
+      {
+        id: 1,
+        nombre: 'Promoción de Verano',
+        descripcion: 'Disfruta de tratamientos especiales con hasta 30% de descuento. Perfecto para cuidar tu piel este verano.',
+        descuento: '30% OFF',
+        dias_restantes: 15,
+        imagen: null
+      },
+      {
+        id: 2,
+        nombre: 'Paquete Premium',
+        descripcion: 'Combo especial con múltiples servicios. Ahorra más y obtén el mejor cuidado para ti.',
+        descuento: '25% OFF',
+        dias_restantes: 10,
+        imagen: null
       }
-    }
-  } catch (error) {
-    console.error('Error cargando promociones:', error)
-    // En caso de error, mostrar promoción de ejemplo
-    promocionActual.value = {
-      id: 0,
-      nombre: 'Oferta Especial',
-      descripcion: 'Aprovecha nuestros servicios con descuentos increíbles. Agenda tu cita ahora y disfruta de la mejor experiencia.',
-      descuento: '20% OFF',
-      dias_restantes: 7,
-      imagen: null
-    }
+    ]
   }
+}
+
+function cambiarBanner(index: number) {
+  indiceActual.value = index
+  reiniciarAutoPlay()
+}
+
+function siguienteBanner() {
+  indiceActual.value = (indiceActual.value + 1) % promociones.value.length
+}
+
+function iniciarAutoPlay() {
+  if (promociones.value.length > 1) {
+    autoPlayInterval = window.setInterval(() => {
+      siguienteBanner()
+    }, 5000) // Cambia cada 5 segundos
+  }
+}
+
+function detenerAutoPlay() {
+  if (autoPlayInterval) {
+    clearInterval(autoPlayInterval)
+    autoPlayInterval = null
+  }
+}
+
+function reiniciarAutoPlay() {
+  detenerAutoPlay()
+  iniciarAutoPlay()
 }
 
 function onlyNumbers(e: Event) {
@@ -146,10 +245,22 @@ function onlyNumbers(e: Event) {
   padding: 16px;
 }
 
-/* Banner de Promociones */
-.promo-banner {
+/* Banner de Promociones - Carrusel */
+.promo-carousel {
   width: 100%;
   margin-bottom: 24px;
+  position: relative;
+}
+
+.carousel-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 24px;
+}
+
+.promo-banner {
+  width: 100%;
 }
 
 .promo-image {
@@ -242,16 +353,62 @@ function onlyNumbers(e: Event) {
   box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
-/* Transición */
-.fade-enter-active,
-.fade-leave-active {
-  transition: all 0.3s ease;
+/* Indicadores del carrusel */
+.carousel-indicators {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 0 16px;
 }
 
-.fade-enter-from,
-.fade-leave-to {
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.theme-dark .indicator-dot {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.indicator-dot:hover {
+  background: rgba(236, 64, 122, 0.5);
+  transform: scale(1.2);
+}
+
+.indicator-dot.active {
+  width: 24px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #ec407a, #c2185b);
+  box-shadow: 0 2px 8px rgba(236, 64, 122, 0.4);
+}
+
+/* Transiciones del carrusel */
+.slide-enter-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-enter-from {
   opacity: 0;
-  transform: translateY(-20px);
+  transform: translateX(30px);
+}
+
+.slide-leave-to {
+  opacity: 0;
+  transform: translateX(-30px);
 }
 
 /* Form Card */
