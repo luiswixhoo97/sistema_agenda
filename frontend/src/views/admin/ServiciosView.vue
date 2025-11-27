@@ -54,11 +54,11 @@
           v-for="servicio in serviciosFiltrados" 
           :key="servicio.id" 
           class="servicio-card"
-          :class="{ inactivo: !servicio.activo }"
+          :class="{ inactivo: !isActivo(servicio) }"
         >
           <div class="servicio-icon-container">
             <span class="servicio-icon">💇‍♀️</span>
-            <span :class="['status-dot', servicio.activo ? 'activo' : 'inactivo']"></span>
+            <span :class="['status-dot', isActivo(servicio) ? 'activo' : 'inactivo']"></span>
           </div>
           
           <div class="servicio-content">
@@ -83,10 +83,10 @@
             </button>
             <button 
               class="btn-icon-sm"
-              :class="servicio.activo ? 'danger' : 'success'"
+              :class="isActivo(servicio) ? 'danger' : 'success'"
               @click="toggleServicio(servicio)"
             >
-              <i :class="servicio.activo ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
+              <i :class="isActivo(servicio) ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
             </button>
           </div>
         </div>
@@ -175,6 +175,13 @@ const serviciosFiltrados = computed(() => {
   return servicios.value.filter(s => s.categoria_id === categoriaActiva.value);
 });
 
+function isActivo(servicio: any): boolean {
+  if (servicio.activo === true || servicio.activo === 1 || servicio.activo === '1' || servicio.activo === 'true') {
+    return true;
+  }
+  return false;
+}
+
 async function cargarDatos() {
   loading.value = true;
   try {
@@ -222,8 +229,9 @@ function editarServicio(s: any) {
 
 async function toggleServicio(s: any) { 
   try {
-    await updateServicio(s.id, { activo: !s.activo });
-    s.activo = !s.activo;
+    const nuevoEstado = !isActivo(s);
+    await updateServicio(s.id, { activo: nuevoEstado });
+    s.activo = nuevoEstado;
   } catch (error) {
     console.error('Error actualizando servicio:', error);
     alert('Error al actualizar servicio');
@@ -400,6 +408,7 @@ onMounted(() => {
   padding: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: opacity 0.2s;
+  opacity: 1;
 }
 
 .servicio-card.inactivo {
