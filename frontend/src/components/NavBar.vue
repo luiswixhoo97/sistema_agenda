@@ -9,323 +9,330 @@ const route = useRoute()
 const authStore = useAuthStore()
 const { theme, toggleTheme } = useAppkit()
 
-const menuAbierto = ref(false)
-
-const toggleMenu = () => {
-  menuAbierto.value = !menuAbierto.value
-}
-
-const cerrarMenu = () => {
-  menuAbierto.value = false
-}
+const mostrarMenuMas = ref(false)
 
 const navegarA = (ruta: string) => {
   router.push(ruta)
-  cerrarMenu()
+  mostrarMenuMas.value = false
 }
 
 const cerrarSesion = async () => {
   await authStore.logout()
-  cerrarMenu()
+  mostrarMenuMas.value = false
   router.push('/login-cliente')
 }
 
-// Menú según tipo de usuario
-const menuItems = computed(() => {
+// Items principales del footer (máximo 5)
+const footerItems = computed(() => {
   if (authStore.userType === 'cliente') {
     return [
-      { icon: 'fa-calendar-plus', label: 'Agendar Cita', ruta: '/agendar' },
+      { icon: 'fa-calendar-plus', label: 'Agendar', ruta: '/agendar' },
       { icon: 'fa-calendar-check', label: 'Mis Citas', ruta: '/mis-citas' },
-      { icon: 'fa-user', label: 'Mi Perfil', ruta: '/perfil' },
+      { icon: 'fa-user', label: 'Perfil', ruta: '/perfil' },
     ]
   } else if (authStore.userType === 'empleado') {
     return [
       { icon: 'fa-calendar-alt', label: 'Calendario', ruta: '/empleado/calendario' },
       { icon: 'fa-list-alt', label: 'Mis Citas', ruta: '/empleado/citas' },
-      { icon: 'fa-user-circle', label: 'Mi Perfil', ruta: '/empleado/perfil' },
+      { icon: 'fa-user-circle', label: 'Perfil', ruta: '/empleado/perfil' },
     ]
   } else if (authStore.userType === 'admin') {
     return [
       { icon: 'fa-chart-line', label: 'Dashboard', ruta: '/admin' },
       { icon: 'fa-calendar', label: 'Citas', ruta: '/admin/citas' },
       { icon: 'fa-cut', label: 'Servicios', ruta: '/admin/servicios' },
-      { icon: 'fa-users', label: 'Empleados', ruta: '/admin/empleados' },
-      { icon: 'fa-user-friends', label: 'Clientes', ruta: '/admin/clientes' },
-      { icon: 'fa-gift', label: 'Promociones', ruta: '/admin/promociones' },
-      { icon: 'fa-cog', label: 'Configuración', ruta: '/admin/configuracion' },
+      { icon: 'fa-users', label: 'Equipo', ruta: '/admin/empleados' },
+      { icon: 'fa-ellipsis-h', label: 'Más', ruta: '#mas', isMas: true },
     ]
   }
   // Menú público
   return [
-    { icon: 'fa-calendar-plus', label: 'Agendar Cita', ruta: '/agendar' },
-    { icon: 'fa-sign-in-alt', label: 'Acceso Personal', ruta: '/login' },
+    { icon: 'fa-calendar-plus', label: 'Agendar', ruta: '/agendar' },
+    { icon: 'fa-sign-in-alt', label: 'Acceso', ruta: '/login' },
   ]
 })
 
-const tituloActual = computed(() => {
-  const titulos: Record<string, string> = {
-    '/agendar': 'Agendar Cita',
-    '/mis-citas': 'Mis Citas',
-    '/perfil': 'Mi Perfil',
-    '/empleado/calendario': 'Calendario',
-    '/empleado/citas': 'Mis Citas',
-    '/admin': 'Dashboard',
-    '/admin/citas': 'Citas',
-    '/admin/servicios': 'Servicios',
-    '/admin/empleados': 'Empleados',
-    '/admin/clientes': 'Clientes',
-    '/admin/promociones': 'Promociones',
-    '/admin/configuracion': 'Configuración',
+// Items adicionales para el menú "Más" (admin)
+const menuMasItems = computed(() => [
+  { icon: 'fa-user-friends', label: 'Clientes', ruta: '/admin/clientes' },
+  { icon: 'fa-gift', label: 'Promociones', ruta: '/admin/promociones' },
+  { icon: 'fa-cog', label: 'Configuración', ruta: '/admin/configuracion' },
+])
+
+const handleItemClick = (item: any) => {
+  if (item.isMas) {
+    mostrarMenuMas.value = !mostrarMenuMas.value
+  } else {
+    navegarA(item.ruta)
   }
-  return titulos[route.path] || 'BeautySpa'
-})
+}
+
+const isActive = (ruta: string) => {
+  if (ruta === '#mas') {
+    return menuMasItems.value.some(item => route.path === item.ruta)
+  }
+  return route.path === ruta
+}
 </script>
 
 <template>
-  <!-- Header -->
-  <header class="app-header">
-    <div class="header-brand">
-      <span class="brand-icon">✨</span>
-      <span class="brand-text">{{ tituloActual }}</span>
-    </div>
-    <button class="menu-btn" @click="toggleMenu" aria-label="Menú">
-      <span class="hamburger">
-        <span></span>
-        <span></span>
-        <span></span>
-      </span>
-    </button>
-  </header>
-
-  <!-- Overlay con blur -->
+  <!-- Overlay para menú más -->
   <Transition name="fade">
     <div 
-      v-if="menuAbierto"
+      v-if="mostrarMenuMas"
       class="menu-overlay"
-      @click="cerrarMenu"
+      @click="mostrarMenuMas = false"
     ></div>
   </Transition>
 
-  <!-- Sidebar Menu -->
-  <Transition name="slide">
-    <aside v-if="menuAbierto" class="sidebar">
-      <!-- Header del sidebar -->
-      <div class="sidebar-header">
-        <div class="sidebar-brand">
-          <span class="brand-logo">💅</span>
-          <div class="brand-info">
-            <h2>BeautySpa</h2>
-            <span>Tu belleza, nuestra pasión</span>
-          </div>
-        </div>
-        <button class="close-btn" @click="cerrarMenu">
+  <!-- Menú "Más" popup -->
+  <Transition name="slide-up">
+    <div v-if="mostrarMenuMas" class="menu-mas">
+      <div class="menu-mas-header">
+        <span class="menu-mas-title">Más opciones</span>
+        <button class="close-btn" @click="mostrarMenuMas = false">
           <i class="fa fa-times"></i>
         </button>
       </div>
-
-      <!-- User Card -->
-      <div class="user-card">
-        <div class="user-avatar">
-          <span>{{ authStore.userName?.charAt(0)?.toUpperCase() || '👤' }}</span>
-        </div>
-        <div class="user-details">
-          <h4>{{ authStore.userName || 'Invitado' }}</h4>
-          <span class="user-role">{{ authStore.userType || 'Visitante' }}</span>
-        </div>
-        <div class="user-status">
-          <span class="status-dot"></span>
-        </div>
-      </div>
-
-      <!-- Navigation -->
-      <nav class="sidebar-nav">
-        <div class="nav-section">
-          <span class="nav-section-title">Menú Principal</span>
-          <a 
-            v-for="item in menuItems" 
-            :key="item.ruta"
-            href="#"
-            class="nav-link"
-            :class="{ 'active': route.path === item.ruta }"
-            @click.prevent="navegarA(item.ruta)"
-          >
-            <span class="nav-icon">
-              <i :class="['fa', item.icon]"></i>
-            </span>
-            <span class="nav-text">{{ item.label }}</span>
-            <span class="nav-arrow">
-              <i class="fa fa-chevron-right"></i>
-            </span>
-          </a>
-        </div>
-      </nav>
-
-      <!-- Footer -->
-      <div class="sidebar-footer">
-        <!-- Theme Toggle -->
-        <button class="footer-btn theme-btn" @click="toggleTheme">
-          <span class="btn-icon">
+      
+      <div class="menu-mas-items">
+        <a 
+          v-for="item in menuMasItems" 
+          :key="item.ruta"
+          href="#"
+          class="menu-mas-item"
+          :class="{ active: route.path === item.ruta }"
+          @click.prevent="navegarA(item.ruta)"
+        >
+          <span class="item-icon">
+            <i :class="['fa', item.icon]"></i>
+          </span>
+          <span class="item-label">{{ item.label }}</span>
+          <i class="fa fa-chevron-right item-arrow"></i>
+        </a>
+        
+        <!-- Toggle Modo Oscuro -->
+        <div class="menu-mas-item theme-toggle-item">
+          <span class="item-icon theme-icon">
             <i :class="['fa', theme === 'light' ? 'fa-moon' : 'fa-sun']"></i>
           </span>
-          <span class="btn-text">{{ theme === 'light' ? 'Modo Oscuro' : 'Modo Claro' }}</span>
-        </button>
-
-        <!-- Logout -->
-        <button 
-          v-if="authStore.isAuthenticated" 
-          class="footer-btn logout-btn"
-          @click="cerrarSesion"
-        >
-          <span class="btn-icon">
-            <i class="fa fa-sign-out-alt"></i>
-          </span>
-          <span class="btn-text">Cerrar Sesión</span>
-        </button>
-
-        <!-- Version -->
-        <div class="app-version">
-          <span>BeautySpa v1.0</span>
+          <span class="item-label">Modo {{ theme === 'light' ? 'Oscuro' : 'Claro' }}</span>
+          <label class="ios-toggle-switch">
+            <input 
+              type="checkbox" 
+              :checked="theme === 'dark'"
+              @change="toggleTheme"
+            />
+            <span class="ios-slider"></span>
+          </label>
         </div>
       </div>
-    </aside>
+
+      <!-- User info y logout -->
+      <div class="menu-mas-footer">
+        <div class="user-info">
+          <div class="user-avatar">
+            {{ authStore.userName?.charAt(0)?.toUpperCase() || '?' }}
+          </div>
+          <div class="user-details">
+            <span class="user-name">{{ authStore.userName || 'Usuario' }}</span>
+            <span class="user-role">{{ authStore.userType }}</span>
+          </div>
+        </div>
+        <button 
+          v-if="authStore.isAuthenticated" 
+          class="logout-btn"
+          @click="cerrarSesion"
+        >
+          <i class="fa fa-sign-out-alt"></i>
+        </button>
+      </div>
+    </div>
   </Transition>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <div class="nav-container">
+      <a
+        v-for="item in footerItems"
+        :key="item.ruta"
+        href="#"
+        class="nav-item"
+        :class="{ 
+          active: isActive(item.ruta),
+          'mas-active': item.isMas && mostrarMenuMas 
+        }"
+        @click.prevent="handleItemClick(item)"
+      >
+        <span class="nav-icon">
+          <i :class="['fa', item.icon]"></i>
+        </span>
+        <span class="nav-label">{{ item.label }}</span>
+        <span v-if="isActive(item.ruta) && !item.isMas" class="active-indicator"></span>
+      </a>
+    </div>
+    
+    <!-- Safe area para iPhones con notch -->
+    <div class="safe-area"></div>
+  </nav>
 </template>
 
 <style scoped>
-/* ===== HEADER ===== */
-.app-header {
+/* ===== BOTTOM NAVIGATION ===== */
+.bottom-nav {
   position: fixed;
-  top: 0;
+  bottom: 0;
   left: 0;
   right: 0;
-  height: 60px;
-  background: linear-gradient(135deg, #ec407a 0%, #c2185b 100%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
+  background: var(--nav-bg, #ffffff);
+  border-top: 1px solid var(--border-color, rgba(0,0,0,0.08));
   z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-.header-brand {
+.theme-dark .bottom-nav {
+  --nav-bg: #1a1a1a;
+  --border-color: rgba(255,255,255,0.1);
+}
+
+.nav-container {
   display: flex;
+  justify-content: space-around;
   align-items: center;
-  gap: 10px;
+  height: 60px;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
-.brand-icon {
-  font-size: 22px;
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+  text-decoration: none;
+  position: relative;
+  transition: all 0.2s ease;
 }
 
-.brand-text {
-  color: white;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-}
-
-.menu-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.2);
-  cursor: pointer;
+.nav-icon {
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 10px;
+  font-size: 18px;
+  color: var(--icon-color, #888);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-dark .nav-icon {
+  --icon-color: #666;
+}
+
+.nav-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--label-color, #888);
+  margin-top: 2px;
   transition: all 0.2s;
 }
 
-.menu-btn:hover {
-  background: rgba(255,255,255,0.25);
-  transform: scale(1.05);
+.theme-dark .nav-label {
+  --label-color: #666;
 }
 
-.hamburger {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+/* Active state */
+.nav-item.active .nav-icon {
+  color: #ec407a;
+  transform: scale(1.1);
 }
 
-.hamburger span {
-  display: block;
-  width: 20px;
-  height: 2px;
-  background: white;
-  border-radius: 2px;
-  transition: all 0.3s;
+.nav-item.active .nav-label {
+  color: #ec407a;
+  font-weight: 600;
 }
 
-.hamburger span:nth-child(2) {
-  width: 14px;
+.active-indicator {
+  position: absolute;
+  top: 4px;
+  width: 4px;
+  height: 4px;
+  background: #ec407a;
+  border-radius: 50%;
 }
 
-/* ===== OVERLAY ===== */
+/* Más button active */
+.nav-item.mas-active .nav-icon {
+  background: linear-gradient(135deg, #ec407a, #c2185b);
+  color: white;
+  transform: scale(1.1) rotate(90deg);
+}
+
+/* Hover/tap effect */
+.nav-item:active .nav-icon {
+  transform: scale(0.9);
+}
+
+/* Safe area */
+.safe-area {
+  height: env(safe-area-inset-bottom, 0);
+}
+
+/* ===== MENU MÁS ===== */
 .menu-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
-  z-index: 200;
+  z-index: 150;
 }
 
-/* ===== SIDEBAR ===== */
-.sidebar {
+.menu-mas {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 300px;
-  max-width: 85vw;
-  height: 100vh;
-  background: var(--color-card, #fff);
-  z-index: 300;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 10px 0 40px rgba(0,0,0,0.2);
+  bottom: 70px;
+  left: 12px;
+  right: 12px;
+  background: var(--menu-bg, #ffffff);
+  border-radius: 20px;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
+  z-index: 200;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 8px);
 }
 
-/* Sidebar Header */
-.sidebar-header {
-  padding: 20px;
-  background: linear-gradient(135deg, #ec407a 0%, #c2185b 100%);
-  position: relative;
+.theme-dark .menu-mas {
+  --menu-bg: #1f1f1f;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.4);
 }
 
-.sidebar-brand {
+.menu-mas-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.08));
 }
 
-.brand-logo {
-  font-size: 36px;
-}
-
-.brand-info h2 {
-  color: white;
-  font-size: 20px;
+.menu-mas-title {
+  font-size: 16px;
   font-weight: 700;
-  margin: 0;
+  color: var(--text-color, #333);
 }
 
-.brand-info span {
-  color: rgba(255,255,255,0.8);
-  font-size: 11px;
+.theme-dark .menu-mas-title {
+  --text-color: #fff;
 }
 
 .close-btn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.05);
   border: none;
-  color: white;
-  font-size: 16px;
+  color: var(--text-secondary, #666);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -333,231 +340,219 @@ const tituloActual = computed(() => {
   transition: all 0.2s;
 }
 
-.close-btn:hover {
-  background: rgba(255,255,255,0.3);
-  transform: rotate(90deg);
+.theme-dark .close-btn {
+  background: rgba(255,255,255,0.1);
+  --text-secondary: #aaa;
 }
 
-/* User Card */
-.user-card {
+.close-btn:active {
+  transform: scale(0.95);
+  background: rgba(0,0,0,0.1);
+}
+
+/* Menu items */
+.menu-mas-items {
+  padding: 8px;
+}
+
+.menu-mas-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  text-decoration: none;
+  color: var(--text-color, #333);
+  transition: all 0.2s;
+}
+
+.theme-dark .menu-mas-item {
+  --text-color: #eee;
+}
+
+.menu-mas-item:active {
+  background: rgba(236, 64, 122, 0.1);
+}
+
+.menu-mas-item.active {
+  background: linear-gradient(135deg, rgba(236, 64, 122, 0.1), rgba(236, 64, 122, 0.15));
+}
+
+.item-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(236, 64, 122, 0.1), rgba(236, 64, 122, 0.15));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #ec407a;
+}
+
+.menu-mas-item.active .item-icon {
+  background: linear-gradient(135deg, #ec407a, #c2185b);
+  color: white;
+}
+
+.item-label {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.item-arrow {
+  font-size: 12px;
+  color: #ccc;
+  opacity: 0.5;
+}
+
+/* Theme Toggle Item */
+.theme-toggle-item {
+  cursor: default;
+}
+
+.theme-toggle-item:active {
+  background: transparent;
+}
+
+.theme-icon {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.15)) !important;
+  color: #6366f1 !important;
+}
+
+/* iOS Toggle Switch */
+.ios-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.ios-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.ios-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 30px;
+}
+
+.ios-slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.ios-toggle-switch input:checked + .ios-slider {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+}
+
+.ios-toggle-switch input:checked + .ios-slider:before {
+  transform: translateX(20px);
+}
+
+.theme-dark .ios-slider {
+  background-color: #444;
+}
+
+.theme-dark .ios-toggle-switch input:checked + .ios-slider {
+  background: linear-gradient(135deg, #818cf8, #6366f1);
+}
+
+/* Footer */
+.menu-mas-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin: 0 8px;
+  background: linear-gradient(135deg, rgba(236, 64, 122, 0.08), rgba(236, 64, 122, 0.12));
+  border-radius: 14px;
+}
+
+.user-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 20px;
-  margin: 16px;
-  background: linear-gradient(135deg, rgba(236,64,122,0.08), rgba(236,64,122,0.15));
-  border-radius: 16px;
-  border: 1px solid rgba(236,64,122,0.2);
 }
 
 .user-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #ec407a, #c2185b);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  color: white;
+  font-size: 16px;
   font-weight: 700;
+  color: white;
 }
 
 .user-details {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.user-details h4 {
-  margin: 0;
-  font-size: 15px;
+.user-name {
+  font-size: 14px;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--text-color, #333);
+}
+
+.theme-dark .user-name {
+  --text-color: #fff;
 }
 
 .user-role {
-  font-size: 12px;
+  font-size: 11px;
   color: #ec407a;
   text-transform: capitalize;
   font-weight: 500;
 }
 
-.user-status {
-  display: flex;
-  align-items: center;
-}
-
-.status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #4caf50;
-  box-shadow: 0 0 0 3px rgba(76,175,80,0.2);
-}
-
-/* Navigation */
-.sidebar-nav {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 12px;
-}
-
-.nav-section {
-  margin-bottom: 16px;
-}
-
-.nav-section-title {
-  display: block;
-  padding: 12px 12px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--color-text-secondary);
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 12px;
-  margin-bottom: 4px;
-  border-radius: 12px;
-  color: var(--color-text);
-  text-decoration: none;
-  transition: all 0.2s;
-}
-
-.nav-link:hover {
-  background: rgba(236,64,122,0.08);
-}
-
-.nav-link.active {
-  background: linear-gradient(135deg, rgba(236,64,122,0.12), rgba(236,64,122,0.18));
-}
-
-.nav-icon {
+.logout-btn {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: rgba(0,0,0,0.04);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  color: var(--color-text-secondary);
-  transition: all 0.2s;
-}
-
-.theme-dark .nav-icon {
-  background: rgba(255,255,255,0.08);
-}
-
-.nav-link:hover .nav-icon,
-.nav-link.active .nav-icon {
-  background: linear-gradient(135deg, #ec407a, #c2185b);
-  color: white;
-}
-
-.nav-text {
-  flex: 1;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.nav-link.active .nav-text {
-  color: #ec407a;
-  font-weight: 600;
-}
-
-.nav-arrow {
-  font-size: 12px;
-  color: #ccc;
-  opacity: 0;
-  transform: translateX(-5px);
-  transition: all 0.2s;
-}
-
-.nav-link:hover .nav-arrow,
-.nav-link.active .nav-arrow {
-  opacity: 1;
-  transform: translateX(0);
-  color: #ec407a;
-}
-
-/* Sidebar Footer */
-.sidebar-footer {
-  padding: 16px;
-  border-top: 1px solid var(--color-border);
-}
-
-.footer-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 8px;
+  background: rgba(239, 68, 68, 0.1);
   border: none;
-  border-radius: 12px;
-  background: rgba(0,0,0,0.04);
+  color: #ef4444;
+  font-size: 16px;
   cursor: pointer;
-  transition: all 0.2s;
-}
-
-.theme-dark .footer-btn {
-  background: rgba(255,255,255,0.08);
-}
-
-.footer-btn:hover {
-  background: rgba(0,0,0,0.08);
-}
-
-.theme-dark .footer-btn:hover {
-  background: rgba(255,255,255,0.12);
-}
-
-.btn-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  transition: all 0.2s;
 }
 
-.theme-btn .btn-icon {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-}
-
-.logout-btn .btn-icon {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-}
-
-.btn-text {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.logout-btn .btn-text {
-  color: #ef4444;
-}
-
-.app-version {
-  text-align: center;
-  padding: 12px 0 0;
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  opacity: 0.6;
+.logout-btn:active {
+  transform: scale(0.95);
+  background: rgba(239, 68, 68, 0.2);
 }
 
 /* ===== TRANSITIONS ===== */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
 }
 
 .fade-enter-from,
@@ -565,13 +560,14 @@ const tituloActual = computed(() => {
   opacity: 0;
 }
 
-.slide-enter-active,
-.slide-leave-active {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.slide-enter-from,
-.slide-leave-to {
-  transform: translateX(-100%);
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
 }
 </style>

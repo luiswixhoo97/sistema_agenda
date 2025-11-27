@@ -182,7 +182,7 @@ body.theme-dark {
 }
 
 #app-container.has-navbar {
-  padding-top: 56px;
+  padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Main content - ocupa todo */
@@ -213,7 +213,7 @@ body.theme-dark {
 /* Offline toast */
 .offline-toast {
   position: fixed;
-  top: 70px;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
   left: 16px;
   right: 16px;
   padding: 12px 16px;
