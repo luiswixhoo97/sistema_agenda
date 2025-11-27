@@ -15,12 +15,11 @@ const authStore = useAuthStore();
 const route = useRoute();
 const { init: initAppkit } = useAppkit();
 
-// Mostrar navbar en rutas de app (no en login ni landing)
+// Mostrar navbar en rutas de app (no en login, landing ni agendar)
 const mostrarNavbar = computed(() => {
-  const rutasSinNavbar = ['/login', '/login-cliente', '/'];
-  // Mostrar para usuarios autenticados o en rutas públicas como /agendar
-  const esRutaPublicaConNav = route.path === '/agendar';
-  return (authStore.isAuthenticated || esRutaPublicaConNav) && !rutasSinNavbar.includes(route.path);
+  const rutasSinNavbar = ['/login', '/login-cliente', '/', '/agendar'];
+  // Mostrar solo para usuarios autenticados
+  return authStore.isAuthenticated && !rutasSinNavbar.includes(route.path);
 });
 const { conectado, iniciarMonitoreo } = useNetwork();
 const { registrar, configurarListeners } = usePushNotifications();

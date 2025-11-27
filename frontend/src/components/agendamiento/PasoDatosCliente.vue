@@ -1,16 +1,36 @@
 <template>
   <div class="paso-datos">
-    <!-- Header -->
-    <div class="paso-header">
-      <div class="header-icon">
-        <i class="fa fa-user-circle"></i>
+    <!-- Banner de Promociones -->
+    <Transition name="fade">
+      <div v-if="promocionActual" class="promo-banner">
+        <div class="promo-image" :style="{ backgroundImage: `url(${promocionActual.imagen || ''})` }">
+          <div class="promo-overlay"></div>
+          <div class="promo-content">
+            <div class="promo-badge" v-if="promocionActual.descuento">
+              <span>{{ promocionActual.descuento }}</span>
+            </div>
+            <h2 class="promo-title">{{ promocionActual.nombre }}.</h2>
+            <p class="promo-description">
+              {{ promocionActual.descripcion || 'Aprovecha esta increíble oferta y agenda tu cita ahora. ¡No te lo pierdas!' }}
+            </p>
+            <div class="promo-footer-info" v-if="promocionActual.dias_restantes !== undefined && promocionActual.dias_restantes > 0">
+              <i class="fa fa-clock"></i>
+              <span>{{ promocionActual.dias_restantes }} {{ promocionActual.dias_restantes === 1 ? 'día' : 'días' }} restantes</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <h2>Tus Datos</h2>
-      <p>Ingresa tu información para agendar</p>
-    </div>
+    </Transition>
 
     <!-- Formulario -->
     <div class="form-card">
+      <div class="form-title-wrapper">
+        <div class="title-icon">
+          <i class="fa fa-user-edit"></i>
+        </div>
+        <h2 class="form-title">Agendar tu cita</h2>
+       
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label>Nombre <span class="required">*</span></label>
@@ -67,44 +87,58 @@
         </span>
       </div>
     </div>
-
-    <!-- Validación -->
-    <div class="validation-card" :class="{ 'complete': validacion.completo === validacion.total }">
-      <div class="validation-icon">
-        <i v-if="validacion.completo === validacion.total" class="fa fa-check-circle"></i>
-        <span v-else>{{ validacion.completo }}/{{ validacion.total }}</span>
-      </div>
-      <div class="validation-text">
-        <strong>{{ validacion.completo === validacion.total ? '¡Todo listo!' : 'Completa los campos' }}</strong>
-        <span>{{ validacion.completo === validacion.total ? 'Puedes continuar' : 'Los campos con * son obligatorios' }}</span>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useCitasStore } from '@/stores/citas'
+import catalogoService from '@/services/catalogoService'
 
 const store = useCitasStore()
+
+const promocionActual = ref<any>(null)
+
+onMounted(async () => {
+  await cargarPromociones()
+})
+
+async function cargarPromociones() {
+  try {
+    const data = await catalogoService.obtenerPromociones()
+    const promociones = data || []
+    if (promociones.length > 0) {
+      promocionActual.value = promociones[0]
+    } else {
+      // Si no hay promociones, mostrar una promoción de ejemplo
+      promocionActual.value = {
+        id: 0,
+        nombre: 'Oferta Especial',
+        descripcion: 'Aprovecha nuestros servicios con descuentos increíbles. Agenda tu cita ahora y disfruta de la mejor experiencia.',
+        descuento: '20% OFF',
+        dias_restantes: 7,
+        imagen: null
+      }
+    }
+  } catch (error) {
+    console.error('Error cargando promociones:', error)
+    // En caso de error, mostrar promoción de ejemplo
+    promocionActual.value = {
+      id: 0,
+      nombre: 'Oferta Especial',
+      descripcion: 'Aprovecha nuestros servicios con descuentos increíbles. Agenda tu cita ahora y disfruta de la mejor experiencia.',
+      descuento: '20% OFF',
+      dias_restantes: 7,
+      imagen: null
+    }
+  }
+}
 
 function onlyNumbers(e: Event) {
   const input = e.target as HTMLInputElement
   input.value = input.value.replace(/\D/g, '')
   store.datosCliente.telefono = input.value
 }
-
-const validacion = computed(() => {
-  const campos = [
-    { valido: store.datosCliente.nombre.length >= 2 },
-    { valido: store.datosCliente.apellido.length >= 2 },
-    { valido: store.datosCliente.telefono.length === 10 },
-  ]
-  return {
-    completo: campos.filter(c => c.valido).length,
-    total: campos.length
-  }
-})
 </script>
 
 <style scoped>
@@ -112,65 +146,200 @@ const validacion = computed(() => {
   padding: 16px;
 }
 
-/* Header */
-.paso-header {
-  text-align: center;
-  padding: 24px 0;
+/* Banner de Promociones */
+.promo-banner {
+  width: 100%;
+  margin-bottom: 24px;
 }
 
-.header-icon {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(236,64,122,0.1), rgba(236,64,122,0.2));
+.promo-image {
+  position: relative;
+  width: 100%;
+  min-height: 220px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ec407a 0%, #c2185b 100%);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.promo-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0,0,0,0.15) 0%,
+    rgba(0,0,0,0.7) 100%
+  );
+}
+
+.promo-content {
+  position: relative;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 24px;
+  z-index: 1;
+}
+
+.promo-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 24px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+  align-self: flex-start;
+  text-transform: uppercase;
+}
+
+.promo-title {
+  color: white;
+  font-size: 28px;
+  font-weight: 900;
+  margin: 0 0 12px 0;
+  line-height: 1.15;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  letter-spacing: -0.5px;
+}
+
+.promo-description {
+  color: rgba(255,255,255,0.95);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  max-width: 85%;
+}
+
+.promo-footer-info {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin: 0 auto 16px;
+  gap: 8px;
+  color: rgba(255,255,255,0.9);
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
 }
 
-.header-icon i {
-  font-size: 32px;
-  color: #ec407a;
+.promo-footer-info i {
+  font-size: 12px;
+  opacity: 0.8;
 }
 
-.paso-header h2 {
-  font-size: 22px;
-  font-weight: 700;
-  color: #333;
-  margin: 0 0 8px;
+/* Fallback si no hay imagen */
+.promo-image:not([style*="background-image"]) {
+  background: linear-gradient(135deg, #ec407a 0%, #c2185b 50%, #7b1fa2 100%);
 }
 
-.theme-dark .paso-header h2 {
-  color: #fff;
+.theme-dark .promo-image {
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
-.paso-header p {
-  font-size: 14px;
-  color: #888;
-  margin: 0;
+/* Transición */
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
 }
 
 /* Form Card */
 .form-card {
   background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: 1px solid rgba(0,0,0,0.04);
 }
 
 .theme-dark .form-card {
   background: #1e1e1e;
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+/* Form Title Wrapper */
+.form-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.theme-dark .form-title-wrapper {
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+
+.title-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(236, 64, 122, 0.1), rgba(236, 64, 122, 0.15));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.title-icon i {
+  font-size: 20px;
+  color: #ec407a;
+}
+
+/* Form Title */
+.form-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 0;
+  letter-spacing: -0.4px;
+  line-height: 1.3;
+  flex: 1;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.theme-dark .form-title {
+  background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.title-divider {
+  height: 3px;
+  width: 50px;
+  background: linear-gradient(90deg, #ec407a, #c2185b);
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  margin-bottom: 20px;
 }
 
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .form-group:last-child {
@@ -179,56 +348,80 @@ const validacion = computed(() => {
 
 .form-group label {
   display: block;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  color: #555;
-  margin-bottom: 8px;
+  color: #2d2d2d;
+  margin-bottom: 10px;
+  letter-spacing: -0.1px;
 }
 
 .theme-dark .form-group label {
-  color: #bbb;
+  color: #e0e0e0;
 }
 
 .form-group label .required {
   color: #ec407a;
+  font-weight: 700;
+  margin-left: 2px;
 }
 
 .form-group label .optional {
   color: #999;
   font-weight: 400;
-  font-size: 12px;
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+.theme-dark .form-group label .optional {
+  color: #888;
 }
 
 .form-group input {
   width: 100%;
-  padding: 14px 16px;
-  border: 2px solid #e8e8e8;
-  border-radius: 12px;
-  font-size: 15px;
-  background: #fafafa;
-  color: #333;
-  transition: all 0.2s;
+  padding: 16px 18px;
+  border: 2px solid #e5e5e5;
+  border-radius: 14px;
+  font-size: 16px;
+  background: #f8f8f8;
+  color: #1a1a1a;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+  box-sizing: border-box;
 }
 
 .theme-dark .form-group input {
   background: #2a2a2a;
-  border-color: #333;
+  border-color: #3a3a3a;
   color: #fff;
+}
+
+.form-group input:hover {
+  border-color: #d0d0d0;
+  background: #f5f5f5;
+}
+
+.theme-dark .form-group input:hover {
+  border-color: #4a4a4a;
+  background: #2f2f2f;
 }
 
 .form-group input:focus {
   outline: none;
   border-color: #ec407a;
   background: white;
-  box-shadow: 0 0 0 3px rgba(236, 64, 122, 0.1);
+  box-shadow: 0 0 0 4px rgba(236, 64, 122, 0.12);
+  transform: translateY(-1px);
 }
 
 .theme-dark .form-group input:focus {
   background: #333;
+  border-color: #ec407a;
+  box-shadow: 0 0 0 4px rgba(236, 64, 122, 0.2);
 }
 
 .form-group input::placeholder {
-  color: #bbb;
+  color: #aaa;
+  font-weight: 400;
 }
 
 .theme-dark .form-group input::placeholder {
@@ -242,97 +435,120 @@ const validacion = computed(() => {
 
 .input-with-icon i {
   position: absolute;
-  left: 14px;
+  left: 18px;
   top: 50%;
   transform: translateY(-50%);
   color: #999;
-  font-size: 14px;
+  font-size: 16px;
+  z-index: 1;
+  transition: color 0.2s;
+}
+
+.theme-dark .input-with-icon i {
+  color: #777;
+}
+
+.input-with-icon:focus-within i {
+  color: #ec407a;
 }
 
 .input-with-icon input {
-  padding-left: 42px;
+  padding-left: 50px;
 }
 
 /* Input hint */
 .input-hint {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: 12px;
-  color: #888;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+  padding-left: 2px;
+}
+
+.theme-dark .input-hint {
+  color: #999;
 }
 
 .input-hint i {
-  font-size: 12px;
+  font-size: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.input-hint i.fa-whatsapp {
   color: #25d366;
 }
 
-/* Validation Card */
-.validation-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: white;
-  border-radius: 14px;
-  padding: 16px;
-  margin-top: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  border-left: 4px solid #ffc107;
+.input-hint i.fa-info-circle {
+  color: #6366f1;
 }
 
-.theme-dark .validation-card {
-  background: #1e1e1e;
-}
+/* Responsive */
+@media (max-width: 480px) {
+  .form-card {
+    padding: 20px;
+    border-radius: 18px;
+  }
 
-.validation-card.complete {
-  border-left-color: #4caf50;
-}
+  .form-title-wrapper {
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    gap: 12px;
+  }
 
-.validation-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #ffc107;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: white;
-}
+  .title-icon {
+    width: 40px;
+    height: 40px;
+  }
 
-.validation-card.complete .validation-icon {
-  background: #4caf50;
-}
+  .title-icon i {
+    font-size: 18px;
+  }
 
-.validation-icon i {
-  font-size: 20px;
-}
+  .form-title {
+    font-size: 20px;
+  }
 
-.validation-text {
-  flex: 1;
-}
+  .title-divider {
+    width: 40px;
+    height: 2px;
+  }
 
-.validation-text strong {
-  display: block;
-  font-size: 14px;
-  color: #333;
-}
-
-.theme-dark .validation-text strong {
-  color: #fff;
-}
-
-.validation-text span {
-  font-size: 12px;
-  color: #888;
-}
-
-@media (max-width: 400px) {
   .form-row {
-    grid-template-columns: 1fr;
-    gap: 0;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 1px;
+  }
+
+  .form-group {
+    margin-bottom: 10px;
+  }
+
+  .form-group input {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+
+  .input-with-icon input {
+    padding-left: 48px;
+  }
+
+  .input-with-icon i {
+    left: 16px;
+    font-size: 15px;
+  }
+
+  .validation-card {
+    padding: 16px 18px;
+    gap: 14px;
+  }
+
+  .validation-icon {
+    width: 44px;
+    height: 44px;
   }
 }
 </style>
