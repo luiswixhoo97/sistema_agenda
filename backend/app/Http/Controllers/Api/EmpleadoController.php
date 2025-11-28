@@ -416,6 +416,8 @@ class EmpleadoController extends Controller
                 'nombre' => $s->nombre,
                 'precio_estandar' => $s->precio,
                 'precio_especial' => $s->pivot->precio_especial,
+                'duracion_minutos' => $s->duracion, // El campo en la BD es 'duracion'
+                'duracion' => $s->duracion, // También incluir como 'duracion' para compatibilidad
             ]),
         ]);
     }

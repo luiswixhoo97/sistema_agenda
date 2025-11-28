@@ -527,6 +527,28 @@ class CitaController extends Controller
     }
 
     /**
+     * Crear nueva cita (admin)
+     * 
+     * POST /api/admin/citas
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $request->validate([
+            'cliente_id' => 'required|integer|exists:clientes,id',
+            'empleado_id' => 'required|integer|exists:empleados,id',
+            'servicios' => 'required|array|min:1',
+            'servicios.*' => 'integer|exists:servicios,id',
+            'fecha_hora' => 'required|date|after_or_equal:today',
+            'estado' => 'nullable|in:pendiente,confirmada,en_proceso,completada,cancelada,no_show',
+            'notas' => 'nullable|string|max:500',
+        ]);
+
+        $resultado = $this->citaService->agendar($request->all(), $request->cliente_id);
+
+        return response()->json($resultado, $resultado['success'] ? 201 : 422);
+    }
+
+    /**
      * Ver cita específica (admin)
      * 
      * GET /api/admin/citas/{id}
