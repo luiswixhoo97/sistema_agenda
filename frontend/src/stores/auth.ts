@@ -7,6 +7,7 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(authService.getToken())
   const user = ref<User | Cliente | null>(authService.getUser())
   const userType = ref<'cliente' | 'empleado' | 'admin' | null>(authService.getUserType())
+  const empleado = ref<any>(authService.getEmpleado())
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -29,6 +30,11 @@ export const useAuthStore = defineStore('auth', () => {
         token.value = response.token
         user.value = response.user!
         userType.value = response.user!.role as 'empleado' | 'admin'
+        // Guardar info del empleado si existe
+        if (response.empleado) {
+          empleado.value = response.empleado
+          localStorage.setItem('empleado', JSON.stringify(response.empleado))
+        }
         return true
       }
       
@@ -116,6 +122,8 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = null
       user.value = null
       userType.value = null
+      empleado.value = null
+      localStorage.removeItem('empleado')
       loading.value = false
     }
   }
@@ -142,6 +150,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = authService.getToken()
     user.value = authService.getUser()
     userType.value = authService.getUserType()
+    empleado.value = authService.getEmpleado()
   }
 
   function setAuth(userData: User | Cliente, authToken: string) {
@@ -165,6 +174,7 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     user,
     userType,
+    empleado,
     loading,
     error,
     // Getters

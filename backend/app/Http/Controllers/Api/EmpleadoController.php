@@ -423,6 +423,36 @@ class EmpleadoController extends Controller
     }
 
     /**
+     * Obtener mis servicios asignados (para empleado autenticado)
+     * 
+     * GET /api/empleado/mis-servicios
+     */
+    public function misServicios(): JsonResponse
+    {
+        $user = auth()->user();
+        $empleado = Empleado::with('servicios')->where('user_id', $user->id)->first();
+
+        if (!$empleado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Empleado no encontrado',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $empleado->servicios->map(fn($s) => [
+                'id' => $s->id,
+                'nombre' => $s->nombre,
+                'precio_estandar' => $s->precio,
+                'precio_especial' => $s->pivot->precio_especial,
+                'duracion_minutos' => $s->duracion,
+                'duracion' => $s->duracion,
+            ]),
+        ]);
+    }
+
+    /**
      * Asignar servicios al empleado
      * 
      * PUT /api/admin/empleados/{id}/servicios

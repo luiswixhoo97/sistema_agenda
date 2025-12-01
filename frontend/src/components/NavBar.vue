@@ -55,6 +55,7 @@ const footerItems = computed(() => {
 // Items adicionales para el menú "Más" (admin)
 const menuMasItems = computed(() => [
   { icon: 'fa-user-friends', label: 'Clientes', ruta: '/admin/clientes' },
+  { icon: 'fa-folder', label: 'Categorías', ruta: '/admin/categorias' },
   { icon: 'fa-gift', label: 'Promociones', ruta: '/admin/promociones' },
   { icon: 'fa-cog', label: 'Configuración', ruta: '/admin/configuracion' },
 ])

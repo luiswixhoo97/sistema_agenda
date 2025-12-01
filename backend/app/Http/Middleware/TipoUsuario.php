@@ -25,6 +25,7 @@ class TipoUsuario
         }
 
         $tiposPermitidos = explode(',', $tipos);
+        $tiposPermitidos = array_map('trim', $tiposPermitidos);
 
         // Verificar si es un cliente (modelo Cliente)
         if ($user instanceof \App\Models\Cliente) {
@@ -35,12 +36,42 @@ class TipoUsuario
 
         // Verificar si es un usuario (empleado/admin)
         if ($user instanceof \App\Models\User) {
+            // Cargar la relación role si no está cargada
+            if (!$user->relationLoaded('role')) {
+                $user->load('role');
+            }
+            
+            // Verificar si tiene role
+            if (!$user->role) {
+                \Log::warning('Usuario sin rol asignado', [
+                    'user_id' => $user->id,
+                    'email' => $user->email
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario sin rol asignado',
+                ], 403);
+            }
+            
             $rolUsuario = $user->role->nombre;
+            
+            \Log::info('Verificando tipo de usuario', [
+                'user_id' => $user->id,
+                'rol' => $rolUsuario,
+                'tipos_permitidos' => $tiposPermitidos,
+                'tiene_acceso' => in_array($rolUsuario, $tiposPermitidos)
+            ]);
             
             if (in_array($rolUsuario, $tiposPermitidos)) {
                 return $next($request);
             }
         }
+
+        \Log::warning('Acceso denegado por tipo de usuario', [
+            'user_id' => $user->id ?? null,
+            'user_type' => get_class($user),
+            'tipos_permitidos' => $tiposPermitidos
+        ]);
 
         return response()->json([
             'success' => false,

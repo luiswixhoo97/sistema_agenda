@@ -18,6 +18,12 @@ export interface SlotsResponse {
   duracion_total: number
   slots: SlotDisponible[]
   mensaje: string | null
+  horario_empleado?: {
+    hora_inicio: string
+    hora_fin: string
+  }
+  bloqueos_count?: number
+  citas_count?: number
 }
 
 export interface VerificarResponse {
@@ -68,14 +74,20 @@ const disponibilidadService = {
   async obtenerSlots(
     empleadoId: number,
     fecha: string,
-    servicios: number[]
+    servicios: number[],
+    esEmpleado: boolean = false
   ): Promise<SlotsResponse> {
     const params = new URLSearchParams()
     params.append('empleado_id', empleadoId.toString())
     params.append('fecha', fecha)
     servicios.forEach(s => params.append('servicios[]', s.toString()))
 
-    const response = await api.get(`/publico/disponibilidad/slots?${params}`)
+    // Si es empleado, usar ruta específica que ignora anticipación mínima
+    const endpoint = esEmpleado 
+      ? `/empleado/disponibilidad/slots?${params}`
+      : `/publico/disponibilidad/slots?${params}`
+    
+    const response = await api.get(endpoint)
     return response.data.data
   },
 

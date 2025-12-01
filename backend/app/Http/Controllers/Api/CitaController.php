@@ -549,6 +549,42 @@ class CitaController extends Controller
     }
 
     /**
+     * Crear nueva cita (empleado - se asigna a sí mismo)
+     * 
+     * POST /api/empleado/citas
+     */
+    public function storeEmpleado(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        $empleado = \App\Models\Empleado::where('user_id', $user->id)->first();
+
+        if (!$empleado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontró el empleado',
+            ], 404);
+        }
+
+        $request->validate([
+            'cliente_id' => 'required|integer|exists:clientes,id',
+            'servicios' => 'required|array|min:1',
+            'servicios.*.id' => 'required|integer|exists:servicios,id',
+            'fecha_hora' => 'required|date|after_or_equal:today',
+            'estado' => 'nullable|in:pendiente,confirmada',
+            'notas' => 'nullable|string|max:500',
+        ]);
+
+        // Preparar datos con el empleado autenticado
+        $datos = $request->all();
+        $datos['empleado_id'] = $empleado->id;
+        $datos['servicios'] = collect($request->servicios)->pluck('id')->toArray();
+
+        $resultado = $this->citaService->agendar($datos, $request->cliente_id);
+
+        return response()->json($resultado, $resultado['success'] ? 201 : 422);
+    }
+
+    /**
      * Ver cita específica (admin)
      * 
      * GET /api/admin/citas/{id}

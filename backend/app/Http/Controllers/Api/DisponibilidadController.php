@@ -55,6 +55,42 @@ class DisponibilidadController extends Controller
     }
 
     /**
+     * Obtener slots disponibles para una fecha (empleado - sin restricción de anticipación)
+     * 
+     * GET /api/empleado/disponibilidad/slots
+     * Query params: empleado_id, fecha, servicios[]
+     */
+    public function slotsDisponiblesEmpleado(Request $request): JsonResponse
+    {
+        $request->validate([
+            'empleado_id' => 'required|integer|exists:empleados,id',
+            'fecha' => 'required|date|date_format:Y-m-d',
+            'servicios' => 'required|array|min:1',
+            'servicios.*' => 'integer|exists:servicios,id',
+        ]);
+
+        try {
+            // Para empleados, siempre ignorar la anticipación mínima
+            $resultado = $this->disponibilidadService->obtenerSlotsDisponibles(
+                $request->empleado_id,
+                $request->fecha,
+                $request->servicios,
+                true // Siempre ignorar anticipación mínima para empleados
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $resultado,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener slots: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Obtener slots disponibles para una fecha
      * 
      * GET /api/cliente/disponibilidad/slots
@@ -70,10 +106,35 @@ class DisponibilidadController extends Controller
         ]);
 
         try {
+            // Si el usuario autenticado es un empleado y está consultando sus propios slots,
+            // ignorar la anticipación mínima para permitirle crear citas inmediatas
+            $ignorarAnticipacion = false;
+            if (auth()->check()) {
+                $user = auth()->user();
+                if ($user instanceof \App\Models\User) {
+                    $empleado = \App\Models\Empleado::where('user_id', $user->id)->first();
+                    if ($empleado && $empleado->id == $request->empleado_id) {
+                        $ignorarAnticipacion = true;
+                        \Log::info('Ignorando anticipación mínima para empleado', [
+                            'empleado_id' => $empleado->id,
+                            'user_id' => $user->id,
+                            'fecha' => $request->fecha
+                        ]);
+                    }
+                }
+            }
+            
+            \Log::info('Obteniendo slots disponibles', [
+                'empleado_id' => $request->empleado_id,
+                'fecha' => $request->fecha,
+                'ignorar_anticipacion' => $ignorarAnticipacion
+            ]);
+            
             $resultado = $this->disponibilidadService->obtenerSlotsDisponibles(
                 $request->empleado_id,
                 $request->fecha,
-                $request->servicios
+                $request->servicios,
+                $ignorarAnticipacion
             );
 
             return response()->json([

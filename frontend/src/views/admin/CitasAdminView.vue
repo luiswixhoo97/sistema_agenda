@@ -672,7 +672,10 @@ import disponibilidadService from '@/services/disponibilidadService';
 const citas = ref<any[]>([]);
 const busqueda = ref('');
 const filtroEstado = ref('');
-const filtroFecha = ref('');
+// Inicializar con la fecha de hoy
+const hoy = new Date();
+const fechaHoy = hoy.toISOString().split('T')[0];
+const filtroFecha = ref(fechaHoy);
 const loading = ref(true);
 const showModal = ref(false);
 const editingCita = ref<any>(null);
@@ -774,9 +777,11 @@ async function cargarCitas(page = 1) {
     if (filtroEstado.value) {
       params.estado = filtroEstado.value;
     }
-    if (filtroFecha.value) {
-      params.desde = filtroFecha.value + ' 00:00:00';
-      params.hasta = filtroFecha.value + ' 23:59:59';
+    // Si hay filtro de fecha, usarlo; si no, usar fecha de hoy por defecto
+    const fechaFiltro = filtroFecha.value || fechaHoy;
+    if (fechaFiltro) {
+      params.desde = fechaFiltro + ' 00:00:00';
+      params.hasta = fechaFiltro + ' 23:59:59';
     }
     
     const response = await getCitas(params);

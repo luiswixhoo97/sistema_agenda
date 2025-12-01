@@ -126,7 +126,8 @@ class DisponibilidadService
     public function obtenerSlotsDisponibles(
         int $empleadoId,
         string $fecha,
-        array $servicioIds
+        array $servicioIds,
+        bool $ignorarAnticipacionMinima = false
     ): array {
         $fechaCarbon = Carbon::parse($fecha);
         $duracionTotal = $this->calcularDuracionTotal($servicioIds);
@@ -171,6 +172,14 @@ class DisponibilidadService
             ];
         }
         
+        \Log::info('Horario del empleado', [
+            'empleado_id' => $empleadoId,
+            'fecha' => $fecha,
+            'dia_semana' => $diaSemana,
+            'hora_inicio' => $horario->hora_inicio,
+            'hora_fin' => $horario->hora_fin,
+        ]);
+        
         // Obtener bloqueos del día
         $bloqueos = BloqueoTiempo::where('fecha', $fecha)
             ->where(function ($q) use ($empleadoId) {
@@ -207,7 +216,8 @@ class DisponibilidadService
             $duracionTotal,
             $bloqueos,
             $citas,
-            $fechaCarbon
+            $fechaCarbon,
+            $ignorarAnticipacionMinima
         );
         
         return [
@@ -215,6 +225,12 @@ class DisponibilidadService
             'empleado_id' => $empleadoId,
             'duracion_total' => $duracionTotal,
             'slots' => $slots,
+            'horario_empleado' => [
+                'hora_inicio' => $horario->hora_inicio,
+                'hora_fin' => $horario->hora_fin,
+            ],
+            'bloqueos_count' => count($bloqueos),
+            'citas_count' => count($citas),
             'mensaje' => null,
         ];
     }
@@ -428,7 +444,8 @@ class DisponibilidadService
         int $duracionTotal,
         array $bloqueos,
         array $citas,
-        Carbon $fecha
+        Carbon $fecha,
+        bool $ignorarAnticipacionMinima = false
     ): array {
         $slots = [];
         $ahora = Carbon::now();
@@ -447,13 +464,32 @@ class DisponibilidadService
             $disponible = true;
             
             // Si es hoy, verificar que no sea en el pasado + anticipación mínima
-            if ($esHoy) {
+            // (a menos que se ignore la anticipación mínima, como cuando un empleado crea su propia cita)
+            if ($esHoy && !$ignorarAnticipacionMinima) {
                 $slotDateTime = $fecha->copy()->setTimeFromTimeString($horaSlot . ':00');
                 $minimoPermitido = $ahora->copy()->addHours($this->anticipacionMinima);
                 
                 if ($slotDateTime->lt($minimoPermitido)) {
                     $disponible = false;
                 }
+            } elseif ($esHoy && $ignorarAnticipacionMinima) {
+                // Si se ignora la anticipación mínima, solo verificar que no sea en el pasado
+                $slotDateTime = $fecha->copy()->setTimeFromTimeString($horaSlot . ':00');
+                if ($slotDateTime->lt($ahora)) {
+                    $disponible = false;
+                }
+            }
+            
+            // Log para depuración
+            if ($esHoy && $ignorarAnticipacionMinima) {
+                \Log::debug('Slot generado', [
+                    'hora' => $horaSlot,
+                    'es_hoy' => $esHoy,
+                    'ignorar_anticipacion' => $ignorarAnticipacionMinima,
+                    'ahora' => $ahora->format('H:i'),
+                    'slot_datetime' => $esHoy ? $fecha->copy()->setTimeFromTimeString($horaSlot . ':00')->format('Y-m-d H:i') : null,
+                    'disponible' => $disponible
+                ]);
             }
             
             // Verificar bloqueos

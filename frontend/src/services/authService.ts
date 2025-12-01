@@ -81,7 +81,11 @@ export const authService = {
     if (response.data.success) {
       localStorage.setItem('auth_token', response.data.token)
       localStorage.setItem('user', JSON.stringify(response.data.user))
-      localStorage.setItem('user_type', response.data.user?.role?.nombre || 'empleado')
+      localStorage.setItem('user_type', response.data.user?.role || 'empleado')
+      // Guardar info del empleado si existe
+      if (response.data.empleado) {
+        localStorage.setItem('empleado', JSON.stringify(response.data.empleado))
+      }
     }
     
     return response.data
@@ -180,6 +184,11 @@ export const authService = {
     return localStorage.getItem('user_type') as 'cliente' | 'empleado' | 'admin' | null
   },
 
+  getEmpleado(): { id: number; foto?: string; bio?: string } | null {
+    const empleadoStr = localStorage.getItem('empleado')
+    return empleadoStr ? JSON.parse(empleadoStr) : null
+  },
+
   isAuthenticated(): boolean {
     return !!this.getToken()
   },
@@ -200,6 +209,7 @@ export const authService = {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('user')
     localStorage.removeItem('user_type')
+    localStorage.removeItem('empleado')
   },
 }
 

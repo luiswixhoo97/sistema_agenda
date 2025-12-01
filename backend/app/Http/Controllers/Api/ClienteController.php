@@ -113,6 +113,75 @@ class ClienteController extends Controller
     }
 
     // =====================================================
+    // RUTAS PARA EMPLEADOS
+    // =====================================================
+
+    /**
+     * Listado de clientes para empleado
+     * 
+     * GET /api/empleado/clientes
+     */
+    public function indexEmpleado(Request $request): JsonResponse
+    {
+        $clientes = Cliente::where('active', true)
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'telefono', 'email']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $clientes,
+        ]);
+    }
+
+    /**
+     * Crear cliente desde empleado
+     * 
+     * POST /api/empleado/clientes
+     */
+    public function storeEmpleado(Request $request): JsonResponse
+    {
+        $request->validate([
+            'nombre' => 'required|string|max:100',
+            'apellido' => 'nullable|string|max:100',
+            'telefono' => 'required|string|max:20',
+            'email' => 'nullable|email|max:150',
+        ]);
+
+        // Verificar teléfono único
+        if (Cliente::where('telefono', $request->telefono)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ya existe un cliente con este teléfono',
+            ], 422);
+        }
+
+        // Concatenar nombre y apellido
+        $nombreCompleto = trim($request->nombre . ' ' . ($request->apellido ?? ''));
+
+        $cliente = Cliente::create([
+            'nombre' => $nombreCompleto,
+            'telefono' => $request->telefono,
+            'email' => $request->email,
+            'preferencia_contacto' => 'whatsapp',
+            'notificaciones_push' => true,
+            'notificaciones_email' => true,
+            'notificaciones_whatsapp' => true,
+            'active' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cliente creado correctamente',
+            'data' => [
+                'id' => $cliente->id,
+                'nombre' => $cliente->nombre,
+                'telefono' => $cliente->telefono,
+                'email' => $cliente->email,
+            ],
+        ], 201);
+    }
+
+    // =====================================================
     // RUTAS PARA ADMIN
     // =====================================================
 
