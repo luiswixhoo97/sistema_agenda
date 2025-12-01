@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAgendamiento } from '@/composables/useAgendamiento'
 
 const { 
@@ -15,6 +15,31 @@ const {
 } = useAgendamiento()
 
 const diasSemana = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+const mostrarModalHorarios = ref(false)
+
+async function abrirModalHorarios(fecha: string) {
+  await seleccionarFecha(fecha)
+  mostrarModalHorarios.value = true
+}
+
+function cerrarModalHorarios() {
+  mostrarModalHorarios.value = false
+}
+
+function seleccionarHoraYContinuar(hora: string) {
+  store.seleccionarHora(hora)
+  cerrarModalHorarios()
+  store.siguientePaso()
+}
+
+function formatHora(hora: string): string {
+  if (!hora) return ''
+  const [hours, minutes] = hora.split(':')
+  const hour = parseInt(hours)
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const hour12 = hour % 12 || 12
+  return `${hour12}:${minutes} ${ampm}`
+}
 
 onMounted(() => {
   cargarDisponibilidadMes()
@@ -69,7 +94,7 @@ onMounted(() => {
             'hoy': dia.esHoy,
             'pasado': dia.esPasado || !dia.disponible,
           }"
-          @click="dia.disponible && seleccionarFecha(dia.fecha)"
+          @click="dia.disponible && abrirModalHorarios(dia.fecha)"
         >
           <span v-if="dia.dia > 0">{{ dia.dia }}</span>
         </div>
@@ -88,45 +113,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Horarios -->
-    <div v-if="store.fechaSeleccionada" class="horarios-card">
-      <h4>
-        <i class="fa fa-clock"></i>
-        Horarios disponibles
-      </h4>
-
-      <!-- Loading horarios -->
-      <div v-if="store.loading" class="loading-horarios">
-        <div class="spinner-sm"></div>
-        <span>Cargando horarios...</span>
-      </div>
-
-      <!-- Mensaje -->
-      <div v-else-if="store.slotsDisponibles?.mensaje" class="horarios-mensaje">
-        <i class="fa fa-info-circle"></i>
-        {{ store.slotsDisponibles.mensaje }}
-      </div>
-
-      <!-- Sin horarios -->
-      <div v-else-if="store.slotsDisponibles?.slots.length === 0" class="horarios-mensaje">
-        <i class="fa fa-calendar-times"></i>
-        No hay horarios disponibles
-      </div>
-
-      <!-- Grid horarios -->
-      <div v-else class="horarios-grid">
-        <button 
-          v-for="slot in store.slotsDisponibles?.slots" 
-          :key="slot.hora"
-          class="horario-btn"
-          :class="{ 'selected': store.horaSeleccionada === slot.hora }"
-          @click="store.seleccionarHora(slot.hora)"
-        >
-          {{ slot.hora }}
-        </button>
-      </div>
-    </div>
-
     <!-- Resumen -->
     <div v-if="store.fechaSeleccionada && store.horaSeleccionada" class="resumen-card">
       <div class="resumen-item">
@@ -140,7 +126,7 @@ onMounted(() => {
         <i class="fa fa-clock"></i>
         <div>
           <span class="label">Hora</span>
-          <span class="value">{{ store.horaSeleccionada }}</span>
+          <span class="value">{{ formatHora(store.horaSeleccionada) }}</span>
         </div>
       </div>
       <div class="resumen-item">
@@ -151,6 +137,75 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Modal Horarios -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="mostrarModalHorarios" class="modal-backdrop" @click="cerrarModalHorarios">
+          <div class="modal-horarios" @click.stop>
+            <div class="modal-header-horarios">
+              <div>
+                <h3>
+                  <i class="fa fa-calendar-alt"></i>
+                  {{ store.fechaSeleccionada }}
+                </h3>
+                <p>Selecciona un horario disponible</p>
+              </div>
+              <button class="modal-close" @click="cerrarModalHorarios">
+                <i class="fa fa-times"></i>
+              </button>
+            </div>
+
+            <div class="modal-body-horarios">
+              <!-- Loading horarios -->
+              <div v-if="store.loading" class="loading-horarios">
+                <div class="spinner-sm"></div>
+                <span>Cargando horarios...</span>
+              </div>
+
+              <!-- Mensaje -->
+              <div v-else-if="store.slotsDisponibles?.mensaje" class="horarios-mensaje">
+                <i class="fa fa-info-circle"></i>
+                {{ store.slotsDisponibles.mensaje }}
+              </div>
+
+              <!-- Sin horarios -->
+              <div v-else-if="store.slotsDisponibles?.slots.length === 0" class="horarios-mensaje">
+                <i class="fa fa-calendar-times"></i>
+                No hay horarios disponibles para esta fecha
+              </div>
+
+              <!-- Grid horarios -->
+              <div v-else class="horarios-grid-modal">
+                <button 
+                  v-for="slot in store.slotsDisponibles?.slots" 
+                  :key="slot.hora"
+                  class="horario-btn-modal"
+                  :class="{ 'selected': store.horaSeleccionada === slot.hora }"
+                  @click="store.seleccionarHora(slot.hora)"
+                >
+                  {{ formatHora(slot.hora) }}
+                </button>
+              </div>
+            </div>
+
+            <div class="modal-footer-horarios">
+              <button class="btn-cancelar" @click="cerrarModalHorarios">
+                Cancelar
+              </button>
+              <button 
+                class="btn-continuar" 
+                @click="seleccionarHoraYContinuar(store.horaSeleccionada)"
+                :disabled="!store.horaSeleccionada"
+              >
+                Continuar
+                <i class="fa fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -362,28 +417,6 @@ onMounted(() => {
   background: #4caf50;
 }
 
-/* Horarios card */
-.horarios-card {
-  background: var(--color-card);
-  border-radius: 20px;
-  padding: 20px;
-  margin-bottom: 16px;
-}
-
-.horarios-card h4 {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text);
-  margin: 0 0 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.horarios-card h4 i {
-  color: #ec407a;
-}
-
 /* Loading horarios */
 .loading-horarios {
   display: flex;
@@ -423,35 +456,214 @@ onMounted(() => {
   opacity: 0.5;
 }
 
-/* Horarios grid */
-.horarios-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+/* Modal Horarios */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
 }
 
-.horario-btn {
-  padding: 12px 8px;
-  border: 2px solid var(--color-border);
-  border-radius: 10px;
-  background: transparent;
+.modal-horarios {
+  background: var(--color-card);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header-horarios {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header-horarios h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-header-horarios h3 i {
+  color: #ec407a;
+}
+
+.modal-header-horarios p {
+  margin: 0;
   font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.05);
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.modal-close:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.modal-body-horarios {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+  max-height: calc(90vh - 160px);
+}
+
+.modal-body-horarios::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body-horarios::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.modal-body-horarios::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.horarios-grid-modal {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.horario-btn-modal {
+  padding: 14px 12px;
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+  background: transparent;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text);
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.horario-btn:hover {
+.horario-btn-modal:hover {
   border-color: #ec407a;
   color: #ec407a;
+  transform: translateY(-2px);
 }
 
-.horario-btn.selected {
+.horario-btn-modal.selected {
   background: linear-gradient(135deg, #ec407a, #d81b60);
   border-color: transparent;
   color: white;
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.4);
+  transform: translateY(-2px);
+}
+
+.modal-footer-horarios {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-background);
+}
+
+.btn-cancelar {
+  flex: 1;
+  padding: 14px;
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancelar:hover {
+  background: var(--color-border);
+}
+
+.btn-continuar {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ec407a, #d81b60);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-continuar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-continuar:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.4);
+}
+
+/* Transiciones modal */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-active .modal-horarios,
+.modal-leave-active .modal-horarios {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .modal-horarios,
+.modal-leave-to .modal-horarios {
+  transform: translateY(20px);
+  opacity: 0;
 }
 
 /* Resumen card */
@@ -498,9 +710,21 @@ onMounted(() => {
   color: var(--color-text);
 }
 
+@media (max-width: 480px) {
+  .horarios-grid-modal {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 360px) {
-  .horarios-grid {
-    grid-template-columns: repeat(3, 1fr);
+  .horarios-grid-modal {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  
+  .horario-btn-modal {
+    padding: 12px 8px;
+    font-size: 13px;
   }
   
   .resumen-card {

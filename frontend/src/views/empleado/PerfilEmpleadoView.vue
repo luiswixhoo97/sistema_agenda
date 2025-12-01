@@ -1,22 +1,27 @@
 <template>
   <div class="perfil-view">
     <!-- Header -->
-    <div class="profile-header">
-      <div class="profile-avatar">
-        <img v-if="empleado?.foto" :src="empleado.foto" alt="Foto" />
-        <span v-else class="avatar-letter">{{ iniciales }}</span>
-      </div>
-      <div class="profile-info">
-        <h1>{{ empleado?.nombre || 'Cargando...' }}</h1>
-        <p class="profile-role">
-          <i class="fa fa-briefcase"></i>
-          {{ empleado?.especialidades || 'Profesional' }}
-        </p>
-        <div class="profile-rating" v-if="empleado?.promedio_calificacion">
-          <div class="stars">
-            <i v-for="i in 5" :key="i" class="fa fa-star" :class="{ active: i <= Math.round(empleado.promedio_calificacion) }"></i>
+    <div class="section">
+      <div class="profile-header ">
+        <div class="header-top ">
+          <div class="profile-avatar">
+            <img v-if="empleado?.foto" :src="empleado.foto" alt="Foto" />
+            <span v-else class="avatar-letter">{{ iniciales }}</span>
           </div>
-          <span>{{ empleado.promedio_calificacion.toFixed(1) }}</span>
+          <div class="header-info">
+            <h1>{{ empleado?.nombre || 'Cargando...' }}</h1>
+            <p class="profile-bio" v-if="empleado?.bio">{{ empleado.bio }}</p>
+            <div class="profile-meta">
+              <span v-if="empleado?.especialidades" class="meta-tag">
+                <i class="fa fa-briefcase"></i>
+                {{ empleado.especialidades }}
+              </span>
+              <span v-if="empleado?.promedio_calificacion" class="meta-tag rating">
+                <i class="fa fa-star"></i>
+                {{ empleado.promedio_calificacion.toFixed(1) }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -354,23 +359,30 @@ onMounted(() => {
 
 /* ===== PROFILE HEADER ===== */
 .profile-header {
-  background: linear-gradient(135deg, #ec407a, #c2185b);
-  padding: 30px 20px;
+  background: var(--color-card);
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.header-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
 }
 
 .profile-avatar {
-  width: 80px;
-  height: 80px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.2);
+  background: linear-gradient(135deg, #ec407a, #c2185b);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 3px solid rgba(255,255,255,0.3);
+  border: 2px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .profile-avatar img {
@@ -380,51 +392,59 @@ onMounted(() => {
 }
 
 .avatar-letter {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   color: white;
 }
 
-.profile-info h1 {
-  color: white;
-  font-size: 22px;
-  font-weight: 700;
-  margin: 0 0 4px;
+.header-info {
+  flex: 1;
+  min-width: 0;
 }
 
-.profile-role {
-  color: rgba(255,255,255,0.9);
+.header-info h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 6px;
+}
+
+.profile-bio {
   font-size: 13px;
-  margin: 0 0 8px;
+  color: var(--color-text-secondary);
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+.profile-meta {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
-.profile-rating {
-  display: flex;
+.meta-tag {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  padding: 4px 10px;
+  background: var(--color-background);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
 }
 
-.stars {
-  display: flex;
-  gap: 2px;
+.meta-tag i {
+  font-size: 10px;
+  color: #ec407a;
 }
 
-.stars i {
-  font-size: 12px;
-  color: rgba(255,255,255,0.4);
+.meta-tag.rating {
+  color: #ff9800;
 }
 
-.stars i.active {
+.meta-tag.rating i {
   color: #ffc107;
-}
-
-.profile-rating span {
-  color: white;
-  font-size: 14px;
-  font-weight: 600;
 }
 
 /* ===== LOADING ===== */

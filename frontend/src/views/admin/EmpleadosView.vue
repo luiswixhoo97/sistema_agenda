@@ -130,16 +130,22 @@
             <div v-if="modalType === 'horarios'" class="horarios-container">
               <div class="horario-day" v-for="dia in diasSemana" :key="dia.value">
                 <div class="day-header">
+                  <span class="day-name">{{ dia.label }}</span>
                   <label class="toggle-day">
                     <input type="checkbox" v-model="dia.activo" />
                     <span class="toggle-switch"></span>
-                    <span class="day-name">{{ dia.label }}</span>
                   </label>
                 </div>
                 <div v-if="dia.activo" class="day-hours">
-                  <input type="time" v-model="dia.inicio" />
-                  <span>a</span>
-                  <input type="time" v-model="dia.fin" />
+                  <div class="time-input-group">
+                    <label class="time-label">Inicio</label>
+                    <input type="time" v-model="dia.inicio" class="time-input" />
+                  </div>
+                  <span class="time-separator">a</span>
+                  <div class="time-input-group">
+                    <label class="time-label">Fin</label>
+                    <input type="time" v-model="dia.fin" class="time-input" />
+                  </div>
                 </div>
               </div>
               <button class="btn-submit" @click="guardarHorarios">
@@ -727,21 +733,37 @@ onMounted(() => {
 }
 
 .horario-day {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 12px 16px;
+  background: white;
+  border: 2px solid #f0f0f0;
+  border-radius: 14px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+
+.horario-day:hover {
+  border-color: #f093fb;
+  box-shadow: 0 2px 8px rgba(240, 147, 251, 0.1);
 }
 
 .day-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.day-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: #333;
+  flex: 1;
 }
 
 .toggle-day {
   display: flex;
   align-items: center;
-  gap: 10px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .toggle-day input {
@@ -749,56 +771,82 @@ onMounted(() => {
 }
 
 .toggle-switch {
-  width: 42px;
-  height: 24px;
+  width: 48px;
+  height: 28px;
   background: #e0e0e0;
-  border-radius: 12px;
+  border-radius: 14px;
   position: relative;
-  transition: background 0.2s;
+  transition: background 0.3s;
 }
 
 .toggle-switch::after {
   content: '';
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   background: white;
   border-radius: 50%;
   top: 2px;
   left: 2px;
-  transition: transform 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .toggle-day input:checked + .toggle-switch {
-  background: #f093fb;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
 .toggle-day input:checked + .toggle-switch::after {
-  transform: translateX(18px);
-}
-
-.day-name {
-  font-weight: 600;
-  color: #333;
+  transform: translateX(20px);
 }
 
 .day-hours {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  padding-left: 52px;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
 }
 
-.day-hours input {
-  padding: 8px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+.time-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.time-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.time-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
   font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  transition: all 0.2s;
+  background: white;
 }
 
-.day-hours span {
+.time-input:focus {
+  outline: none;
+  border-color: #f093fb;
+  box-shadow: 0 0 0 3px rgba(240, 147, 251, 0.1);
+}
+
+.time-separator {
   color: #999;
+  font-weight: 500;
+  font-size: 14px;
+  padding-bottom: 8px;
+  flex-shrink: 0;
 }
 </style>

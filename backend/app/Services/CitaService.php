@@ -23,7 +23,7 @@ class CitaService
     /**
      * Agendar una nueva cita
      */
-    public function agendar(array $datos, int $clienteId): array
+    public function agendar(array $datos, int $clienteId, bool $ignorarAnticipacionMinima = false): array
     {
         // Validar datos requeridos
         $empleadoId = $datos['empleado_id'];
@@ -36,7 +36,8 @@ class CitaService
         $disponibilidad = $this->disponibilidadService->verificarDisponibilidad(
             $empleadoId,
             $fechaHora,
-            $servicioIds
+            $servicioIds,
+            $ignorarAnticipacionMinima
         );
 
         if (!$disponibilidad['disponible']) {

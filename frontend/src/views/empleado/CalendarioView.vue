@@ -226,9 +226,14 @@
                 </button>
               </template>
 
-              <button class="action-btn secondary" @click="abrirFotos">
-                <i class="fa fa-camera"></i> Fotos
-              </button>
+              <a 
+                v-if="citaSeleccionada.cliente?.telefono"
+                :href="`https://wa.me/52${citaSeleccionada.cliente.telefono}`"
+                target="_blank"
+                class="action-btn whatsapp"
+              >
+                <i class="fab fa-whatsapp"></i> WhatsApp
+              </a>
             </div>
           </div>
         </div>
@@ -398,9 +403,6 @@ async function cambiarEstado(nuevoEstado: string) {
   }
 }
 
-function abrirFotos() {
-  console.log('Abrir fotos de cita:', citaSeleccionada.value?.id)
-}
 
 function formatHora(fecha: string): string {
   const fechaISO = fecha.replace(' ', 'T')
@@ -1049,6 +1051,7 @@ onMounted(() => {
 .action-btn.primary { background: linear-gradient(135deg, #ec407a, #c2185b); color: white; }
 .action-btn.danger { background: #ffebee; color: #c62828; }
 .action-btn.secondary { background: rgba(0,0,0,0.05); color: var(--color-text); }
+.action-btn.whatsapp { background: #25d366; color: white; text-decoration: none; }
 
 /* Transitions */
 .modal-enter-active, .modal-leave-active {

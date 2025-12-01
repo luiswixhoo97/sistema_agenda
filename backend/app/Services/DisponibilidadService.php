@@ -246,7 +246,8 @@ class DisponibilidadService
     public function verificarDisponibilidad(
         int $empleadoId,
         string $fechaHora,
-        array $servicioIds
+        array $servicioIds,
+        bool $ignorarAnticipacionMinima = false
     ): array {
         $fechaHoraCarbon = Carbon::parse($fechaHora);
         $fecha = $fechaHoraCarbon->format('Y-m-d');
@@ -265,15 +266,17 @@ class DisponibilidadService
             ];
         }
         
-        // Verificar anticipación mínima
-        $minimoPermitido = Carbon::now()->addHours($this->anticipacionMinima);
-        if ($fechaHoraCarbon->lt($minimoPermitido)) {
-            return [
-                'disponible' => false,
-                'duracion_total' => $duracionTotal,
-                'hora_fin' => $horaFin,
-                'mensaje' => "Debe agendar con al menos {$this->anticipacionMinima} horas de anticipación",
-            ];
+        // Verificar anticipación mínima (solo si no se ignora)
+        if (!$ignorarAnticipacionMinima) {
+            $minimoPermitido = Carbon::now()->addHours($this->anticipacionMinima);
+            if ($fechaHoraCarbon->lt($minimoPermitido)) {
+                return [
+                    'disponible' => false,
+                    'duracion_total' => $duracionTotal,
+                    'hora_fin' => $horaFin,
+                    'mensaje' => "Debe agendar con al menos {$this->anticipacionMinima} horas de anticipación",
+                ];
+            }
         }
         
         // Verificar día festivo

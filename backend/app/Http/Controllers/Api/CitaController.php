@@ -579,7 +579,8 @@ class CitaController extends Controller
         $datos['empleado_id'] = $empleado->id;
         $datos['servicios'] = collect($request->servicios)->pluck('id')->toArray();
 
-        $resultado = $this->citaService->agendar($datos, $request->cliente_id);
+        // Cuando un empleado crea una cita, ignorar la restricción de anticipación mínima
+        $resultado = $this->citaService->agendar($datos, $request->cliente_id, true);
 
         return response()->json($resultado, $resultado['success'] ? 201 : 422);
     }
