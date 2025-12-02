@@ -367,18 +367,28 @@ class CitaController extends Controller
         }
 
         $query = Cita::with(['cliente', 'servicio', 'servicios.servicio'])
-            ->where('empleado_id', $empleado->id)
-            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA, Cita::ESTADO_REAGENDADA]);
+            ->where('empleado_id', $empleado->id);
+
+        // Si hay un filtro de estado específico o de fecha, permitir ver reagendadas y canceladas
+        // Si no hay filtro, excluir canceladas y reagendadas (solo citas activas)
+        $tieneFiltroEspecifico = $request->has('estado') || $request->has('desde') || $request->has('hasta');
+        
+        if (!$tieneFiltroEspecifico) {
+            $query->whereNotIn('estado', [Cita::ESTADO_CANCELADA, Cita::ESTADO_REAGENDADA]);
+        }
 
         // Filtro de tolerancia: mostrar solo citas que no hayan pasado hace más de 15 min
         // Esto da tolerancia a los clientes que llegan tarde
         // NO tomamos en cuenta el estado, solo la hora real
-        $limiteHora = now()->subMinutes(15);
-        
-        // Log para debug
-        \Log::info('Mis Citas - Hora actual: ' . now() . ' | Limite: ' . $limiteHora);
-        
-        $query->where('fecha_hora', '>=', $limiteHora);
+        // EXCEPTO si se está filtrando por estado o fecha específica (para ver historial)
+        if (!$tieneFiltroEspecifico) {
+            $limiteHora = now()->subMinutes(15);
+            
+            // Log para debug
+            \Log::info('Mis Citas - Hora actual: ' . now() . ' | Limite: ' . $limiteHora);
+            
+            $query->where('fecha_hora', '>=', $limiteHora);
+        }
 
         // Filtros adicionales
         if ($request->has('estado')) {

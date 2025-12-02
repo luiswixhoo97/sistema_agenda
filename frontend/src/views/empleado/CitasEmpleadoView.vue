@@ -26,18 +26,19 @@
     <div class="filtros-card">
       <div class="filtro-grupo">
         <label><i class="fa fa-filter"></i> Estado</label>
-        <select v-model="filtroEstado">
+        <select v-model="filtroEstado" @change="cargarCitas">
           <option value="">Todos</option>
           <option value="pendiente">Pendientes</option>
           <option value="confirmada">Confirmadas</option>
           <option value="en_proceso">En proceso</option>
           <option value="completada">Completadas</option>
           <option value="cancelada">Canceladas</option>
+          <option value="reagendada">Reagendadas</option>
         </select>
       </div>
       <div class="filtro-grupo">
         <label><i class="fa fa-calendar"></i> Fecha</label>
-        <input type="date" v-model="filtroFecha" />
+        <input type="date" v-model="filtroFecha" @change="cargarCitas" />
       </div>
     </div>
 
@@ -785,12 +786,9 @@ const empleadoId = computed(() => {
   return authStore.user?.id
 })
 
+// Las citas ya vienen filtradas del backend según los parámetros enviados
 const citasFiltradas = computed(() => {
-  return citas.value.filter(c => {
-    const matchEstado = !filtroEstado.value || c.estado === filtroEstado.value
-    const matchFecha = !filtroFecha.value || c.fecha_hora.split(/[T\s]/)[0] === filtroFecha.value
-    return matchEstado && matchFecha
-  })
+  return citas.value
 })
 
 const citasPendientes = computed(() => {
@@ -811,7 +809,20 @@ const otrasCitas = computed(() => {
 async function cargarCitas() {
   loading.value = true
   try {
-    const response = await api.get('/empleado/citas')
+    const params: any = {}
+    
+    // Enviar filtro de estado si está seleccionado
+    if (filtroEstado.value) {
+      params.estado = filtroEstado.value
+    }
+    
+    // Enviar filtro de fecha si está seleccionado
+    if (filtroFecha.value) {
+      params.desde = filtroFecha.value + ' 00:00:00'
+      params.hasta = filtroFecha.value + ' 23:59:59'
+    }
+    
+    const response = await api.get('/empleado/citas', { params })
     citas.value = response.data.data?.citas || []
   } catch (error) {
     console.error('Error cargando citas:', error)
@@ -1173,6 +1184,7 @@ function estadoTexto(estado: string): string {
     completada: 'Completada',
     cancelada: 'Cancelada',
     no_show: 'No asistió',
+    reagendada: 'Reagendada',
   }
   return estados[estado] || estado
 }
@@ -1905,6 +1917,7 @@ onMounted(() => {
 .cita-estado-bar.completada { background: #9c27b0; }
 .cita-estado-bar.cancelada { background: #f44336; }
 .cita-estado-bar.no_show { background: #9e9e9e; }
+.cita-estado-bar.reagendada { background: #ff9800; }
 
 .cita-fecha {
   text-align: center;
@@ -1977,6 +1990,7 @@ onMounted(() => {
 .badge.completada { background: #f3e5f5; color: #7b1fa2; }
 .badge.cancelada { background: #ffebee; color: #c62828; }
 .badge.no_show { background: #fafafa; color: #616161; }
+.badge.reagendada { background: #fff3e0; color: #e65100; }
 
 .cita-arrow {
   padding-right: 14px;

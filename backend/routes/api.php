@@ -177,6 +177,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/citas/{id}/reagendar', [CitaController::class, 'reagendarAdmin']);
         Route::post('/citas/{id}/cancelar', [CitaController::class, 'cancelarAdmin']);
         
+        // Disponibilidad (para reagendar citas, sin restricción de anticipación)
+        Route::get('/disponibilidad/slots', [DisponibilidadController::class, 'slotsDisponiblesEmpleado']);
+        
         // Promociones
         Route::apiResource('promociones', PromocionController::class);
 

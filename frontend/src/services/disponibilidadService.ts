@@ -69,23 +69,30 @@ const disponibilidadService = {
   },
 
   /**
-   * Obtener slots disponibles para una fecha (público)
+   * Obtener slots disponibles para una fecha
+   * @param tipoUsuario - 'publico' | 'empleado' | 'admin' (default: 'publico')
    */
   async obtenerSlots(
     empleadoId: number,
     fecha: string,
     servicios: number[],
-    esEmpleado: boolean = false
+    tipoUsuario: boolean | 'publico' | 'empleado' | 'admin' = 'publico'
   ): Promise<SlotsResponse> {
     const params = new URLSearchParams()
     params.append('empleado_id', empleadoId.toString())
     params.append('fecha', fecha)
     servicios.forEach(s => params.append('servicios[]', s.toString()))
 
-    // Si es empleado, usar ruta específica que ignora anticipación mínima
-    const endpoint = esEmpleado 
-      ? `/empleado/disponibilidad/slots?${params}`
-      : `/publico/disponibilidad/slots?${params}`
+    // Determinar el endpoint según el tipo de usuario
+    // Mantener compatibilidad con boolean (true = empleado)
+    let endpoint: string
+    if (tipoUsuario === true || tipoUsuario === 'empleado') {
+      endpoint = `/empleado/disponibilidad/slots?${params}`
+    } else if (tipoUsuario === 'admin') {
+      endpoint = `/admin/disponibilidad/slots?${params}`
+    } else {
+      endpoint = `/publico/disponibilidad/slots?${params}`
+    }
     
     const response = await api.get(endpoint)
     return response.data.data

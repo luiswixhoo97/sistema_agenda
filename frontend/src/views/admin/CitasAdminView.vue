@@ -36,6 +36,7 @@
           <option value="completada">Completada</option>
           <option value="cancelada">Cancelada</option>
           <option value="no_show">No Show</option>
+          <option value="reagendada">Reagendada</option>
         </select>
         <input 
           v-model="filtroFecha" 
@@ -974,6 +975,7 @@ function estadoLabel(estado: string): string {
     completada: 'Completada',
     cancelada: 'Cancelada',
     no_show: 'No Show',
+    reagendada: 'Reagendada',
   };
   return labels[estado] || estado;
 }
@@ -1165,11 +1167,20 @@ async function cargarHorariosReagendar() {
       return;
     }
 
+    // Obtener el ID del empleado (puede venir como objeto o como ID directo)
+    const empleadoId = citaAReagendar.value.empleado?.id || citaAReagendar.value.empleado_id;
+    
+    if (!empleadoId) {
+      console.warn('La cita no tiene empleado asignado');
+      horariosReagendar.value = [];
+      return;
+    }
+
     const response = await disponibilidadService.obtenerSlots(
-      citaAReagendar.value.empleado_id,
+      empleadoId,
       reagendarData.value.fecha,
       serviciosIds,
-      true // Es admin/empleado, ignorar anticipación mínima
+      'admin' // Usar endpoint de admin (sin restricción de anticipación)
     );
 
     // Filtrar solo los slots disponibles
@@ -1986,6 +1997,10 @@ onMounted(() => {
 .status-badge.no_show { 
   background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%); 
   color: #c2185b; 
+}
+.status-badge.reagendada { 
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); 
+  color: #e65100; 
 }
 
 .cita-body {
