@@ -113,6 +113,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/citas', [CitaController::class, 'misCitasEmpleado']);
         Route::post('/citas', [CitaController::class, 'storeEmpleado']);
         Route::put('/citas/{id}/estado', [CitaController::class, 'cambiarEstado']);
+        Route::post('/citas/{id}/reagendar', [CitaController::class, 'reagendarEmpleado']);
+        Route::post('/citas/{id}/cancelar', [CitaController::class, 'cancelarEmpleado']);
         Route::post('/citas/{id}/fotos', [CitaController::class, 'subirFoto']);
         
         // Mi perfil de empleado
@@ -172,6 +174,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Citas
         Route::apiResource('citas', CitaController::class);
         Route::get('/citas-calendario', [CitaController::class, 'calendario']);
+        Route::post('/citas/{id}/reagendar', [CitaController::class, 'reagendarAdmin']);
+        Route::post('/citas/{id}/cancelar', [CitaController::class, 'cancelarAdmin']);
         
         // Promociones
         Route::apiResource('promociones', PromocionController::class);

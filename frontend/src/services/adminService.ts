@@ -48,6 +48,16 @@ export const deleteCita = async (id: number) => {
   return response.data;
 };
 
+export const reagendarCitaAdmin = async (id: number, data: { fecha_hora: string; motivo?: string }) => {
+  const response = await api.post(`/admin/citas/${id}/reagendar`, data);
+  return response.data;
+};
+
+export const cancelarCitaAdmin = async (id: number, motivo?: string) => {
+  const response = await api.post(`/admin/citas/${id}/cancelar`, { motivo });
+  return response.data;
+};
+
 // =====================================================
 // CLIENTES
 // =====================================================
@@ -271,6 +281,8 @@ export default {
   createCita,
   updateCita,
   deleteCita,
+  reagendarCitaAdmin,
+  cancelarCitaAdmin,
   // Clientes
   getClientes,
   getCliente,

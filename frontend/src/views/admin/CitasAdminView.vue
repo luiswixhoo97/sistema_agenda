@@ -97,13 +97,21 @@
           <div class="cita-footer">
             <span class="cita-total">${{ formatPrecio(cita.precio_final || cita.precio_total) }}</span>
             <div class="cita-actions">
-              <button class="btn-icon-sm" @click.stop="editarCita(cita)" title="Editar">
-                <i class="fa fa-edit"></i>
+              <button class="btn-icon-sm" @click.stop="editarCita(cita)" title="Ver detalle">
+                <i class="fa fa-eye"></i>
+              </button>
+              <button 
+                v-if="puedeReagendar(cita)" 
+                class="btn-icon-sm reagendar" 
+                @click.stop="abrirModalReagendar(cita)" 
+                title="Reagendar"
+              >
+                <i class="fa fa-calendar-alt"></i>
               </button>
               <button 
                 v-if="cita.estado !== 'cancelada' && cita.estado !== 'completada'" 
                 class="btn-icon-sm danger" 
-                @click.stop="cancelarCita(cita)" 
+                @click.stop="confirmarCancelacion(cita)" 
                 title="Cancelar"
               >
                 <i class="fa fa-times"></i>
@@ -290,9 +298,17 @@
                   Iniciar Cita
                 </button>
                 <button 
+                  v-if="puedeReagendar(editingCita)"
+                  class="btn-action-reagendar"
+                  @click="abrirModalReagendar(editingCita)"
+                >
+                  <i class="fa fa-calendar-alt"></i>
+                  Reagendar Cita
+                </button>
+                <button 
                   v-if="editingCita.estado !== 'cancelada' && editingCita.estado !== 'completada'"
                   class="btn-action-danger"
-                  @click="cancelarCita(editingCita)"
+                  @click="confirmarCancelacion(editingCita)"
                 >
                   <i class="fa fa-times"></i>
                   Cancelar Cita
@@ -652,6 +668,107 @@
         </div>
       </div>
     </Teleport>
+    <!-- Modal Reagendar Cita -->
+    <Teleport to="body">
+      <div v-if="showModalReagendar" class="modal-overlay" @click.self="cerrarModalReagendar">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Reagendar Cita #{{ citaAReagendar?.id }}</h3>
+            <button class="modal-close" @click="cerrarModalReagendar">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="reagendar-info">
+              <div class="info-actual">
+                <h4>Fecha y hora actual</h4>
+                <div class="fecha-actual">
+                  <i class="fa fa-calendar"></i>
+                  <span>{{ formatFechaCompleta(citaAReagendar?.fecha_hora) }}</span>
+                </div>
+              </div>
+              
+              <div class="info-cliente">
+                <span><i class="fa fa-user"></i> {{ citaAReagendar?.cliente?.nombre }}</span>
+                <span><i class="fa fa-user-tie"></i> {{ citaAReagendar?.empleado?.nombre }}</span>
+              </div>
+            </div>
+
+            <div class="reagendar-form">
+              <div class="form-section">
+                <label class="form-label">
+                  <i class="fa fa-calendar-alt"></i>
+                  Nueva Fecha <span class="required">*</span>
+                </label>
+                <input 
+                  v-model="reagendarData.fecha" 
+                  type="date" 
+                  class="form-input"
+                  :min="minDateReagendar"
+                  @change="cargarHorariosReagendar"
+                />
+              </div>
+
+              <div class="form-section">
+                <label class="form-label">
+                  <i class="fa fa-clock"></i>
+                  Nueva Hora <span class="required">*</span>
+                </label>
+                <div class="hora-select-wrapper">
+                  <select 
+                    v-model="reagendarData.hora" 
+                    class="form-select"
+                    :disabled="!reagendarData.fecha || cargandoHorariosReagendar"
+                  >
+                    <option value="">
+                      {{ getPlaceholderHoraReagendar() }}
+                    </option>
+                    <option 
+                      v-for="slot in horariosReagendar" 
+                      :key="slot.hora"
+                      :value="slot.hora"
+                    >
+                      {{ formatHora(slot.hora) }}
+                    </option>
+                  </select>
+                  <div v-if="cargandoHorariosReagendar" class="loading-horarios">
+                    <i class="fa fa-spinner fa-spin"></i>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <label class="form-label">
+                  <i class="fa fa-sticky-note"></i>
+                  Motivo del cambio <span class="optional">(opcional)</span>
+                </label>
+                <textarea 
+                  v-model="reagendarData.motivo" 
+                  class="form-textarea"
+                  placeholder="Indicar motivo del reagendamiento..."
+                  rows="2"
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn-cancel" @click="cerrarModalReagendar">
+                Cancelar
+              </button>
+              <button 
+                type="button" 
+                class="btn-submit" 
+                :disabled="!puedeConfirmarReagendar || guardandoReagendar"
+                @click="confirmarReagendar"
+              >
+                <i class="fa fa-calendar-check"></i>
+                {{ guardandoReagendar ? 'Reagendando...' : 'Confirmar Reagendamiento' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -665,9 +782,12 @@ import {
   getEmpleados,
   getServicios,
   createCliente,
-  getEmpleadoServicios
+  getEmpleadoServicios,
+  reagendarCitaAdmin,
+  cancelarCitaAdmin
 } from '@/services/adminService';
 import disponibilidadService from '@/services/disponibilidadService';
+import Swal from 'sweetalert2';
 
 const citas = ref<any[]>([]);
 const busqueda = ref('');
@@ -714,6 +834,18 @@ const nuevoClienteData = ref({
   email: '',
 });
 
+// Reagendar cita
+const showModalReagendar = ref(false);
+const citaAReagendar = ref<any>(null);
+const horariosReagendar = ref<any[]>([]);
+const cargandoHorariosReagendar = ref(false);
+const guardandoReagendar = ref(false);
+const reagendarData = ref({
+  fecha: '',
+  hora: '',
+  motivo: '',
+});
+
 let searchTimeout: ReturnType<typeof setTimeout>;
 
 const totalCitas = computed(() => pagination.value.total);
@@ -721,6 +853,15 @@ const totalCitas = computed(() => pagination.value.total);
 const minDate = computed(() => {
   const today = new Date();
   return today.toISOString().split('T')[0];
+});
+
+const minDateReagendar = computed(() => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+});
+
+const puedeConfirmarReagendar = computed(() => {
+  return reagendarData.value.fecha && reagendarData.value.hora;
 });
 
 const precioTotal = computed(() => {
@@ -920,15 +1061,211 @@ async function cambiarEstado(cita: any, nuevoEstado: string) {
   }
 }
 
+async function confirmarCancelacion(cita: any) {
+  const result = await Swal.fire({
+    title: '¿Cancelar esta cita?',
+    html: `
+      <div style="text-align: left; padding: 10px 0;">
+        <p><strong>Cliente:</strong> ${cita.cliente?.nombre || 'Sin cliente'}</p>
+        <p><strong>Fecha:</strong> ${formatFechaCompleta(cita.fecha_hora)}</p>
+        <p><strong>Empleado:</strong> ${cita.empleado?.nombre || 'Sin asignar'}</p>
+      </div>
+      <p style="color: #c62828; font-weight: 600;">Esta acción no se puede deshacer.</p>
+    `,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#c62828',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Sí, cancelar cita',
+    cancelButtonText: 'No, mantener',
+    reverseButtons: true
+  });
+
+  if (result.isConfirmed) {
+    await cancelarCita(cita);
+  }
+}
+
 async function cancelarCita(cita: any) { 
-  if (confirm('¿Estás seguro de cancelar esta cita?')) {
-    try {
-      await updateCita(cita.id, { estado: 'cancelada' });
-      cargarCitas(pagination.value.current_page);
-    } catch (error) {
-      console.error('Error cancelando cita:', error);
-      alert('Error al cancelar la cita');
+  try {
+    // Usar el nuevo endpoint de cancelación
+    const response = await cancelarCitaAdmin(cita.id, 'Cancelado por administrador');
+    
+    if (response.success) {
+      await cargarCitas(pagination.value.current_page);
+      closeModal();
+      
+      await Swal.fire({
+        icon: 'success',
+        title: '¡Cita cancelada!',
+        text: 'La cita ha sido cancelada exitosamente',
+        confirmButtonColor: '#667eea',
+        timer: 2000,
+        showConfirmButton: true
+      });
+    } else {
+      throw new Error(response.message || 'Error al cancelar');
     }
+  } catch (error: any) {
+    console.error('Error cancelando cita:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: error.response?.data?.message || error.message || 'No se pudo cancelar la cita',
+      confirmButtonColor: '#c62828'
+    });
+  }
+}
+
+function puedeReagendar(cita: any): boolean {
+  if (!cita) return false;
+  // Solo se pueden reagendar citas pendientes o confirmadas
+  return ['pendiente', 'confirmada'].includes(cita.estado);
+}
+
+function abrirModalReagendar(cita: any) {
+  citaAReagendar.value = cita;
+  reagendarData.value = {
+    fecha: '',
+    hora: '',
+    motivo: '',
+  };
+  horariosReagendar.value = [];
+  showModalReagendar.value = true;
+  closeModal(); // Cerrar modal de detalle
+}
+
+function cerrarModalReagendar() {
+  showModalReagendar.value = false;
+  citaAReagendar.value = null;
+  reagendarData.value = {
+    fecha: '',
+    hora: '',
+    motivo: '',
+  };
+  horariosReagendar.value = [];
+}
+
+async function cargarHorariosReagendar() {
+  if (!reagendarData.value.fecha || !citaAReagendar.value) {
+    horariosReagendar.value = [];
+    return;
+  }
+
+  cargandoHorariosReagendar.value = true;
+  reagendarData.value.hora = '';
+
+  try {
+    // Obtener los IDs de los servicios de la cita
+    const serviciosIds = citaAReagendar.value.servicios?.map((s: any) => s.id || s.servicio_id) || [];
+    
+    if (serviciosIds.length === 0) {
+      console.warn('La cita no tiene servicios');
+      horariosReagendar.value = [];
+      return;
+    }
+
+    const response = await disponibilidadService.obtenerSlots(
+      citaAReagendar.value.empleado_id,
+      reagendarData.value.fecha,
+      serviciosIds,
+      true // Es admin/empleado, ignorar anticipación mínima
+    );
+
+    // Filtrar solo los slots disponibles
+    horariosReagendar.value = (response.slots || []).filter((slot: any) => {
+      return slot.disponible !== false;
+    }).map((slot: any) => ({
+      hora: slot.hora || slot.hora_inicio,
+      hora_fin: slot.hora_fin,
+      disponible: true
+    }));
+
+  } catch (error) {
+    console.error('Error cargando horarios para reagendar:', error);
+    horariosReagendar.value = [];
+  } finally {
+    cargandoHorariosReagendar.value = false;
+  }
+}
+
+function getPlaceholderHoraReagendar(): string {
+  if (cargandoHorariosReagendar.value) return 'Cargando horarios...';
+  if (!reagendarData.value.fecha) return 'Selecciona una fecha primero';
+  if (horariosReagendar.value.length === 0) return 'Sin horarios disponibles';
+  return 'Seleccionar hora';
+}
+
+async function confirmarReagendar() {
+  if (!puedeConfirmarReagendar.value || !citaAReagendar.value) return;
+
+  const result = await Swal.fire({
+    title: '¿Confirmar reagendamiento?',
+    html: `
+      <div style="text-align: left; padding: 10px 0;">
+        <p><strong>Nueva fecha:</strong> ${formatFechaCompleta(reagendarData.value.fecha + ' ' + reagendarData.value.hora)}</p>
+        <p><strong>Nueva hora:</strong> ${formatHora(reagendarData.value.hora)}</p>
+        <p style="color: #666; font-size: 12px; margin-top: 10px;">
+          <i>La cita original quedará marcada como "reagendada" y se creará una nueva cita.</i>
+        </p>
+      </div>
+    `,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#667eea',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Sí, reagendar',
+    cancelButtonText: 'Cancelar',
+    reverseButtons: true
+  });
+
+  if (!result.isConfirmed) return;
+
+  guardandoReagendar.value = true;
+
+  try {
+    // Formatear fecha y hora correctamente (Y-m-d H:i:s)
+    let hora = reagendarData.value.hora;
+    // Asegurar formato HH:mm:ss
+    if (hora.split(':').length === 2) {
+      hora = `${hora}:00`;
+    }
+    const fechaHora = `${reagendarData.value.fecha} ${hora}`;
+    
+    console.log('Enviando fecha_hora:', fechaHora);
+    
+    // Usar el nuevo endpoint de reagendamiento
+    const response = await reagendarCitaAdmin(citaAReagendar.value.id, {
+      fecha_hora: fechaHora,
+      motivo: reagendarData.value.motivo || null
+    });
+    
+    if (response.success) {
+      await cargarCitas(pagination.value.current_page);
+      cerrarModalReagendar();
+
+      await Swal.fire({
+        icon: 'success',
+        title: '¡Cita reagendada!',
+        text: 'Se ha creado una nueva cita con la fecha actualizada',
+        confirmButtonColor: '#667eea',
+        timer: 2500,
+        showConfirmButton: true
+      });
+    } else {
+      throw new Error(response.message || 'Error al reagendar');
+    }
+
+  } catch (error: any) {
+    console.error('Error reagendando cita:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: error.response?.data?.message || error.message || 'No se pudo reagendar la cita',
+      confirmButtonColor: '#c62828'
+    });
+  } finally {
+    guardandoReagendar.value = false;
   }
 }
 
@@ -1757,6 +2094,11 @@ onMounted(() => {
   color: #c62828;
 }
 
+.btn-icon-sm.reagendar {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
 /* Pagination */
 .pagination {
   display: flex;
@@ -2206,6 +2548,16 @@ onMounted(() => {
 
 .btn-action-danger:hover {
   box-shadow: 0 6px 20px rgba(250, 112, 154, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-action-reagendar {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+}
+
+.btn-action-reagendar:hover {
+  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
   transform: translateY(-2px);
 }
 
@@ -2993,5 +3345,75 @@ onMounted(() => {
 
 .servicios-selector::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* Reagendar Modal */
+.reagendar-info {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid #e0e0e0;
+}
+
+.info-actual {
+  margin-bottom: 16px;
+}
+
+.info-actual h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fecha-actual {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+.fecha-actual i {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.info-cliente {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.info-cliente span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.info-cliente i {
+  color: #667eea;
+  font-size: 14px;
+}
+
+.reagendar-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 </style>

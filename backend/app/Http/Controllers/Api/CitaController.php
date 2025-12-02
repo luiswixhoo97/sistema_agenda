@@ -291,11 +291,11 @@ class CitaController extends Controller
         $fecha = $request->get('fecha', now()->format('Y-m-d'));
 
         // El calendario muestra TODAS las citas del día (sin filtro de 15 min)
-        // Solo excluimos canceladas
+        // Excluimos canceladas y reagendadas
         $citas = Cita::with(['cliente', 'servicio', 'servicios.servicio'])
             ->where('empleado_id', $empleado->id)
             ->whereDate('fecha_hora', $fecha)
-            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA])
+            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA, Cita::ESTADO_REAGENDADA])
             ->orderBy('fecha_hora', 'asc')
             ->get();
 
@@ -331,7 +331,7 @@ class CitaController extends Controller
         $citas = Cita::with(['cliente', 'servicio', 'servicios.servicio'])
             ->where('empleado_id', $empleado->id)
             ->whereBetween('fecha_hora', [$inicioSemana, $finSemana])
-            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA])
+            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA, Cita::ESTADO_REAGENDADA])
             ->orderBy('fecha_hora')
             ->get();
 
@@ -368,7 +368,7 @@ class CitaController extends Controller
 
         $query = Cita::with(['cliente', 'servicio', 'servicios.servicio'])
             ->where('empleado_id', $empleado->id)
-            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA]);
+            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA, Cita::ESTADO_REAGENDADA]);
 
         // Filtro de tolerancia: mostrar solo citas que no hayan pasado hace más de 15 min
         // Esto da tolerancia a los clientes que llegan tarde
@@ -423,6 +423,94 @@ class CitaController extends Controller
         ]);
 
         $resultado = $this->citaService->cambiarEstado($id, $request->estado, $empleado->id);
+
+        return response()->json($resultado, $resultado['success'] ? 200 : 422);
+    }
+
+    /**
+     * Reagendar una cita (empleado)
+     * Marca la cita original como "reagendada" y crea una nueva cita
+     * 
+     * POST /api/empleado/citas/{id}/reagendar
+     */
+    public function reagendarEmpleado(Request $request, int $id): JsonResponse
+    {
+        \Log::info('reagendarEmpleado - Request recibido', [
+            'id' => $id,
+            'all' => $request->all(),
+        ]);
+
+        $empleado = $this->getEmpleadoAutenticado($request);
+        
+        \Log::info('Empleado autenticado', ['empleado' => $empleado ? $empleado->toArray() : null]);
+
+        if (!$empleado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autenticado como empleado',
+            ], 401);
+        }
+
+        $request->validate([
+            'fecha_hora' => 'required|string',
+            'motivo' => 'nullable|string|max:500',
+        ]);
+
+        // Parsear y validar fecha
+        try {
+            $fechaHora = \Carbon\Carbon::parse($request->fecha_hora);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Formato de fecha inválido',
+            ], 422);
+        }
+
+        // Validar que la fecha sea futura
+        if ($fechaHora->isPast()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La fecha y hora deben ser en el futuro',
+            ], 422);
+        }
+
+        // Formatear correctamente para el servicio
+        $fechaHoraFormateada = $fechaHora->format('Y-m-d H:i:s');
+
+        \Log::info('Fecha formateada', ['fechaHora' => $fechaHoraFormateada]);
+
+        $resultado = $this->citaService->reagendar(
+            $id,
+            $fechaHoraFormateada,
+            $request->motivo,
+            $empleado->id // Solo puede reagendar sus propias citas
+        );
+
+        return response()->json($resultado, $resultado['success'] ? 200 : 422);
+    }
+
+    /**
+     * Cancelar una cita (empleado)
+     * 
+     * POST /api/empleado/citas/{id}/cancelar
+     */
+    public function cancelarEmpleado(Request $request, int $id): JsonResponse
+    {
+        $empleado = $this->getEmpleadoAutenticado($request);
+        
+        if (!$empleado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autenticado como empleado',
+            ], 401);
+        }
+
+        $request->validate([
+            'motivo' => 'nullable|string|max:500',
+        ]);
+
+        // Cambiar estado a cancelada
+        $resultado = $this->citaService->cambiarEstado($id, Cita::ESTADO_CANCELADA, $empleado->id);
 
         return response()->json($resultado, $resultado['success'] ? 200 : 422);
     }
@@ -630,7 +718,7 @@ class CitaController extends Controller
 
         $citas = Cita::with(['cliente', 'empleado.user', 'servicio'])
             ->whereBetween('fecha_hora', [$inicioMes, $finMes])
-            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA])
+            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA, Cita::ESTADO_REAGENDADA])
             ->orderBy('fecha_hora')
             ->get();
 
@@ -653,6 +741,77 @@ class CitaController extends Controller
                 ),
             ],
         ]);
+    }
+
+    /**
+     * Reagendar una cita (admin)
+     * Marca la cita original como "reagendada" y crea una nueva cita
+     * 
+     * POST /api/admin/citas/{id}/reagendar
+     */
+    public function reagendarAdmin(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'fecha_hora' => 'required|string',
+            'motivo' => 'nullable|string|max:500',
+        ]);
+
+        // Parsear y validar fecha
+        try {
+            $fechaHora = \Carbon\Carbon::parse($request->fecha_hora);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Formato de fecha inválido',
+            ], 422);
+        }
+
+        // Validar que la fecha sea futura
+        if ($fechaHora->isPast()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La fecha y hora deben ser en el futuro',
+            ], 422);
+        }
+
+        // Formatear correctamente para el servicio
+        $fechaHoraFormateada = $fechaHora->format('Y-m-d H:i:s');
+
+        // Admin puede reagendar cualquier cita (sin restricción de empleado)
+        $resultado = $this->citaService->reagendar(
+            $id,
+            $fechaHoraFormateada,
+            $request->motivo,
+            null // Sin restricción de empleado
+        );
+
+        return response()->json($resultado, $resultado['success'] ? 200 : 422);
+    }
+
+    /**
+     * Cancelar una cita (admin)
+     * 
+     * POST /api/admin/citas/{id}/cancelar
+     */
+    public function cancelarAdmin(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'motivo' => 'nullable|string|max:500',
+        ]);
+
+        $cita = Cita::find($id);
+
+        if (!$cita) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cita no encontrada',
+            ], 404);
+        }
+
+        // Cambiar estado a cancelada (admin puede cancelar cualquier cita)
+        $resultado = $this->citaService->cambiarEstado($id, Cita::ESTADO_CANCELADA, null);
+
+        return response()->json($resultado, $resultado['success'] ? 200 : 422);
     }
 
     // =====================================================

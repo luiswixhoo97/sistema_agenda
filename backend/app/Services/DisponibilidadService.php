@@ -193,10 +193,10 @@ class DisponibilidadService
             ])
             ->toArray();
         
-        // Obtener citas del día
+        // Obtener citas del día (excluir canceladas, no_show y reagendadas)
         $citas = Cita::where('empleado_id', $empleadoId)
             ->whereDate('fecha_hora', $fecha)
-            ->whereNotIn('estado', ['cancelada', 'no_show'])
+            ->whereNotIn('estado', ['cancelada', 'no_show', 'reagendada'])
             ->whereNull('deleted_at')
             ->get()
             ->map(function ($cita) {
@@ -335,10 +335,10 @@ class DisponibilidadService
             ];
         }
         
-        // Verificar citas existentes
+        // Verificar citas existentes (excluir canceladas, no_show y reagendadas)
         $hayCita = Cita::where('empleado_id', $empleadoId)
             ->whereDate('fecha_hora', $fecha)
-            ->whereNotIn('estado', ['cancelada', 'no_show'])
+            ->whereNotIn('estado', ['cancelada', 'no_show', 'reagendada'])
             ->whereNull('deleted_at')
             ->get()
             ->contains(function ($cita) use ($hora, $horaFin) {

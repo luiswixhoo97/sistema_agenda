@@ -39,6 +39,7 @@ class Cita extends Model
     const ESTADO_COMPLETADA = 'completada';
     const ESTADO_CANCELADA = 'cancelada';
     const ESTADO_NO_SHOW = 'no_show';
+    const ESTADO_REAGENDADA = 'reagendada';
 
     // Relaciones
     public function cliente(): BelongsTo
@@ -124,7 +125,7 @@ class Cita extends Model
 
     public function scopeActivas($query)
     {
-        return $query->whereNotIn('estado', [self::ESTADO_CANCELADA, self::ESTADO_NO_SHOW]);
+        return $query->whereNotIn('estado', [self::ESTADO_CANCELADA, self::ESTADO_NO_SHOW, self::ESTADO_REAGENDADA]);
     }
 
     public function scopeFuturas($query)

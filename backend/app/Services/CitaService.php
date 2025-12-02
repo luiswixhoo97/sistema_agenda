@@ -331,9 +331,9 @@ class CitaService
 
         // Validar transición de estado
         $transicionesValidas = [
-            Cita::ESTADO_PENDIENTE => [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_CANCELADA],
-            Cita::ESTADO_CONFIRMADA => [Cita::ESTADO_EN_PROCESO, Cita::ESTADO_CANCELADA, Cita::ESTADO_NO_SHOW],
-            Cita::ESTADO_EN_PROCESO => [Cita::ESTADO_COMPLETADA],
+            Cita::ESTADO_PENDIENTE => [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_CANCELADA, Cita::ESTADO_REAGENDADA],
+            Cita::ESTADO_CONFIRMADA => [Cita::ESTADO_EN_PROCESO, Cita::ESTADO_CANCELADA, Cita::ESTADO_NO_SHOW, Cita::ESTADO_REAGENDADA],
+            Cita::ESTADO_EN_PROCESO => [Cita::ESTADO_COMPLETADA, Cita::ESTADO_CANCELADA],
         ];
 
         if (!isset($transicionesValidas[$cita->estado]) || 
@@ -380,6 +380,161 @@ class CitaService
             return [
                 'success' => false,
                 'message' => 'Error al cambiar el estado',
+            ];
+        }
+    }
+
+    /**
+     * Reagendar una cita (para empleados/admin)
+     * Marca la cita original como "reagendada" y crea una nueva cita con la nueva fecha
+     */
+    public function reagendar(int $citaId, string $nuevaFechaHora, ?string $motivo = null, ?int $empleadoId = null): array
+    {
+        Log::info('Reagendar cita', [
+            'citaId' => $citaId,
+            'nuevaFechaHora' => $nuevaFechaHora,
+            'motivo' => $motivo,
+            'empleadoId' => $empleadoId,
+        ]);
+
+        $query = Cita::with(['cliente', 'empleado', 'servicios.servicio'])->where('id', $citaId);
+        
+        // Si es empleado, solo puede reagendar sus propias citas
+        if ($empleadoId) {
+            $query->where('empleado_id', $empleadoId);
+        }
+
+        $citaOriginal = $query->first();
+
+        Log::info('Cita encontrada', ['citaOriginal' => $citaOriginal ? $citaOriginal->toArray() : null]);
+
+        if (!$citaOriginal) {
+            Log::warning('Cita no encontrada para reagendar', ['citaId' => $citaId, 'empleadoId' => $empleadoId]);
+            return [
+                'success' => false,
+                'message' => 'Cita no encontrada o no tienes permisos para reagendarla',
+            ];
+        }
+
+        // Solo se pueden reagendar citas pendientes o confirmadas
+        if (!in_array($citaOriginal->estado, [Cita::ESTADO_PENDIENTE, Cita::ESTADO_CONFIRMADA])) {
+            return [
+                'success' => false,
+                'message' => 'Solo se pueden reagendar citas pendientes o confirmadas',
+            ];
+        }
+
+        // Obtener IDs de servicios
+        $servicioIds = $citaOriginal->servicios->pluck('servicio_id')->toArray();
+        if (empty($servicioIds) && $citaOriginal->servicio_id) {
+            $servicioIds = [$citaOriginal->servicio_id];
+        }
+
+        // Verificar disponibilidad en la nueva fecha/hora
+        Log::info('Verificando disponibilidad', [
+            'empleado_id' => $citaOriginal->empleado_id,
+            'nuevaFechaHora' => $nuevaFechaHora,
+            'servicioIds' => $servicioIds,
+        ]);
+
+        $disponibilidad = $this->disponibilidadService->verificarDisponibilidad(
+            $citaOriginal->empleado_id,
+            $nuevaFechaHora,
+            $servicioIds,
+            true // Ignorar anticipación mínima para empleados/admin
+        );
+
+        Log::info('Resultado disponibilidad', $disponibilidad);
+
+        if (!$disponibilidad['disponible']) {
+            return [
+                'success' => false,
+                'message' => $disponibilidad['mensaje'] ?? 'El horario seleccionado no está disponible',
+            ];
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $datosOriginales = $citaOriginal->toArray();
+
+            // 1. Marcar la cita original como "reagendada"
+            $notasActualizadas = $citaOriginal->notas ?? '';
+            $notasActualizadas .= "\n[Reagendada el " . now()->format('d/m/Y H:i') . "]";
+            if ($motivo) {
+                $notasActualizadas .= " Motivo: {$motivo}";
+            }
+
+            $citaOriginal->update([
+                'estado' => Cita::ESTADO_REAGENDADA,
+                'notas' => trim($notasActualizadas),
+            ]);
+
+            // 2. Crear la nueva cita con los mismos datos
+            $nuevaCita = Cita::create([
+                'cliente_id' => $citaOriginal->cliente_id,
+                'empleado_id' => $citaOriginal->empleado_id,
+                'servicio_id' => $citaOriginal->servicio_id,
+                'promocion_id' => $citaOriginal->promocion_id,
+                'fecha_hora' => $nuevaFechaHora,
+                'duracion_total' => $citaOriginal->duracion_total,
+                'estado' => Cita::ESTADO_CONFIRMADA, // La nueva cita queda confirmada
+                'precio_final' => $citaOriginal->precio_final,
+                'metodo_pago' => $citaOriginal->metodo_pago,
+                'notas' => "Reagendada desde cita #{$citaOriginal->id}" . ($motivo ? " - Motivo: {$motivo}" : ''),
+            ]);
+
+            // 3. Copiar los servicios de la cita original a la nueva
+            foreach ($citaOriginal->servicios as $citaServicio) {
+                CitaServicio::create([
+                    'cita_id' => $nuevaCita->id,
+                    'servicio_id' => $citaServicio->servicio_id,
+                    'precio_aplicado' => $citaServicio->precio_aplicado,
+                    'orden' => $citaServicio->orden,
+                ]);
+            }
+
+            // 4. Registrar auditoría para la cita original
+            Auditoria::registrar(
+                'reagendar',
+                'citas',
+                $citaOriginal->id,
+                $datosOriginales,
+                array_merge($citaOriginal->fresh()->toArray(), ['nueva_cita_id' => $nuevaCita->id])
+            );
+
+            // 5. Registrar auditoría para la nueva cita
+            Auditoria::registrar(
+                'crear_reagendamiento',
+                'citas',
+                $nuevaCita->id,
+                null,
+                array_merge($nuevaCita->toArray(), ['cita_original_id' => $citaOriginal->id])
+            );
+
+            DB::commit();
+
+            // Cargar relaciones de la nueva cita
+            $nuevaCita->load(['cliente', 'empleado.user', 'servicio', 'servicios.servicio']);
+
+            // Encolar notificaciones de reagendamiento
+            $this->encolarNotificaciones($nuevaCita, 'reagendamiento');
+
+            return [
+                'success' => true,
+                'message' => 'Cita reagendada exitosamente',
+                'cita_original_id' => $citaOriginal->id,
+                'nueva_cita' => $this->formatearCita($nuevaCita),
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al reagendar cita: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            
+            return [
+                'success' => false,
+                'message' => 'Error al reagendar la cita',
+                'debug' => config('app.debug') ? $e->getMessage() : null,
             ];
         }
     }
