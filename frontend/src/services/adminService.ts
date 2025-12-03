@@ -147,7 +147,7 @@ export const getEmpleadoServicios = async (id: number) => {
   return response.data;
 };
 
-export const updateEmpleadoServicios = async (id: number, servicios: number[]) => {
+export const updateEmpleadoServicios = async (id: number, servicios: { id: number; precio_especial?: number | null }[]) => {
   const response = await api.put(`/admin/empleados/${id}/servicios`, { servicios });
   return response.data;
 };
