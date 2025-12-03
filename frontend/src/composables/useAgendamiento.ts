@@ -1,5 +1,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useCitasStore } from '@/stores/citas'
+import catalogoService from '@/services/catalogoService'
 import type { ServicioPublico, EmpleadoPublico } from '@/services/catalogoService'
 
 export function useAgendamiento() {
@@ -35,8 +36,65 @@ export function useAgendamiento() {
     await store.cargarDiasDisponibles(mesActual.value, anioActual.value)
   }
 
-  // Seleccionar servicio
-  function toggleServicio(servicio: ServicioPublico) {
+  // Seleccionar servicio o promoción
+  async function toggleServicio(servicio: ServicioPublico | any) {
+    // Si es una promoción, seleccionarla y pre-seleccionar sus servicios automáticamente
+    if (servicio.es_promocion && servicio.promocion_id) {
+      // Si ya está seleccionada, deseleccionarla
+      if (store.promocionSeleccionada === servicio.promocion_id) {
+        store.seleccionarPromocion(null)
+        store.serviciosSeleccionados = []
+        return
+      }
+      
+      // Seleccionar la promoción y cargar su información
+      store.seleccionarPromocion(servicio.promocion_id)
+      
+      // Cargar información completa de la promoción para calcular descuentos
+      const promociones = await catalogoService.obtenerPromociones()
+      const promocionCompleta = promociones.find((p: any) => p.id === servicio.promocion_id)
+      if (promocionCompleta) {
+        store.promocionInfo = promocionCompleta
+      }
+      
+      // Pre-seleccionar automáticamente los servicios de la promoción
+      if (servicio.servicios_incluidos && servicio.servicios_incluidos.length > 0) {
+        // Limpiar servicios seleccionados actuales
+        store.serviciosSeleccionados = []
+        
+        // Cargar todos los servicios para obtener información completa
+        const todosServicios = await catalogoService.obtenerServicios()
+        
+        // Agregar servicios de la promoción (evitar duplicados)
+        const serviciosAgregados = new Set<number>()
+        for (const serv of servicio.servicios_incluidos) {
+          // Evitar duplicados
+          if (serviciosAgregados.has(serv.id)) {
+            continue
+          }
+          
+          const servicioCompleto = todosServicios.find((s: any) => s.id === serv.id)
+          if (servicioCompleto) {
+            store.agregarServicio({
+              id: servicioCompleto.id,
+              nombre: servicioCompleto.nombre,
+              precio: servicioCompleto.precio,
+              duracion: servicioCompleto.duracion,
+            })
+            serviciosAgregados.add(serv.id)
+          }
+        }
+        
+        // Cargar empleados disponibles para estos servicios
+        await store.cargarEmpleados()
+      } else {
+        // Si no tiene servicios_incluidos en el objeto, usar la función del store
+        await store.preSeleccionarServiciosDePromocion(servicio.promocion_id)
+      }
+      return
+    }
+    
+    // Si es un servicio normal
     const existe = store.serviciosSeleccionados.find(s => s.id === servicio.id)
     if (existe) {
       store.quitarServicio(servicio.id)

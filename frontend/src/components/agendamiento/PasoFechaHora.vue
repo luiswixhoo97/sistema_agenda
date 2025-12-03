@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useAgendamiento } from '@/composables/useAgendamiento'
 
 const { 
@@ -16,20 +16,97 @@ const {
 
 const diasSemana = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 const mostrarModalHorarios = ref(false)
+const reservando = ref(false)
+
+// Verificar si está en modo múltiples empleados
+const esModoMultiples = computed(() => store.modoMultiplesEmpleados)
+
+// Tiempo restante formateado (MM:SS)
+const tiempoRestanteFormateado = computed(() => {
+  const segundos = store.reservaTemporal.tiempoRestante
+  const mins = Math.floor(segundos / 60)
+  const secs = segundos % 60
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+})
+
+// Verificar si hay una reserva activa
+const tieneReservaActiva = computed(() => {
+  return store.reservaTemporal.token !== null || store.reservaTemporal.tokens.length > 0
+})
 
 async function abrirModalHorarios(fecha: string) {
-  await seleccionarFecha(fecha)
+  if (esModoMultiples.value) {
+    // Cargar slots coordinados
+    await store.cargarSlotsCoordinados(fecha)
+  } else {
+    // Cargar slots normales
+    await seleccionarFecha(fecha)
+  }
   mostrarModalHorarios.value = true
 }
 
-function cerrarModalHorarios() {
+async function cerrarModalHorarios() {
   mostrarModalHorarios.value = false
+  // Si hay una hora seleccionada pero no se ha reservado, limpiar
+  if (!tieneReservaActiva.value) {
+    store.horaSeleccionada = null
+    store.slotCoordinadoSeleccionado = null
+  }
 }
 
-function seleccionarHoraYContinuar(hora: string) {
+// Seleccionar hora y reservar temporalmente
+async function seleccionarHoraYReservar(hora: string) {
   store.seleccionarHora(hora)
-  cerrarModalHorarios()
-  store.siguientePaso()
+  reservando.value = true
+  store.clearError()
+  
+  try {
+    const exito = await store.reservarSlotTemporal()
+    if (!exito) {
+      // La reserva falló, recargar slots
+      await seleccionarFecha(store.fechaSeleccionada!)
+    }
+  } finally {
+    reservando.value = false
+  }
+}
+
+// Seleccionar slot coordinado y reservar temporalmente
+async function seleccionarSlotCoordinadoYReservar(slot: any) {
+  store.seleccionarSlotCoordinado(slot)
+  reservando.value = true
+  store.clearError()
+  
+  try {
+    const exito = await store.reservarSlotsTemporalesMultiples()
+    if (!exito) {
+      // La reserva falló, recargar slots
+      await store.cargarSlotsCoordinados(store.fechaSeleccionada!)
+    }
+  } finally {
+    reservando.value = false
+  }
+}
+
+// Continuar al siguiente paso (ya con reserva activa)
+function continuarConReserva() {
+  if (tieneReservaActiva.value) {
+    cerrarModalHorarios()
+    store.siguientePaso()
+  }
+}
+
+// Cancelar y liberar reserva
+async function cancelarYLiberar() {
+  await store.liberarReservasTemporal()
+  store.horaSeleccionada = null
+  store.slotCoordinadoSeleccionado = null
+  // Recargar slots
+  if (esModoMultiples.value) {
+    await store.cargarSlotsCoordinados(store.fechaSeleccionada!)
+  } else {
+    await seleccionarFecha(store.fechaSeleccionada!)
+  }
 }
 
 function formatHora(hora: string): string {
@@ -41,8 +118,28 @@ function formatHora(hora: string): string {
   return `${hour12}:${minutes} ${ampm}`
 }
 
-onMounted(() => {
-  cargarDisponibilidadMes()
+onMounted(async () => {
+  // En modo múltiples, verificar que hay empleados asignados
+  if (store.modoMultiplesEmpleados) {
+    if (store.empleadosPorServicio.length > 0) {
+      await cargarDisponibilidadMes()
+    } else {
+      console.warn('Modo múltiples: No hay empleados asignados aún')
+    }
+  } else {
+    // Modo normal: verificar que hay empleado seleccionado
+    if (store.empleadoSeleccionado) {
+      await cargarDisponibilidadMes()
+    }
+  }
+})
+
+// Limpiar al desmontar el componente
+onUnmounted(async () => {
+  // Si el usuario sale de este paso sin completar, liberar reservas
+  if (tieneReservaActiva.value && store.paso !== 5) {
+    await store.liberarReservasTemporal()
+  }
 })
 </script>
 
@@ -57,10 +154,16 @@ onMounted(() => {
       <p>Selecciona fecha y hora</p>
     </div>
 
-    <!-- Empleado badge -->
-    <div v-if="store.empleadoSeleccionado" class="empleado-badge">
+    <!-- Empleado badge (modo normal) -->
+    <div v-if="!esModoMultiples && store.empleadoSeleccionado" class="empleado-badge">
       <i class="fa fa-user-check"></i>
       <span>Con <strong>{{ store.empleadoSeleccionado.nombre }}</strong></span>
+    </div>
+
+    <!-- Empleados badge (modo múltiples) -->
+    <div v-if="esModoMultiples && store.empleadosPorServicio.length > 0" class="empleados-multiples-badge">
+      <i class="fa fa-users"></i>
+      <span>{{ store.empleadosPorServicio.length }} profesionales asignados</span>
     </div>
 
     <!-- Calendario -->
@@ -113,8 +216,8 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Resumen -->
-    <div v-if="store.fechaSeleccionada && store.horaSeleccionada" class="resumen-card">
+    <!-- Resumen (modo normal) -->
+    <div v-if="!esModoMultiples && store.fechaSeleccionada && store.horaSeleccionada" class="resumen-card">
       <div class="resumen-item">
         <i class="fa fa-calendar"></i>
         <div>
@@ -138,6 +241,34 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Resumen (modo múltiples) -->
+    <div v-if="esModoMultiples && store.slotCoordinadoSeleccionado" class="resumen-coordinado">
+      <div class="resumen-header">
+        <i class="fa fa-check-circle"></i>
+        <span>Horario seleccionado</span>
+      </div>
+      <div class="timeline-servicios">
+        <div 
+          v-for="(servicio, index) in store.slotCoordinadoSeleccionado.servicios" 
+          :key="index"
+          class="timeline-item"
+        >
+          <div class="timeline-time">
+            <span class="hora-inicio">{{ formatHora(servicio.hora_inicio) }}</span>
+            <span class="separador">→</span>
+            <span class="hora-fin">{{ formatHora(servicio.hora_fin) }}</span>
+          </div>
+          <div class="timeline-content">
+            <div class="timeline-servicio">{{ servicio.servicio_nombre }}</div>
+            <div class="timeline-empleado">
+              <i class="fa fa-user"></i>
+              {{ servicio.empleado_nombre }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal Horarios -->
     <Teleport to="body">
       <Transition name="modal">
@@ -149,7 +280,8 @@ onMounted(() => {
                   <i class="fa fa-calendar-alt"></i>
                   {{ store.fechaSeleccionada }}
                 </h3>
-                <p>Selecciona un horario disponible</p>
+                <p v-if="!esModoMultiples">Selecciona un horario disponible</p>
+                <p v-else>Selecciona un horario donde todos encajen</p>
               </div>
               <button class="modal-close" @click="cerrarModalHorarios">
                 <i class="fa fa-times"></i>
@@ -163,44 +295,145 @@ onMounted(() => {
                 <span>Cargando horarios...</span>
               </div>
 
-              <!-- Mensaje -->
-              <div v-else-if="store.slotsDisponibles?.mensaje" class="horarios-mensaje">
-                <i class="fa fa-info-circle"></i>
-                {{ store.slotsDisponibles.mensaje }}
-              </div>
+              <!-- ===================================== -->
+              <!-- MODO NORMAL: Horarios simples -->
+              <!-- ===================================== -->
+              <template v-else-if="!esModoMultiples">
+                <!-- Mensaje -->
+                <div v-if="store.slotsDisponibles?.mensaje" class="horarios-mensaje">
+                  <i class="fa fa-info-circle"></i>
+                  {{ store.slotsDisponibles.mensaje }}
+                </div>
 
-              <!-- Sin horarios -->
-              <div v-else-if="store.slotsDisponibles?.slots.length === 0" class="horarios-mensaje">
-                <i class="fa fa-calendar-times"></i>
-                No hay horarios disponibles para esta fecha
-              </div>
+                <!-- Sin horarios -->
+                <div v-else-if="store.slotsDisponibles?.slots.length === 0" class="horarios-mensaje">
+                  <i class="fa fa-calendar-times"></i>
+                  No hay horarios disponibles para esta fecha
+                </div>
 
-              <!-- Grid horarios -->
-              <div v-else class="horarios-grid-modal">
-                <button 
-                  v-for="slot in store.slotsDisponibles?.slots" 
-                  :key="slot.hora"
-                  class="horario-btn-modal"
-                  :class="{ 'selected': store.horaSeleccionada === slot.hora }"
-                  @click="store.seleccionarHora(slot.hora)"
-                >
-                  {{ formatHora(slot.hora) }}
-                </button>
-              </div>
+                <!-- Grid horarios -->
+                <div v-else class="horarios-grid-modal">
+                  <button 
+                    v-for="slot in store.slotsDisponibles?.slots" 
+                    :key="slot.hora"
+                    class="horario-btn-modal"
+                    :class="{ 
+                      'selected': store.horaSeleccionada === slot.hora,
+                      'reservando': reservando && store.horaSeleccionada === slot.hora
+                    }"
+                    :disabled="reservando"
+                    @click="seleccionarHoraYReservar(slot.hora)"
+                  >
+                    <span v-if="reservando && store.horaSeleccionada === slot.hora">
+                      <i class="fa fa-spinner fa-spin"></i>
+                    </span>
+                    <span v-else>{{ formatHora(slot.hora) }}</span>
+                  </button>
+                </div>
+              </template>
+
+              <!-- ===================================== -->
+              <!-- MODO MÚLTIPLES: Horarios coordinados -->
+              <!-- ===================================== -->
+              <template v-else>
+                <!-- No se han cargado slots aún -->
+                <div v-if="!store.slotsCoordinados" class="horarios-mensaje">
+                  <i class="fa fa-calendar-alt"></i>
+                  Cargando horarios coordinados...
+                </div>
+
+                <!-- Mensaje de error o información -->
+                <div v-else-if="store.slotsCoordinados.mensaje" class="horarios-mensaje">
+                  <i class="fa fa-info-circle"></i>
+                  {{ store.slotsCoordinados.mensaje }}
+                </div>
+
+                <!-- Sin horarios -->
+                <div v-else-if="!store.slotsCoordinados.slots_validos || store.slotsCoordinados.slots_validos.length === 0" class="horarios-mensaje">
+                  <i class="fa fa-calendar-times"></i>
+                  No hay horarios donde todos los servicios encajen
+                </div>
+
+                <!-- Lista de slots coordinados -->
+                <div v-else class="slots-coordinados-list">
+                  <div 
+                    v-for="slot in store.slotsCoordinados?.slots_validos" 
+                    :key="slot.hora"
+                    class="slot-coordinado-card"
+                    :class="{ 
+                      'selected': store.slotCoordinadoSeleccionado?.hora === slot.hora,
+                      'reservando': reservando && store.slotCoordinadoSeleccionado?.hora === slot.hora
+                    }"
+                    @click="!reservando && seleccionarSlotCoordinadoYReservar(slot)"
+                  >
+                    <div class="slot-hora-principal">
+                      <i class="fa fa-clock"></i>
+                      {{ formatHora(slot.hora) }}
+                    </div>
+                    <div class="slot-timeline">
+                      <div 
+                        v-for="(servicio, idx) in slot.servicios" 
+                        :key="idx"
+                        class="slot-servicio"
+                      >
+                        <div class="servicio-tiempo">
+                          {{ formatHora(servicio.hora_inicio) }} - {{ formatHora(servicio.hora_fin) }}
+                        </div>
+                        <div class="servicio-nombre">{{ servicio.servicio_nombre }}</div>
+                        <div class="servicio-empleado">
+                          <i class="fa fa-user"></i>
+                          {{ servicio.empleado_nombre }}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="slot-duracion-total">
+                      <i class="fa fa-hourglass-end"></i>
+                      Termina a las {{ formatHora(slot.hora_fin) }}
+                    </div>
+                  </div>
+                </div>
+              </template>
             </div>
 
             <div class="modal-footer-horarios">
-              <button class="btn-cancelar" @click="cerrarModalHorarios">
-                Cancelar
-              </button>
-              <button 
-                class="btn-continuar" 
-                @click="seleccionarHoraYContinuar(store.horaSeleccionada)"
-                :disabled="!store.horaSeleccionada"
-              >
-                Continuar
-                <i class="fa fa-chevron-right"></i>
-              </button>
+              <!-- Temporizador de reserva -->
+              <div v-if="tieneReservaActiva" class="temporizador-reserva">
+                <i class="fa fa-clock"></i>
+                <span>Reservado por <strong>{{ tiempoRestanteFormateado }}</strong></span>
+              </div>
+              
+              <div class="footer-buttons">
+                <button 
+                  v-if="tieneReservaActiva"
+                  class="btn-cancelar" 
+                  @click="cancelarYLiberar"
+                  :disabled="reservando"
+                >
+                  Cancelar reserva
+                </button>
+                <button 
+                  v-else
+                  class="btn-cancelar" 
+                  @click="cerrarModalHorarios"
+                >
+                  Cerrar
+                </button>
+                
+                <button 
+                  class="btn-continuar" 
+                  @click="continuarConReserva"
+                  :disabled="!tieneReservaActiva || reservando"
+                >
+                  <span v-if="reservando">
+                    <i class="fa fa-spinner fa-spin"></i>
+                    Reservando...
+                  </span>
+                  <span v-else>
+                    Continuar
+                    <i class="fa fa-chevron-right"></i>
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -265,6 +498,23 @@ onMounted(() => {
 
 .empleado-badge i {
   font-size: 12px;
+}
+
+/* Empleados múltiples badge */
+.empleados-multiples-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #7b1fa2, #9c27b0);
+  color: white;
+  border-radius: 25px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.empleados-multiples-badge i {
+  font-size: 14px;
 }
 
 /* Calendario card */
@@ -473,7 +723,7 @@ onMounted(() => {
   background: var(--color-card);
   border-radius: 24px;
   width: 100%;
-  max-width: 420px;
+  max-width: 480px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -594,10 +844,50 @@ onMounted(() => {
 
 .modal-footer-horarios {
   display: flex;
+  flex-direction: column;
   gap: 12px;
   padding: 16px 24px;
   border-top: 1px solid var(--color-border);
   background: var(--color-background);
+}
+
+.footer-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+/* Temporizador de reserva */
+.temporizador-reserva {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(255, 152, 0, 0.15));
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  border-radius: 10px;
+  color: #e65100;
+  font-size: 13px;
+}
+
+.theme-dark .temporizador-reserva {
+  color: #ffb74d;
+}
+
+.temporizador-reserva i {
+  font-size: 14px;
+}
+
+.temporizador-reserva strong {
+  font-family: monospace;
+  font-size: 16px;
+}
+
+/* Estado reservando */
+.horario-btn-modal.reservando,
+.slot-coordinado-card.reservando {
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 .btn-cancelar {
@@ -708,6 +998,199 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text);
+}
+
+/* ===================================== */
+/* Estilos para slots coordinados */
+/* ===================================== */
+
+.slots-coordinados-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.slot-coordinado-card {
+  background: rgba(0,0,0,0.03);
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+
+.theme-dark .slot-coordinado-card {
+  background: rgba(255,255,255,0.05);
+}
+
+.slot-coordinado-card:hover {
+  background: rgba(236,64,122,0.05);
+  border-color: rgba(236,64,122,0.3);
+}
+
+.slot-coordinado-card.selected {
+  background: linear-gradient(135deg, rgba(236,64,122,0.08), rgba(236,64,122,0.12));
+  border-color: #ec407a;
+  box-shadow: 0 4px 16px rgba(236, 64, 122, 0.2);
+}
+
+.slot-hora-principal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ec407a;
+  margin-bottom: 12px;
+}
+
+.slot-hora-principal i {
+  font-size: 16px;
+}
+
+.slot-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 8px;
+  border-left: 3px solid var(--color-border);
+}
+
+.slot-servicio {
+  padding-left: 12px;
+  position: relative;
+}
+
+.slot-servicio::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ec407a;
+}
+
+.servicio-tiempo {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+}
+
+.servicio-nombre {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.servicio-empleado {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.servicio-empleado i {
+  font-size: 10px;
+}
+
+.slot-duracion-total {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--color-border);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.slot-duracion-total i {
+  color: #ec407a;
+}
+
+/* Resumen coordinado */
+.resumen-coordinado {
+  background: var(--color-card);
+  border-radius: 20px;
+  padding: 16px;
+  border: 2px solid rgba(76, 175, 80, 0.3);
+}
+
+.resumen-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: #4caf50;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.timeline-servicios {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(0,0,0,0.03);
+  border-radius: 12px;
+}
+
+.theme-dark .timeline-item {
+  background: rgba(255,255,255,0.05);
+}
+
+.timeline-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.timeline-time .hora-inicio {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.timeline-time .separador {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+}
+
+.timeline-time .hora-fin {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.timeline-content {
+  flex: 1;
+}
+
+.timeline-servicio {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.timeline-empleado {
+  font-size: 12px;
+  color: #ec407a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.timeline-empleado i {
+  font-size: 10px;
 }
 
 @media (max-width: 480px) {

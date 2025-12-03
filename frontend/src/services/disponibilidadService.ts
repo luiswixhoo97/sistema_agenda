@@ -48,6 +48,44 @@ export interface CalculoServicioResponse {
   precio_texto: string
 }
 
+// Tipos para slots coordinados
+export interface ServicioConEmpleado {
+  servicio_id: number
+  empleado_id: number
+}
+
+export interface ServicioSlotInfo {
+  empleado_id: number
+  empleado_nombre: string
+  servicio_id: number
+  servicio_nombre: string
+  inicio: string
+  fin: string
+  hora_inicio: string
+  hora_fin: string
+  duracion: number
+}
+
+export interface SlotCoordinado {
+  hora: string
+  hora_fin: string
+  servicios: ServicioSlotInfo[]
+}
+
+export interface SlotsCoordinadosResponse {
+  fecha: string
+  slots_validos: SlotCoordinado[]
+  total_slots: number
+  servicios_info: {
+    servicio_id: number
+    servicio_nombre: string
+    empleado_id: number
+    empleado_nombre: string
+    duracion: number
+  }[]
+  mensaje: string | null
+}
+
 const disponibilidadService = {
   /**
    * Obtener días con disponibilidad en un mes (público)
@@ -142,6 +180,134 @@ const disponibilidadService = {
     })
     return response.data.data
   },
+
+  /**
+   * Obtener slots coordinados para múltiples servicios con diferentes empleados
+   */
+  async obtenerSlotsCoordinados(
+    fecha: string,
+    servicios: ServicioConEmpleado[]
+  ): Promise<SlotsCoordinadosResponse> {
+    const response = await api.post('/publico/disponibilidad/slots-coordinados', {
+      fecha,
+      servicios,
+    })
+    return response.data.data
+  },
+
+  // =====================================================
+  // RESERVAS TEMPORALES
+  // =====================================================
+
+  /**
+   * Reservar temporalmente un slot (para evitar conflictos)
+   */
+  async reservarTemporal(
+    empleadoId: number,
+    fecha: string,
+    hora: string,
+    servicios: number[],
+    telefono?: string,
+    sessionId?: string
+  ): Promise<ReservaTemporalResponse> {
+    const response = await api.post('/publico/disponibilidad/reservar-temporal', {
+      empleado_id: empleadoId,
+      fecha,
+      hora,
+      servicios,
+      telefono,
+      session_id: sessionId,
+    })
+    return response.data
+  },
+
+  /**
+   * Reservar temporalmente múltiples slots coordinados
+   */
+  async reservarTemporalMultiple(
+    fecha: string,
+    servicios: {
+      servicio_id: number
+      empleado_id: number
+      hora_inicio: string
+      hora_fin: string
+    }[],
+    telefono?: string,
+    sessionId?: string
+  ): Promise<ReservaTemporalMultipleResponse> {
+    const response = await api.post('/publico/disponibilidad/reservar-temporal-multiple', {
+      fecha,
+      servicios,
+      telefono,
+      session_id: sessionId,
+    })
+    return response.data
+  },
+
+  /**
+   * Liberar una reserva temporal
+   */
+  async liberarTemporal(token: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/publico/disponibilidad/liberar-temporal', { token })
+    return response.data
+  },
+
+  /**
+   * Liberar múltiples reservas temporales
+   */
+  async liberarTemporalMultiple(tokens: string[]): Promise<{ success: boolean; liberados: number }> {
+    const response = await api.post('/publico/disponibilidad/liberar-temporal-multiple', { tokens })
+    return response.data
+  },
+
+  /**
+   * Extender tiempo de una reserva temporal
+   */
+  async extenderTemporal(token: string): Promise<ReservaTemporalResponse> {
+    const response = await api.post('/publico/disponibilidad/extender-temporal', { token })
+    return response.data
+  },
+
+  /**
+   * Verificar estado de una reserva temporal
+   */
+  async verificarReserva(token: string): Promise<{ success: boolean; activa: boolean; data?: { expira_at: string; tiempo_restante_segundos: number } }> {
+    const response = await api.get(`/publico/disponibilidad/verificar-reserva/${token}`)
+    return response.data
+  },
+}
+
+// Tipos para reservas temporales
+export interface ReservaTemporalResponse {
+  success: boolean
+  message: string
+  codigo?: string
+  data?: {
+    token: string
+    expira_at: string
+    tiempo_restante_segundos: number
+    fecha: string
+    hora_inicio: string
+    hora_fin: string
+  }
+}
+
+export interface ReservaTemporalMultipleResponse {
+  success: boolean
+  message: string
+  codigo?: string
+  data?: {
+    tokens: string[]
+    reservas: {
+      token: string
+      empleado_id: number
+      servicio_id: number
+      hora_inicio: string
+      hora_fin: string
+    }[]
+    expira_at: string
+    tiempo_restante_segundos: number
+  }
 }
 
 export default disponibilidadService

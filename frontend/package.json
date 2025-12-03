@@ -31,6 +31,7 @@
     "@capacitor/splash-screen": "^7.0.3",
     "@capacitor/status-bar": "^7.0.3",
     "@internationalized/date": "^3.10.0",
+    "@tailwindcss/vite": "^4.1.17",
     "@vueuse/core": "^14.1.0",
     "axios": "^1.13.2",
     "class-variance-authority": "^0.7.1",

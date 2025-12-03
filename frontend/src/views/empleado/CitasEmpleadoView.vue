@@ -75,7 +75,12 @@
           </div>
           <div class="proxima-info">
             <h4>{{ proximaCita.cliente?.nombre }}</h4>
-            <p>{{ proximaCita.servicios?.map((s: any) => s.nombre).join(', ') }}</p>
+            <div class="servicios-info">
+              <span class="servicios-count" v-if="getServiciosList(proximaCita).length > 1">
+                {{ getServiciosList(proximaCita).length }} servicios
+              </span>
+              <p class="servicios-nombres">{{ getServiciosList(proximaCita).map((s: any) => s.nombre).join(', ') }}</p>
+            </div>
           </div>
           <div class="proxima-arrow">
             <i class="fa fa-chevron-right"></i>
@@ -105,7 +110,12 @@
         <div class="cita-body">
           <div class="cita-cliente">{{ cita.cliente?.nombre }}</div>
           <div class="cita-servicios">
-            {{ cita.servicios?.map((s: any) => s.nombre).join(', ') }}
+            <span class="servicios-count-badge" v-if="getServiciosList(cita).length > 1">
+              {{ getServiciosList(cita).length }}
+            </span>
+            <span class="servicios-nombres">
+              {{ getServiciosList(cita).map((s: any) => s.nombre).join(', ') }}
+            </span>
           </div>
           <div class="cita-meta">
             <span class="meta-item">
@@ -211,7 +221,11 @@
                 <div class="detail-section">
                   <div class="section-title">
                     <i class="fa fa-cut"></i>
-                    <span>Servicios</span>
+                    <span>Servicios 
+                      <span class="servicios-count-title" v-if="getServiciosList(citaDetalle).length > 1">
+                        ({{ getServiciosList(citaDetalle).length }})
+                      </span>
+                    </span>
                   </div>
                   <div class="servicios-list">
                     <div 
@@ -265,30 +279,24 @@
                     <i class="fa fa-check"></i>
                     Marcar como Completada
                   </button>
-                  <button 
-                    v-if="puedeReagendarCita(citaDetalle)"
-                    class="btn-action-reagendar"
-                    @click="abrirModalReagendar(citaDetalle)"
-                  >
-                    <i class="fa fa-calendar-alt"></i>
-                    Reagendar Cita
-                  </button>
-                  <button 
-                    v-if="puedeCancelarCita(citaDetalle)"
-                    class="btn-action-cancel"
-                    @click="confirmarCancelacion(citaDetalle)"
-                  >
-                    <i class="fa fa-times"></i>
-                    Cancelar Cita
-                  </button>
-                  <button 
-                    v-if="!['completada', 'cancelada', 'no_show'].includes(citaDetalle.estado)"
-                    class="btn-action-danger"
-                    @click="cambiarEstado('no_show')"
-                  >
-                    <i class="fa fa-user-slash"></i>
-                    No asistió
-                  </button>
+                  <div class="action-buttons-group">
+                    <button 
+                      v-if="puedeReagendarCita(citaDetalle)"
+                      class="btn-action-reagendar"
+                      @click="abrirModalReagendar(citaDetalle)"
+                    >
+                      <i class="fa fa-calendar-alt"></i>
+                      Reagendar
+                    </button>
+                    <button 
+                      v-if="puedeCancelarCita(citaDetalle)"
+                      class="btn-action-cancel"
+                      @click="confirmarCancelacion(citaDetalle)"
+                    >
+                      <i class="fa fa-times"></i>
+                      Cancelar
+                    </button>
+                  </div>
                   <a 
                     :href="`https://wa.me/52${citaDetalle.cliente?.telefono}`"
                     target="_blank"
@@ -1958,6 +1966,51 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.servicios-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: linear-gradient(135deg, #ec407a, #d81b60);
+  color: white;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.servicios-nombres {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.servicios-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.servicios-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #ec407a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.servicios-count-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ec407a;
+  margin-left: 4px;
 }
 
 .cita-meta {
@@ -2337,6 +2390,12 @@ onMounted(() => {
   margin-top: 12px;
 }
 
+.action-buttons-group {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
 .btn-action-primary,
 .btn-action-secondary,
 .btn-action-danger,
@@ -2399,6 +2458,20 @@ onMounted(() => {
 }
 
 .btn-action-reagendar {
+  flex: 1;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.3px;
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
 }
@@ -2409,6 +2482,20 @@ onMounted(() => {
 }
 
 .btn-action-cancel {
+  flex: 1;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.3px;
   background: linear-gradient(135deg, #ff6b6b 0%, #c62828 100%);
   color: white;
 }
@@ -2424,6 +2511,12 @@ onMounted(() => {
 .btn-action-whatsapp:active,
 .btn-action-reagendar:active,
 .btn-action-cancel:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.action-buttons-group .btn-action-reagendar:active,
+.action-buttons-group .btn-action-cancel:active {
   transform: translateY(0) scale(0.98);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }

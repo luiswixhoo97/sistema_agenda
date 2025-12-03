@@ -1,17 +1,31 @@
 import api from './api'
 import type { Categoria, Servicio, Empleado } from '@/types'
 
+export interface ServicioEnCategoria {
+  id: number | string
+  nombre: string
+  precio: number
+  duracion: number
+  es_promocion?: boolean
+  promocion_id?: number
+  descuento?: string
+  precio_con_descuento?: number
+  servicios_incluidos?: Array<{
+    id: number
+    nombre: string
+    precio: number
+    duracion: number
+  }>
+}
+
 export interface CategoriaConServicios {
   id: number
   nombre: string
   descripcion?: string
   servicios_count: number
-  servicios: {
-    id: number
-    nombre: string
-    precio: number
-    duracion: number
-  }[]
+  es_promociones?: boolean
+  servicios: ServicioEnCategoria[]
+  [key: string]: any // Permitir propiedades adicionales
 }
 
 export interface ServicioPublico {
@@ -49,6 +63,16 @@ export interface PromocionPublica {
   descuento: string
   fecha_fin: string
   dias_restantes: number
+  horas_restantes?: number
+  minutos_restantes?: number
+  imagen?: string | null
+  servicios_aplicables?: number[] | null
+  servicios_info?: Array<{
+    id: number
+    nombre: string
+    duracion: number
+  }>
+  tiempo_total?: number
 }
 
 const catalogoService = {

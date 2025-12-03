@@ -76,6 +76,61 @@ export interface AgendarPublicoRequest {
   servicios: number[]
   fecha_hora: string
   notas?: string
+  token_reserva?: string
+  promocion_id?: number
+}
+
+export interface ServicioCitaMultiple {
+  servicio_id: number
+  empleado_id: number
+  fecha_hora: string
+}
+
+export interface AgendarMultiplesRequest {
+  cliente_nombre: string
+  cliente_telefono: string
+  cliente_email?: string
+  codigo_otp: string
+  tokens_reserva?: string[]
+  servicios: ServicioCitaMultiple[]
+  notas?: string
+}
+
+export interface CitaMultipleResponse {
+  id: number
+  fecha: string
+  hora: string
+  fecha_texto: string
+  hora_texto: string
+  duracion_total: number
+  estado: string
+  precio_final: number
+  empleado: {
+    id: number
+    nombre: string
+  }
+  servicios: {
+    id: number
+    nombre: string
+    precio_aplicado: number
+    duracion: number
+  }[]
+}
+
+export interface AgendarMultiplesResponse {
+  success: boolean
+  message: string
+  cliente?: {
+    id: number
+    nombre: string
+    telefono: string
+  }
+  citas?: CitaMultipleResponse[]
+  resumen?: {
+    total_citas: number
+    precio_total: number
+    duracion_total: number
+  }
 }
 
 const citaService = {
@@ -104,6 +159,14 @@ const citaService = {
     cita?: CitaResponse 
   }> {
     const response = await api.post('/publico/agendar', data)
+    return response.data
+  },
+
+  /**
+   * Agendar múltiples citas coordinadas (diferentes empleados por servicio)
+   */
+  async agendarMultiples(data: AgendarMultiplesRequest): Promise<AgendarMultiplesResponse> {
+    const response = await api.post('/publico/agendar/multiples', data)
     return response.data
   },
 

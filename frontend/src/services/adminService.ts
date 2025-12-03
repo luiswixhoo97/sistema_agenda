@@ -220,12 +220,60 @@ export const getPromocion = async (id: number) => {
 };
 
 export const createPromocion = async (data: any) => {
-  const response = await api.post('/admin/promociones', data);
+  const formData = new FormData();
+  
+  // Agregar todos los campos al FormData
+  Object.keys(data).forEach(key => {
+    if (key === 'imagen' && data[key] instanceof File) {
+      formData.append('imagen', data[key]);
+    } else if (data[key] !== null && data[key] !== undefined) {
+      if (Array.isArray(data[key])) {
+        data[key].forEach((item: any, index: number) => {
+          formData.append(`${key}[${index}]`, item);
+        });
+      } else {
+        formData.append(key, data[key]);
+      }
+    }
+  });
+  
+  const response = await api.post('/admin/promociones', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
 
 export const updatePromocion = async (id: number, data: any) => {
-  const response = await api.put(`/admin/promociones/${id}`, data);
+  const formData = new FormData();
+  
+  // Agregar todos los campos al FormData
+  Object.keys(data).forEach(key => {
+    if (key === 'imagen' && data[key] instanceof File) {
+      formData.append('imagen', data[key]);
+    } else if (data[key] !== null && data[key] !== undefined) {
+      if (key === 'servicios_aplicables' && Array.isArray(data[key])) {
+        // Para servicios_aplicables, enviar cada elemento con índice
+        data[key].forEach((item: any, index: number) => {
+          formData.append(`servicios_aplicables[${index}]`, item.toString());
+        });
+      } else if (Array.isArray(data[key])) {
+        data[key].forEach((item: any, index: number) => {
+          formData.append(`${key}[${index}]`, item);
+        });
+      } else {
+        formData.append(key, data[key].toString());
+      }
+    }
+  });
+  
+  const response = await api.post(`/admin/promociones/${id}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    params: { _method: 'PUT' },
+  });
   return response.data;
 };
 

@@ -12,6 +12,8 @@
           <div 
             :key="indiceActual" 
             class="promo-banner"
+            @click="seleccionarPromocion(promociones[indiceActual])"
+            :class="{ 'selected': promocionSeleccionada?.id === promociones[indiceActual]?.id }"
           >
             <div 
               class="promo-image" 
@@ -19,16 +21,34 @@
             >
               <div class="promo-overlay"></div>
               <div class="promo-content">
-                <div class="promo-badge" v-if="promociones[indiceActual]?.descuento">
-                  <span>{{ promociones[indiceActual].descuento }}</span>
+                <div class="promo-selected-indicator" v-if="promocionSeleccionada?.id === promociones[indiceActual]?.id">
+                  <i class="fa fa-check-circle"></i>
+                  <span>Promoción seleccionada</span>
                 </div>
-                <h2 class="promo-title">{{ promociones[indiceActual]?.nombre }}.</h2>
+                <div class="promo-header">
+                  <h2 class="promo-title">{{ promociones[indiceActual]?.nombre }}.</h2>
+                  <div class="promo-badge" v-if="promociones[indiceActual]?.descuento">
+                    <span>{{ promociones[indiceActual].descuento }}</span>
+                  </div>
+                </div>
                 <p class="promo-description">
                   {{ promociones[indiceActual]?.descripcion || 'Aprovecha esta increíble oferta y agenda tu cita ahora. ¡No te lo pierdas!' }}
                 </p>
-                <div class="promo-footer-info" v-if="promociones[indiceActual]?.dias_restantes !== undefined && promociones[indiceActual].dias_restantes > 0">
+                <div v-if="promociones[indiceActual]?.servicios_info && promociones[indiceActual].servicios_info.length > 0" class="promo-servicios-info">
+                  <div class="promo-servicios-count">
+                    <i class="fa fa-cut"></i>
+                    <span>{{ promociones[indiceActual].servicios_info.length }} servicio(s)</span>
+                    <span v-if="promociones[indiceActual]?.tiempo_total" class="promo-tiempo">
+                      • {{ promociones[indiceActual].tiempo_total }} min
+                    </span>
+                  </div>
+                  <div class="promo-servicios-nombres">
+                    {{ promociones[indiceActual].servicios_info.map((s: any) => s.nombre).join(', ') }}
+                  </div>
+                </div>
+                <div class="promo-footer-info" v-if="promociones[indiceActual]?.dias_restantes !== undefined && (promociones[indiceActual].dias_restantes > 0 || promociones[indiceActual].horas_restantes > 0 || promociones[indiceActual].minutos_restantes > 0)">
                   <i class="fa fa-clock"></i>
-                  <span>{{ promociones[indiceActual].dias_restantes }} {{ promociones[indiceActual].dias_restantes === 1 ? 'día' : 'días' }} restantes</span>
+                  <span>{{ formatearTiempoRestante(promociones[indiceActual]) }}</span>
                 </div>
               </div>
             </div>
@@ -118,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useCitasStore } from '@/stores/citas'
 import catalogoService from '@/services/catalogoService'
 
@@ -127,6 +147,12 @@ const store = useCitasStore()
 const promociones = ref<any[]>([])
 const indiceActual = ref(0)
 let autoPlayInterval: number | null = null
+
+// Usar el store para la promoción seleccionada en lugar de un ref local
+const promocionSeleccionada = computed(() => {
+  if (!store.promocionSeleccionada) return null
+  return promociones.value.find(p => p.id === store.promocionSeleccionada) || null
+})
 
 onMounted(async () => {
   await cargarPromociones()
@@ -233,6 +259,80 @@ function reiniciarAutoPlay() {
   iniciarAutoPlay()
 }
 
+async function seleccionarPromocion(promo: any) {
+  if (promo && promo.id !== undefined) {
+    // Si ya está seleccionada, deseleccionarla
+    if (store.promocionSeleccionada === promo.id) {
+      store.seleccionarPromocion(null)
+      store.serviciosSeleccionados = []
+    } else {
+      // Pasar la información completa de la promoción (incluyendo servicios)
+      store.seleccionarPromocion(promo.id, promo)
+      
+      // Pre-seleccionar los servicios de la promoción automáticamente
+      if (promo.servicios_info && promo.servicios_info.length > 0) {
+        // Limpiar servicios anteriores
+        store.serviciosSeleccionados = []
+        
+        // Cargar todos los servicios para obtener información completa
+        const todosServicios = await catalogoService.obtenerServicios()
+        
+        // Agregar servicios de la promoción
+        for (const servicioInfo of promo.servicios_info) {
+          const servicioCompleto = todosServicios.find((s: any) => s.id === servicioInfo.id)
+          if (servicioCompleto) {
+            store.agregarServicio({
+              id: servicioCompleto.id,
+              nombre: servicioCompleto.nombre,
+              precio: servicioCompleto.precio,
+              duracion: servicioCompleto.duracion,
+            })
+          }
+        }
+        
+        // Seleccionar la categoría de promociones (ID 999999) para que al ir al paso 2 ya esté seleccionada
+        store.seleccionarCategoria(999999)
+        
+        // NO avanzar automáticamente - el usuario debe completar sus datos primero
+        // Cuando presione "Siguiente", irá al paso 2 con los servicios ya seleccionados
+      }
+    }
+  }
+}
+
+function formatearTiempoRestante(promo: any): string {
+  if (!promo) return ''
+  
+  const dias = promo.dias_restantes || 0
+  const horas = promo.horas_restantes || 0
+  const minutos = promo.minutos_restantes || 0
+  
+  if (dias === 0 && horas === 0 && minutos === 0) {
+    return 'Finaliza hoy'
+  }
+  
+  const partes: string[] = []
+  
+  if (dias > 0) {
+    partes.push(`${dias} ${dias === 1 ? 'día' : 'días'}`)
+  }
+  
+  if (horas > 0) {
+    partes.push(`${horas} ${horas === 1 ? 'hora' : 'horas'}`)
+  }
+  
+  if (minutos > 0 && dias === 0) {
+    // Solo mostrar minutos si no hay días
+    partes.push(`${minutos} ${minutos === 1 ? 'minuto' : 'minutos'}`)
+  }
+  
+  if (partes.length === 0) {
+    return 'Finaliza pronto'
+  }
+  
+  return partes.join(', ') + ' restantes'
+}
+
 function onlyNumbers(e: Event) {
   const input = e.target as HTMLInputElement
   input.value = input.value.replace(/\D/g, '')
@@ -255,18 +355,75 @@ function onlyNumbers(e: Event) {
 .carousel-container {
   position: relative;
   width: 100%;
+  height: 280px; /* Altura fija para evitar cambios durante transiciones */
   overflow: hidden;
   border-radius: 24px;
 }
 
 .promo-banner {
   width: 100%;
+  height: 100%; /* Ocupa todo el espacio del contenedor */
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: absolute; /* Para que las transiciones no afecten el layout */
+  top: 0;
+  left: 0;
+}
+
+.promo-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+}
+
+.promo-banner:hover .promo-image {
+  transform: scale(1.02); /* Efecto de zoom sutil en hover */
+  transition: transform 0.3s ease;
+}
+
+.promo-banner.selected {
+  outline: 3px solid #ec407a;
+  outline-offset: 4px;
+  border-radius: 28px;
+  box-shadow: 0 0 0 4px rgba(236, 64, 122, 0.2);
+}
+
+.promo-selected-indicator {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.promo-selected-indicator i {
+  font-size: 16px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.6);
+  }
 }
 
 .promo-image {
   position: relative;
   width: 100%;
-  min-height: 220px;
+  height: 100%; /* Altura fija igual al contenedor */
   border-radius: 24px;
   overflow: hidden;
   background: linear-gradient(135deg, #ec407a 0%, #c2185b 100%);
@@ -287,46 +444,98 @@ function onlyNumbers(e: Event) {
 
 .promo-content {
   position: relative;
-  min-height: 220px;
+  height: 100%; /* Altura completa del contenedor */
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: space-between;
   padding: 24px;
   z-index: 1;
+  overflow: hidden; /* Evitar que el contenido se salga */
 }
 
-.promo-badge {
-  display: inline-block;
-  background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
-  color: white;
-  padding: 8px 16px;
-  border-radius: 24px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
-  align-self: flex-start;
-  text-transform: uppercase;
+.promo-header {
+  display: grid;
+  grid-template-columns: 8fr 1fr 3fr;
+  gap: 0;
+  align-items: center;
+  margin-top: 5px; /* Margen superior de 5px */
+  margin-bottom: auto; /* Empuja el contenido hacia abajo */
+  width: 100%;
 }
 
 .promo-title {
   color: white;
   font-size: 28px;
   font-weight: 900;
-  margin: 0 0 12px 0;
+  margin: 0;
   line-height: 1.15;
   text-shadow: 0 2px 10px rgba(0,0,0,0.4);
   letter-spacing: -0.5px;
+  grid-column: 1;
+  align-self: center;
+}
+
+.promo-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 24px;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+  text-transform: uppercase;
+  grid-column: 3;
+  align-self: center;
+  white-space: nowrap;
 }
 
 .promo-description {
   color: rgba(255,255,255,0.95);
-  font-size: 15px;
+  font-size: 17px;
+  font-weight: 600;
   line-height: 1.6;
   margin: 0 0 16px 0;
   text-shadow: 0 1px 4px rgba(0,0,0,0.3);
   max-width: 85%;
+  margin-top: auto; /* Empuja hacia abajo */
+}
+
+.promo-servicios-info {
+  margin: 12px 0;
+  padding: 12px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.promo-servicios-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.95);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.promo-servicios-count i {
+  font-size: 12px;
+}
+
+.promo-tiempo {
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.promo-servicios-nombres {
+  color: rgba(255,255,255,0.9);
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 4px;
 }
 
 .promo-footer-info {
@@ -399,6 +608,10 @@ function onlyNumbers(e: Event) {
 
 .slide-leave-active {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute; /* Mantener posición durante la transición */
+  top: 0;
+  left: 0;
+  width: 100%;
 }
 
 .slide-enter-from {

@@ -137,6 +137,35 @@
               </div>
               
               <div class="form-group">
+                <label>Imagen del banner</label>
+                <div class="image-upload-container">
+                  <input 
+                    ref="imagenInput"
+                    type="file" 
+                    accept="image/*" 
+                    @change="handleImageSelect"
+                    style="display: none"
+                  />
+                  <div v-if="formData.imagenPreview" class="image-preview">
+                    <img :src="formData.imagenPreview" alt="Preview" />
+                    <button type="button" class="remove-image" @click="removeImage">
+                      <i class="fa fa-times"></i>
+                    </button>
+                  </div>
+                  <button 
+                    v-else 
+                    type="button" 
+                    class="btn-upload-image"
+                    @click="$refs.imagenInput?.click()"
+                  >
+                    <i class="fa fa-image"></i>
+                    Seleccionar imagen
+                  </button>
+                </div>
+                <p class="image-hint">Recomendado: 1200x400px, máximo 5MB</p>
+              </div>
+              
+              <div class="form-group">
                 <label>Tipo de descuento</label>
                 <div class="tipo-selector">
                   <button 
@@ -176,6 +205,80 @@
               </div>
               
               <div class="form-group">
+                <label>Servicios aplicables</label>
+                <div class="servicios-selector">
+                  <div class="servicios-options">
+                    <label class="checkbox-option">
+                      <input 
+                        type="checkbox" 
+                        :checked="formData.aplicarATodos"
+                        @change="toggleAplicarATodos"
+                      />
+                      <span>Aplicar a todos los servicios</span>
+                    </label>
+                  </div>
+                  <div v-if="!formData.aplicarATodos" class="servicios-list-select">
+                    <div class="servicios-search">
+                      <i class="fa fa-search"></i>
+                      <input 
+                        v-model="busquedaServicio"
+                        type="text"
+                        placeholder="Buscar servicios..."
+                        class="search-input"
+                      />
+                    </div>
+                    <div v-if="servicios.length === 0" class="no-servicios">
+                      Cargando servicios...
+                    </div>
+                    <div v-else class="servicios-checkboxes">
+                      <label 
+                        v-for="servicio in serviciosFiltrados" 
+                        :key="servicio.id"
+                        class="checkbox-option servicio-option"
+                      >
+                        <input 
+                          type="checkbox" 
+                          :value="servicio.id"
+                          v-model="formData.serviciosSeleccionados"
+                          @change="actualizarInfoServicios"
+                        />
+                        <div class="servicio-checkbox-info">
+                          <span class="servicio-nombre">{{ servicio.nombre }}</span>
+                          <span class="servicio-meta">{{ servicio.duracion || 0 }} min • ${{ Number(servicio.precio || 0).toFixed(2) }}</span>
+                        </div>
+                      </label>
+                      <div v-if="serviciosFiltrados.length === 0 && busquedaServicio" class="no-servicios">
+                        No se encontraron servicios
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-if="!formData.aplicarATodos && formData.serviciosSeleccionados.length > 0" class="servicios-resumen">
+                  <div class="resumen-item">
+                    <i class="fa fa-cut"></i>
+                    <span>{{ formData.serviciosSeleccionados.length }} servicio(s) seleccionado(s)</span>
+                  </div>
+                  <div class="resumen-item">
+                    <i class="fa fa-clock"></i>
+                    <span>Tiempo total: {{ tiempoTotalServicios }} minutos</span>
+                  </div>
+                  <div class="resumen-item" v-if="empleadosDisponibles.length > 0">
+                    <i class="fa fa-user-tie"></i>
+                    <span>{{ empleadosDisponibles.length }} empleado(s) pueden atender esta promoción</span>
+                  </div>
+                  <div v-if="empleadosDisponibles.length > 0" class="empleados-lista">
+                    <span 
+                      v-for="emp in empleadosDisponibles" 
+                      :key="emp.id"
+                      class="empleado-badge"
+                    >
+                      {{ emp.nombre }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-group">
                 <label>Usos máximos (vacío = ilimitado)</label>
                 <input v-model.number="formData.usos_maximos" type="number" placeholder="Sin límite" />
               </div>
@@ -193,26 +296,56 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue';
+import { ref, computed, reactive, onMounted, watch } from 'vue';
 import { getPromociones, createPromocion, updatePromocion } from '@/services/adminService';
+import catalogoService from '@/services/catalogoService';
 
 const promociones = ref<any[]>([]);
 const loading = ref(true);
 const showModal = ref(false);
 const selectedPromo = ref<any>(null);
 
+const imagenInput = ref<HTMLInputElement | null>(null);
+const servicios = ref<any[]>([]);
+const busquedaServicio = ref('');
+const empleadosDisponibles = ref<any[]>([]);
+const cargandoEmpleados = ref(false);
+
 const formData = reactive({
   nombre: '',
   descripcion: '',
+  imagen: null as File | null,
+  imagenPreview: null as string | null,
   tipo: 'porcentaje',
   valor: 10,
   fecha_inicio: '',
   fecha_fin: '',
   usos_maximos: null as number | null,
+  aplicarATodos: true,
+  serviciosSeleccionados: [] as number[],
 });
 
 const promocionesActivas = computed(() => promociones.value.filter(p => p.activa).length);
 const totalUsos = computed(() => promociones.value.reduce((sum, p) => sum + (p.usos_actuales || 0), 0));
+
+const serviciosFiltrados = computed(() => {
+  if (!servicios.value || servicios.value.length === 0) return [];
+  if (!busquedaServicio.value) return servicios.value;
+  const search = busquedaServicio.value.toLowerCase();
+  return servicios.value.filter(s => 
+    s.nombre && s.nombre.toLowerCase().includes(search)
+  );
+});
+
+const tiempoTotalServicios = computed(() => {
+  if (formData.serviciosSeleccionados.length === 0 || !servicios.value || servicios.value.length === 0) return 0;
+  const serviciosSeleccionados = servicios.value.filter(s => formData.serviciosSeleccionados.includes(s.id));
+  if (serviciosSeleccionados.length === 0) return 0;
+  return serviciosSeleccionados.reduce((total, s) => {
+    const duracion = Number(s.duracion) || 0;
+    return total + duracion;
+  }, 0);
+});
 
 async function cargarPromociones() {
   loading.value = true;
@@ -228,6 +361,71 @@ async function cargarPromociones() {
   }
 }
 
+async function cargarServicios() {
+  try {
+    servicios.value = await catalogoService.obtenerServicios();
+  } catch (error) {
+    console.error('Error cargando servicios:', error);
+  }
+}
+
+async function actualizarInfoServicios() {
+  if (formData.serviciosSeleccionados.length === 0) {
+    empleadosDisponibles.value = [];
+    return;
+  }
+
+  cargandoEmpleados.value = true;
+  try {
+    // Obtener empleados para cada servicio y encontrar los que pueden atender todos
+    const empleadosPorServicio: Record<number, any[]> = {};
+    
+    for (const servicioId of formData.serviciosSeleccionados) {
+      const emps = await catalogoService.obtenerEmpleados(servicioId);
+      empleadosPorServicio[servicioId] = emps.filter(e => e.activo !== false);
+    }
+
+    // Encontrar empleados que pueden atender TODOS los servicios seleccionados
+    const todosServiciosIds = formData.serviciosSeleccionados;
+    const empleadosComunes: any[] = [];
+
+    // Si hay solo un servicio, usar sus empleados
+    if (todosServiciosIds.length === 1) {
+      empleadosDisponibles.value = empleadosPorServicio[todosServiciosIds[0]] || [];
+      return;
+    }
+
+    // Si hay múltiples servicios, encontrar intersección
+    const primerServicioEmpleados = empleadosPorServicio[todosServiciosIds[0]] || [];
+    
+    for (const empleado of primerServicioEmpleados) {
+      const serviciosEmpleado = empleado.servicios.map((s: any) => s.id);
+      const puedeAtenderTodos = todosServiciosIds.every(servicioId => 
+        serviciosEmpleado.includes(servicioId)
+      );
+      
+      if (puedeAtenderTodos) {
+        empleadosComunes.push(empleado);
+      }
+    }
+
+    empleadosDisponibles.value = empleadosComunes;
+  } catch (error) {
+    console.error('Error cargando empleados:', error);
+    empleadosDisponibles.value = [];
+  } finally {
+    cargandoEmpleados.value = false;
+  }
+}
+
+function toggleAplicarATodos() {
+  formData.aplicarATodos = !formData.aplicarATodos;
+  if (formData.aplicarATodos) {
+    formData.serviciosSeleccionados = [];
+    empleadosDisponibles.value = [];
+  }
+}
+
 function formatDate(date: string): string {
   if (!date) return '--';
   return new Date(date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
@@ -238,15 +436,47 @@ function getUsagePercent(promo: any): number {
   return Math.min(((promo.usos_actuales || 0) / promo.usos_maximos) * 100, 100);
 }
 
+function handleImageSelect(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    formData.imagen = file;
+    
+    // Crear preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      formData.imagenPreview = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function removeImage() {
+  formData.imagen = null;
+  formData.imagenPreview = null;
+  if (imagenInput.value) {
+    imagenInput.value.value = '';
+  }
+}
+
 function nuevaPromocion() { 
   selectedPromo.value = null;
   formData.nombre = '';
   formData.descripcion = '';
+  formData.imagen = null;
+  formData.imagenPreview = null;
   formData.tipo = 'porcentaje';
   formData.valor = 10;
   formData.fecha_inicio = '';
   formData.fecha_fin = '';
   formData.usos_maximos = null;
+  formData.aplicarATodos = true;
+  formData.serviciosSeleccionados = [];
+  empleadosDisponibles.value = [];
+  busquedaServicio.value = '';
+  if (imagenInput.value) {
+    imagenInput.value.value = '';
+  }
   showModal.value = true;
 }
 
@@ -254,11 +484,24 @@ function editarPromocion(p: any) {
   selectedPromo.value = p;
   formData.nombre = p.nombre;
   formData.descripcion = p.descripcion || '';
+  formData.imagen = null;
+  formData.imagenPreview = p.imagen || null;
   formData.tipo = p.descuento_porcentaje ? 'porcentaje' : 'fijo';
   formData.valor = p.descuento_porcentaje || p.descuento_fijo || 0;
   formData.fecha_inicio = p.fecha_inicio;
   formData.fecha_fin = p.fecha_fin;
   formData.usos_maximos = p.usos_maximos;
+  formData.aplicarATodos = !p.servicios_aplicables || p.servicios_aplicables.length === 0;
+  formData.serviciosSeleccionados = p.servicios_aplicables || [];
+  busquedaServicio.value = '';
+  if (imagenInput.value) {
+    imagenInput.value.value = '';
+  }
+  if (!formData.aplicarATodos && formData.serviciosSeleccionados.length > 0) {
+    actualizarInfoServicios();
+  } else {
+    empleadosDisponibles.value = [];
+  }
   showModal.value = true;
 }
 
@@ -281,6 +524,18 @@ async function guardarPromocion() {
       fecha_fin: formData.fecha_fin,
       usos_maximos: formData.usos_maximos,
     };
+    
+    // Agregar servicios aplicables
+    if (formData.aplicarATodos) {
+      data.servicios_aplicables = null; // null = todos los servicios
+    } else {
+      data.servicios_aplicables = formData.serviciosSeleccionados;
+    }
+    
+    // Agregar imagen si hay una nueva
+    if (formData.imagen) {
+      data.imagen = formData.imagen;
+    }
     
     if (formData.tipo === 'porcentaje') {
       data.descuento_porcentaje = formData.valor;
@@ -310,6 +565,7 @@ function closeModal() {
 
 onMounted(() => {
   cargarPromociones();
+  cargarServicios();
 });
 </script>
 
@@ -791,6 +1047,226 @@ onMounted(() => {
   border: none;
   border-radius: 0;
   flex: 1;
+}
+
+/* Image Upload */
+.image-upload-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-upload-image {
+  padding: 12px;
+  border: 2px dashed #e0e0e0;
+  border-radius: 10px;
+  background: #f8f9fa;
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-upload-image:hover {
+  border-color: #fa709a;
+  background: rgba(250, 112, 154, 0.05);
+  color: #fa709a;
+}
+
+.image-preview {
+  position: relative;
+  width: 100%;
+  max-height: 200px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.image-preview img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  display: block;
+}
+
+.remove-image {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.remove-image:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+.image-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #999;
+}
+
+/* Servicios Selector */
+.servicios-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.servicios-options {
+  margin-bottom: 8px;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.checkbox-option:hover {
+  background: #f8f9fa;
+}
+
+.checkbox-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #fa709a;
+}
+
+.servicios-list-select {
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: #f8f9fa;
+}
+
+.servicios-search {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.servicios-search i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+}
+
+.servicios-search .search-input {
+  width: 100%;
+  padding: 10px 10px 10px 36px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.servicios-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.servicio-option {
+  padding: 10px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.servicio-option:hover {
+  border-color: #fa709a;
+  background: #fff5f8;
+}
+
+.servicio-checkbox-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.servicio-nombre {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.servicio-meta {
+  font-size: 12px;
+  color: #666;
+}
+
+.no-servicios {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+  font-size: 14px;
+}
+
+.servicios-resumen {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f0f7ff;
+  border-radius: 8px;
+  border: 1px solid #b3d9ff;
+}
+
+.resumen-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #1565c0;
+  margin-bottom: 6px;
+}
+
+.resumen-item:last-child {
+  margin-bottom: 0;
+}
+
+.resumen-item i {
+  font-size: 14px;
+}
+
+.empleados-lista {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.empleado-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .btn-submit {

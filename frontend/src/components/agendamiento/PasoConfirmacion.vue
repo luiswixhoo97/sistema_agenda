@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useCitasStore } from '@/stores/citas'
 
 const store = useCitasStore()
@@ -8,6 +8,15 @@ const confirmando = ref(false)
 const exito = ref(false)
 const otpDigits = ref(['', '', '', '', '', ''])
 const otpRefs = ref<(HTMLInputElement | null)[]>([])
+
+// Verificar si está en modo múltiples empleados
+const esModoMultiples = computed(() => store.modoMultiplesEmpleados)
+
+// Obtener profesionales asignados en modo múltiples
+const profesionalesTexto = computed(() => {
+  if (!esModoMultiples.value) return store.empleadoSeleccionado?.nombre || ''
+  return store.empleadosPorServicio.map(ep => ep.empleadoNombre).join(', ')
+})
 
 onMounted(async () => {
   if (!store.otpEnviado) {
@@ -79,6 +88,15 @@ async function confirmar() {
 function nuevaCita() {
   store.reiniciarAgendamiento()
 }
+
+function formatHora(hora: string): string {
+  if (!hora) return ''
+  const [hours, minutes] = hora.split(':')
+  const hour = parseInt(hours)
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const hour12 = hour % 12 || 12
+  return `${hour12}:${minutes} ${ampm}`
+}
 </script>
 
 <template>
@@ -89,8 +107,10 @@ function nuevaCita() {
         <div class="exito-icon">
           <i class="fa fa-check"></i>
         </div>
-        <h2>¡Cita Agendada!</h2>
-        <p>Tu cita ha sido confirmada exitosamente</p>
+        <h2 v-if="!esModoMultiples">¡Cita Agendada!</h2>
+        <h2 v-else>¡Citas Agendadas!</h2>
+        <p v-if="!esModoMultiples">Tu cita ha sido confirmada exitosamente</p>
+        <p v-else>Tus {{ store.citasMultiples.length }} citas han sido confirmadas exitosamente</p>
       </div>
 
       <div class="card">
@@ -101,32 +121,79 @@ function nuevaCita() {
 
         <div class="divider"></div>
 
-        <div class="detalles-grid">
-          <div class="detalle">
-            <span class="label">Cliente</span>
-            <span class="value">{{ store.datosCliente.nombre }} {{ store.datosCliente.apellido }}</span>
+        <!-- Detalles para cita única -->
+        <template v-if="!esModoMultiples">
+          <div class="detalles-grid">
+            <div class="detalle">
+              <span class="label">Cliente</span>
+              <span class="value">{{ store.datosCliente.nombre }} {{ store.datosCliente.apellido }}</span>
+            </div>
+            <div class="detalle">
+              <span class="label">Teléfono</span>
+              <span class="value">+52 {{ store.datosCliente.telefono }}</span>
+            </div>
+            <div class="detalle">
+              <span class="label">Fecha</span>
+              <span class="value">{{ store.fechaSeleccionada }}</span>
+            </div>
+            <div class="detalle">
+              <span class="label">Hora</span>
+              <span class="value">{{ store.horaSeleccionada }}</span>
+            </div>
+            <div class="detalle">
+              <span class="label">Profesional</span>
+              <span class="value">{{ store.empleadoSeleccionado?.nombre }}</span>
+            </div>
+            <div class="detalle">
+              <span class="label">Total</span>
+              <span class="value precio">${{ Number(store.totalPrecio || 0).toFixed(2) }}</span>
+            </div>
           </div>
-          <div class="detalle">
-            <span class="label">Teléfono</span>
-            <span class="value">+52 {{ store.datosCliente.telefono }}</span>
+        </template>
+
+        <!-- Detalles para múltiples citas -->
+        <template v-else>
+          <div class="cliente-info-exito">
+            <div class="detalle">
+              <span class="label">Cliente</span>
+              <span class="value">{{ store.datosCliente.nombre }} {{ store.datosCliente.apellido }}</span>
+            </div>
+            <div class="detalle">
+              <span class="label">Teléfono</span>
+              <span class="value">+52 {{ store.datosCliente.telefono }}</span>
+            </div>
           </div>
-          <div class="detalle">
-            <span class="label">Fecha</span>
-            <span class="value">{{ store.fechaSeleccionada }}</span>
+
+          <div class="divider"></div>
+
+          <h4 class="citas-titulo">
+            <i class="fa fa-calendar-check"></i>
+            Tus {{ store.citasMultiples.length }} citas coordinadas
+          </h4>
+
+          <div class="citas-multiples-lista">
+            <div 
+              v-for="(cita, index) in store.citasMultiples" 
+              :key="cita.id"
+              class="cita-multiple-item"
+            >
+              <div class="cita-numero">{{ index + 1 }}</div>
+              <div class="cita-contenido">
+                <div class="cita-servicio">{{ cita.servicios[0]?.nombre }}</div>
+                <div class="cita-detalles">
+                  <span><i class="fa fa-user"></i> {{ cita.empleado.nombre }}</span>
+                  <span><i class="fa fa-clock"></i> {{ cita.hora_texto }}</span>
+                  <span class="cita-precio">${{ cita.precio_final }}</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="detalle">
-            <span class="label">Hora</span>
-            <span class="value">{{ store.horaSeleccionada }}</span>
+
+          <div class="total-multiples">
+            <span>Total</span>
+            <span class="total">${{ Number(store.totalPrecio || 0).toFixed(2) }}</span>
           </div>
-          <div class="detalle">
-            <span class="label">Profesional</span>
-            <span class="value">{{ store.empleadoSeleccionado?.nombre }}</span>
-          </div>
-          <div class="detalle">
-            <span class="label">Total</span>
-            <span class="value precio">${{ Number(store.totalPrecio || 0).toFixed(2) }}</span>
-          </div>
-        </div>
+        </template>
       </div>
 
       <button class="btn-primary" @click="nuevaCita">
@@ -142,7 +209,8 @@ function nuevaCita() {
         <div class="header-icon">
           <i class="fa fa-clipboard-check"></i>
         </div>
-        <h2>Confirmar Cita</h2>
+        <h2 v-if="!esModoMultiples">Confirmar Cita</h2>
+        <h2 v-else>Confirmar Citas</h2>
         <p>Revisa los detalles y confirma</p>
       </div>
 
@@ -156,8 +224,8 @@ function nuevaCita() {
         </p>
       </div>
 
-      <!-- Resumen Servicios -->
-      <div class="card">
+      <!-- Resumen Servicios (modo normal) -->
+      <div v-if="!esModoMultiples" class="card">
         <h4><i class="fa fa-spa"></i> Servicios</h4>
         <div class="servicios-lista">
           <div 
@@ -175,8 +243,8 @@ function nuevaCita() {
         </div>
       </div>
 
-      <!-- Resumen Cita -->
-      <div class="card">
+      <!-- Resumen Cita (modo normal) -->
+      <div v-if="!esModoMultiples" class="card">
         <h4><i class="fa fa-calendar-check"></i> Tu Cita</h4>
         <div class="cita-info">
           <div class="info-item">
@@ -191,6 +259,48 @@ function nuevaCita() {
             <i class="fa fa-clock"></i>
             <span>{{ store.horaSeleccionada }}</span>
           </div>
+        </div>
+      </div>
+
+      <!-- Resumen Citas Múltiples -->
+      <div v-if="esModoMultiples && store.slotCoordinadoSeleccionado" class="card">
+        <h4><i class="fa fa-calendar-check"></i> Tus {{ store.serviciosSeleccionados.length }} Citas Coordinadas</h4>
+        
+        <div class="fecha-coordinada">
+          <i class="fa fa-calendar"></i>
+          {{ store.fechaSeleccionada }}
+        </div>
+
+        <div class="timeline-confirmacion">
+          <div 
+            v-for="(servicio, index) in store.slotCoordinadoSeleccionado.servicios" 
+            :key="index"
+            class="timeline-item-conf"
+          >
+            <div class="timeline-hora">
+              {{ formatHora(servicio.hora_inicio) }}
+            </div>
+            <div class="timeline-dot"></div>
+            <div class="timeline-content-conf">
+              <div class="timeline-servicio-nombre">{{ servicio.servicio_nombre }}</div>
+              <div class="timeline-empleado-nombre">
+                <i class="fa fa-user"></i>
+                {{ servicio.empleado_nombre }}
+              </div>
+              <div class="timeline-duracion">
+                <i class="fa fa-clock"></i>
+                {{ servicio.duracion }} min
+              </div>
+            </div>
+            <div class="timeline-precio">
+              ${{ store.serviciosSeleccionados.find(s => s.id === servicio.servicio_id)?.precio || 0 }}
+            </div>
+          </div>
+        </div>
+
+        <div class="total-row">
+          <span>Total</span>
+          <span class="total">${{ Number(store.totalPrecio || 0).toFixed(2) }}</span>
         </div>
       </div>
 
@@ -246,9 +356,13 @@ function nuevaCita() {
             <i class="fa fa-spinner fa-spin"></i>
             Confirmando...
           </span>
-          <span v-else>
+          <span v-else-if="!esModoMultiples">
             <i class="fa fa-check"></i>
             Confirmar Cita
+          </span>
+          <span v-else>
+            <i class="fa fa-check"></i>
+            Confirmar {{ store.serviciosSeleccionados.length }} Citas
           </span>
         </button>
       </div>
@@ -409,6 +523,111 @@ function nuevaCita() {
 .info-item i {
   color: #ec407a;
   font-size: 12px;
+}
+
+/* ===================================== */
+/* Estilos para múltiples citas */
+/* ===================================== */
+
+.fecha-coordinada {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(236,64,122,0.08), rgba(236,64,122,0.12));
+  border-radius: 10px;
+  color: #ec407a;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.timeline-confirmacion {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 16px;
+}
+
+.timeline-item-conf {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  position: relative;
+}
+
+.timeline-item-conf:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 74px;
+  top: 28px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--color-border);
+}
+
+.timeline-hora {
+  width: 60px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ec407a;
+  flex-shrink: 0;
+  margin-top: 4px;
+  z-index: 1;
+}
+
+.timeline-content-conf {
+  flex: 1;
+}
+
+.timeline-servicio-nombre {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.timeline-empleado-nombre {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.timeline-empleado-nombre i {
+  font-size: 10px;
+  color: #ec407a;
+}
+
+.timeline-duracion {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.timeline-duracion i {
+  font-size: 10px;
+}
+
+.timeline-precio {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ec407a;
+  flex-shrink: 0;
 }
 
 /* OTP Card */
@@ -635,5 +854,102 @@ function nuevaCita() {
 
 .detalle .value.precio {
   color: #ec407a;
+}
+
+/* Éxito múltiples citas */
+.cliente-info-exito {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.citas-titulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.citas-titulo i {
+  color: #ec407a;
+}
+
+.citas-multiples-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.cita-multiple-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(0,0,0,0.03);
+  border-radius: 12px;
+}
+
+.theme-dark .cita-multiple-item {
+  background: rgba(255,255,255,0.05);
+}
+
+.cita-numero {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ec407a, #d81b60);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.cita-contenido {
+  flex: 1;
+}
+
+.cita-servicio {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.cita-detalles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.cita-detalles i {
+  margin-right: 4px;
+  font-size: 10px;
+}
+
+.cita-precio {
+  color: #ec407a !important;
+  font-weight: 600;
+}
+
+.total-multiples {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 2px solid var(--color-border);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.total-multiples .total {
+  color: #ec407a;
+  font-size: 18px;
 }
 </style>

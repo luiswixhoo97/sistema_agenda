@@ -48,6 +48,8 @@ movil/
 │   └── capacitor.config.ts     # Capacitor Config
 │
 └── docs/                       # Documentación
+    ├── MULTIPLES_CITAS_SERVICIOS.md  # Múltiples citas coordinadas
+    └── SISTEMA_DISPONIBILIDAD.md    # Sistema de disponibilidad
 ```
 
 ## 🛠️ Instalación
@@ -174,8 +176,10 @@ server: {
 
 ### Cliente
 - ✅ Agendar citas
+- ✅ **Agendar múltiples servicios con diferentes empleados** (ver [docs/MULTIPLES_CITAS_SERVICIOS.md](docs/MULTIPLES_CITAS_SERVICIOS.md))
 - ✅ Ver mis citas
 - ✅ Cancelar/modificar citas
+- ✅ Reagendar citas
 - ✅ Ver catálogo de servicios
 - ✅ Recibir notificaciones
 

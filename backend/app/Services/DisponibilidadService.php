@@ -9,6 +9,7 @@ use App\Models\Cita;
 use App\Models\Servicio;
 use App\Models\Configuracion;
 use App\Models\DiaFestivo;
+use App\Models\ReservaTemporal;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -209,7 +210,7 @@ class DisponibilidadService
             })
             ->toArray();
         
-        // Generar slots
+        // Generar slots (incluyendo verificación de reservas temporales)
         $slots = $this->generarSlots(
             $horario->hora_inicio,
             $horario->hora_fin,
@@ -217,7 +218,8 @@ class DisponibilidadService
             $bloqueos,
             $citas,
             $fechaCarbon,
-            $ignorarAnticipacionMinima
+            $ignorarAnticipacionMinima,
+            $empleadoId  // Pasar empleado_id para verificar reservas temporales
         );
         
         return [
@@ -247,7 +249,8 @@ class DisponibilidadService
         int $empleadoId,
         string $fechaHora,
         array $servicioIds,
-        bool $ignorarAnticipacionMinima = false
+        bool $ignorarAnticipacionMinima = false,
+        ?string $tokenReservaExcluir = null
     ): array {
         $fechaHoraCarbon = Carbon::parse($fechaHora);
         $fecha = $fechaHoraCarbon->format('Y-m-d');
@@ -356,6 +359,16 @@ class DisponibilidadService
             ];
         }
         
+        // Verificar reservas temporales de otros usuarios (excluir el token de reserva del mismo usuario si se proporciona)
+        if (ReservaTemporal::slotReservado($empleadoId, $fecha, $hora, $horaFin, $tokenReservaExcluir)) {
+            return [
+                'disponible' => false,
+                'duracion_total' => $duracionTotal,
+                'hora_fin' => $horaFin,
+                'mensaje' => 'Este horario está siendo reservado por otro usuario',
+            ];
+        }
+        
         return [
             'disponible' => true,
             'duracion_total' => $duracionTotal,
@@ -448,7 +461,9 @@ class DisponibilidadService
         array $bloqueos,
         array $citas,
         Carbon $fecha,
-        bool $ignorarAnticipacionMinima = false
+        bool $ignorarAnticipacionMinima = false,
+        ?int $empleadoId = null,
+        ?string $tokenReservaExcluir = null
     ): array {
         $slots = [];
         $ahora = Carbon::now();
@@ -515,6 +530,14 @@ class DisponibilidadService
                 }
             }
             
+            // Verificar reservas temporales (si se proporciona empleado_id)
+            if ($disponible && $empleadoId) {
+                $fechaStr = $fecha->format('Y-m-d');
+                if (ReservaTemporal::slotReservado($empleadoId, $fechaStr, $horaSlot, $horaFinSlot, $tokenReservaExcluir)) {
+                    $disponible = false;
+                }
+            }
+            
             if ($disponible) {
                 $slots[] = [
                     'hora' => $horaSlot,
@@ -562,6 +585,174 @@ class DisponibilidadService
         $horas = floor($minutos / 60);
         $mins = $minutos % 60;
         return sprintf('%02d:%02d', $horas, $mins);
+    }
+
+    /**
+     * Obtener slots coordinados para múltiples servicios con diferentes empleados
+     * 
+     * @param array $serviciosConEmpleados [
+     *   ['servicio_id' => 1, 'empleado_id' => 5],
+     *   ['servicio_id' => 2, 'empleado_id' => 8],
+     * ]
+     * @param string $fecha "2025-12-05"
+     * @return array
+     */
+    public function obtenerSlotsCoordinados(
+        array $serviciosConEmpleados,
+        string $fecha
+    ): array {
+        \Log::info('🔄 obtenerSlotsCoordinados', [
+            'fecha' => $fecha,
+            'serviciosConEmpleados' => $serviciosConEmpleados
+        ]);
+        
+        $fechaCarbon = Carbon::parse($fecha);
+        
+        // Validar fecha
+        $validacion = $this->validarFecha($fechaCarbon);
+        if (!$validacion['valida']) {
+            return [
+                'fecha' => $fecha,
+                'slots_validos' => [],
+                'total_slots' => 0,
+                'mensaje' => $validacion['mensaje'],
+            ];
+        }
+        
+        // Verificar si es día festivo
+        if (DiaFestivo::esFestivo($fecha)) {
+            return [
+                'fecha' => $fecha,
+                'slots_validos' => [],
+                'total_slots' => 0,
+                'mensaje' => 'El negocio está cerrado por día festivo',
+            ];
+        }
+        
+        // Obtener duraciones de los servicios
+        $servicioIds = array_column($serviciosConEmpleados, 'servicio_id');
+        $servicios = Servicio::whereIn('id', $servicioIds)->get()->keyBy('id');
+        
+        // Agregar duraciones a cada servicio
+        foreach ($serviciosConEmpleados as &$item) {
+            $servicio = $servicios->get($item['servicio_id']);
+            $item['duracion'] = $servicio ? $servicio->duracion : 0;
+            $item['nombre_servicio'] = $servicio ? $servicio->nombre : '';
+        }
+        unset($item);
+        
+        // Obtener nombre del empleado para cada servicio
+        $empleadoIds = array_column($serviciosConEmpleados, 'empleado_id');
+        $empleados = Empleado::with('user')->whereIn('id', $empleadoIds)->get()->keyBy('id');
+        
+        foreach ($serviciosConEmpleados as &$item) {
+            $empleado = $empleados->get($item['empleado_id']);
+            $item['nombre_empleado'] = $empleado && $empleado->user ? $empleado->user->nombre : '';
+        }
+        unset($item);
+        
+        // Obtener el primer servicio y su empleado
+        $primerServicio = $serviciosConEmpleados[0];
+        $primerEmpleadoId = $primerServicio['empleado_id'];
+        $primerServicioId = $primerServicio['servicio_id'];
+        $duracionPrimer = $primerServicio['duracion'];
+        
+        // Obtener slots disponibles del primer empleado
+        $slotsPrimerEmpleado = $this->obtenerSlotsDisponibles(
+            $primerEmpleadoId,
+            $fecha,
+            [$primerServicioId]
+        );
+        
+        if (empty($slotsPrimerEmpleado['slots'])) {
+            return [
+                'fecha' => $fecha,
+                'slots_validos' => [],
+                'total_slots' => 0,
+                'mensaje' => $slotsPrimerEmpleado['mensaje'] ?? 'No hay horarios disponibles para el primer servicio',
+            ];
+        }
+        
+        $slotsValidos = [];
+        
+        // Para cada slot del primer empleado, verificar disponibilidad de los demás
+        foreach ($slotsPrimerEmpleado['slots'] as $slotInicial) {
+            $horaActual = $slotInicial['hora'];
+            $serviciosDelSlot = [];
+            $todosDisponibles = true;
+            
+            // Procesar cada servicio secuencialmente
+            foreach ($serviciosConEmpleados as $index => $servicioInfo) {
+                $empleadoId = $servicioInfo['empleado_id'];
+                $servicioId = $servicioInfo['servicio_id'];
+                $duracion = $servicioInfo['duracion'];
+                
+                // Calcular hora de inicio y fin para este servicio
+                $inicioServicio = Carbon::parse($fecha . ' ' . $horaActual);
+                $finServicio = $inicioServicio->copy()->addMinutes($duracion);
+                
+                // Para el primer servicio ya sabemos que está disponible
+                if ($index > 0) {
+                    // Verificar disponibilidad del empleado para este horario
+                    $disponibilidad = $this->verificarDisponibilidad(
+                        $empleadoId,
+                        $inicioServicio->format('Y-m-d H:i:s'),
+                        [$servicioId]
+                    );
+                    
+                    if (!$disponibilidad['disponible']) {
+                        $todosDisponibles = false;
+                        break;
+                    }
+                }
+                
+                // Agregar info del servicio
+                $serviciosDelSlot[] = [
+                    'empleado_id' => $empleadoId,
+                    'empleado_nombre' => $servicioInfo['nombre_empleado'],
+                    'servicio_id' => $servicioId,
+                    'servicio_nombre' => $servicioInfo['nombre_servicio'],
+                    'inicio' => $inicioServicio->format('Y-m-d H:i:s'),
+                    'fin' => $finServicio->format('Y-m-d H:i:s'),
+                    'hora_inicio' => $inicioServicio->format('H:i'),
+                    'hora_fin' => $finServicio->format('H:i'),
+                    'duracion' => $duracion,
+                ];
+                
+                // La siguiente hora de inicio es el fin de este servicio
+                $horaActual = $finServicio->format('H:i');
+            }
+            
+            // Si todos los servicios encajan, agregar a slots válidos
+            if ($todosDisponibles) {
+                $slotsValidos[] = [
+                    'hora' => $slotInicial['hora'],
+                    'hora_fin' => $horaActual,
+                    'servicios' => $serviciosDelSlot,
+                ];
+            }
+        }
+        
+        $resultado = [
+            'fecha' => $fecha,
+            'slots_validos' => $slotsValidos,
+            'total_slots' => count($slotsValidos),
+            'servicios_info' => array_map(fn($s) => [
+                'servicio_id' => $s['servicio_id'],
+                'servicio_nombre' => $s['nombre_servicio'],
+                'empleado_id' => $s['empleado_id'],
+                'empleado_nombre' => $s['nombre_empleado'],
+                'duracion' => $s['duracion'],
+            ], $serviciosConEmpleados),
+            'mensaje' => count($slotsValidos) === 0 ? 'No hay horarios donde todos los servicios encajen' : null,
+        ];
+        
+        \Log::info('✅ obtenerSlotsCoordinados resultado', [
+            'total_slots' => $resultado['total_slots'],
+            'mensaje' => $resultado['mensaje']
+        ]);
+        
+        return $resultado;
     }
 
     /**

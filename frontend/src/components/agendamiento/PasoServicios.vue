@@ -54,20 +54,42 @@ const {
 
       <!-- Servicios Grid -->
       <div class="servicios-grid">
+        <!-- Promoción -->
         <div 
           v-for="servicio in serviciosFiltrados" 
           :key="servicio.id"
           class="servicio-card"
-          :class="{ 'selected': servicioSeleccionado(servicio.id) }"
+          :class="{ 
+            'selected': servicio.es_promocion ? store.promocionSeleccionada === servicio.promocion_id : servicioSeleccionado(servicio.id),
+            'promocion-card': servicio.es_promocion
+          }"
           @click="toggleServicio(servicio)"
         >
           <div class="servicio-check">
-            <i v-if="servicioSeleccionado(servicio.id)" class="fa fa-check"></i>
+            <i v-if="servicio.es_promocion ? store.promocionSeleccionada === servicio.promocion_id : servicioSeleccionado(servicio.id)" class="fa fa-check"></i>
+            <i v-else-if="servicio.es_promocion" class="fa fa-tag"></i>
           </div>
           
           <div class="servicio-content">
+            <div v-if="servicio.es_promocion" class="promocion-badge">
+              <span>{{ servicio.descuento }}</span>
+            </div>
             <h4>{{ servicio.nombre }}</h4>
             <p v-if="servicio.descripcion" class="servicio-desc">{{ servicio.descripcion }}</p>
+            
+            <!-- Servicios incluidos en la promoción -->
+            <div v-if="servicio.es_promocion && servicio.servicios_incluidos && servicio.servicios_incluidos.length > 0" class="promocion-servicios">
+              <div class="promocion-servicios-label">
+                <i class="fa fa-cut"></i>
+                <span>Incluye {{ servicio.servicios_incluidos.length }} servicio(s):</span>
+              </div>
+              <div class="promocion-servicios-list">
+                <span v-for="serv in servicio.servicios_incluidos" :key="serv.id" class="servicio-tag">
+                  {{ serv.nombre }}
+                </span>
+              </div>
+            </div>
+            
             <div class="servicio-meta">
               <span class="servicio-duracion">
                 <i class="fa fa-clock"></i>
@@ -80,7 +102,11 @@ const {
           </div>
           
           <div class="servicio-precio">
-            {{ servicio.precio_texto }}
+            <span v-if="servicio.es_promocion && servicio.precio_con_descuento" class="precio-con-descuento">
+              <span class="precio-original">{{ servicio.precio_texto }}</span>
+              <span class="precio-final">{{ servicio.precio_con_descuento_texto }}</span>
+            </span>
+            <span v-else>{{ servicio.precio_texto }}</span>
           </div>
         </div>
       </div>
@@ -366,6 +392,88 @@ const {
   color: #ec407a;
   flex-shrink: 0;
   text-align: right;
+}
+
+/* Estilos para promociones */
+.promocion-card {
+  border: 2px solid #ff9800;
+  background: linear-gradient(135deg, rgba(255,152,0,0.05), rgba(255,152,0,0.1));
+}
+
+.promocion-card.selected {
+  border-color: #ff9800;
+  background: linear-gradient(135deg, rgba(255,152,0,0.1), rgba(255,152,0,0.15));
+}
+
+.promocion-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.promocion-servicios {
+  margin: 12px 0;
+  padding: 10px;
+  background: rgba(255,152,0,0.08);
+  border-radius: 8px;
+  border-left: 3px solid #ff9800;
+}
+
+.promocion-servicios-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+
+.promocion-servicios-label i {
+  color: #ff9800;
+  font-size: 11px;
+}
+
+.promocion-servicios-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.servicio-tag {
+  display: inline-block;
+  padding: 4px 8px;
+  background: rgba(255,152,0,0.15);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--color-text);
+  border: 1px solid rgba(255,152,0,0.3);
+}
+
+.precio-con-descuento {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.precio-original {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+  font-weight: 400;
+}
+
+.precio-final {
+  font-size: 17px;
+  color: #ff9800;
+  font-weight: 700;
 }
 
 /* Empty state */
