@@ -8,8 +8,10 @@ use App\Models\Cita;
 use App\Models\CitaServicio;
 use App\Models\OtpCode;
 use App\Models\Servicio;
+use App\Models\PlantillaNotificacion;
 use App\Services\DisponibilidadService;
 use App\Services\CitaService;
+use App\Services\WhatsAppService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,11 +21,16 @@ class AgendamientoPublicoController extends Controller
 {
     protected DisponibilidadService $disponibilidadService;
     protected CitaService $citaService;
+    protected WhatsAppService $whatsAppService;
 
-    public function __construct(DisponibilidadService $disponibilidadService, CitaService $citaService)
-    {
+    public function __construct(
+        DisponibilidadService $disponibilidadService, 
+        CitaService $citaService,
+        WhatsAppService $whatsAppService
+    ) {
         $this->disponibilidadService = $disponibilidadService;
         $this->citaService = $citaService;
+        $this->whatsAppService = $whatsAppService;
     }
     
     /**
@@ -45,9 +52,22 @@ class AgendamientoPublicoController extends Controller
 
         $telefono = $request->telefono;
 
+        // Verificar rate limiting (máximo 5 OTPs por hora)
+        $intentosRecientes = OtpCode::where('telefono', $telefono)
+            ->where('created_at', '>=', now()->subHour())
+            ->count();
+
+        if ($intentosRecientes >= 5) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Has solicitado demasiados códigos. Intenta en 1 hora.',
+            ], 429);
+        }
+
         // Generar código OTP
         $codigo = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $expiracion = now()->addMinutes(10);
+        $minutosExpiracion = OtpCode::MINUTOS_EXPIRACION; // 3 minutos
+        $expiracion = now()->addMinutes($minutosExpiracion);
 
         // Eliminar OTPs anteriores para este teléfono y tipo
         OtpCode::where('telefono', $telefono)
@@ -61,17 +81,34 @@ class AgendamientoPublicoController extends Controller
             'codigo' => $codigo,
             'intentos' => 0,
             'expira_at' => $expiracion,
+            'created_at' => now(),
         ]);
 
-        // TODO: Enviar OTP por WhatsApp en producción
-        // WhatsAppService::enviarOtp($telefono, $codigo);
+        // Enviar OTP por WhatsApp usando plantilla de BD
+        $mensaje = $this->obtenerMensajeOtp($codigo, $minutosExpiracion);
+
+        try {
+            $resultado = $this->whatsAppService->enviarMensaje($telefono, $mensaje, 'otp');
+            
+            if (!$resultado['success']) {
+                Log::error("Error enviando OTP por WhatsApp", [
+                    'telefono' => $telefono,
+                    'error' => $resultado['error'] ?? 'Error desconocido',
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error("Excepción enviando OTP por WhatsApp: " . $e->getMessage(), [
+                'telefono' => $telefono,
+            ]);
+        }
 
         $response = [
             'success' => true,
             'message' => 'Código enviado a tu WhatsApp',
+            'expira_en' => $minutosExpiracion * 60, // segundos
         ];
 
-        // En desarrollo, devolver el código
+        // En desarrollo, devolver el código para testing
         if (config('app.debug')) {
             $response['codigo_debug'] = $codigo;
             Log::info("🔐 OTP Agendamiento para {$telefono}: {$codigo}");
@@ -534,6 +571,32 @@ class AgendamientoPublicoController extends Controller
                 'debug' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
+    }
+
+    /**
+     * Obtener mensaje de OTP desde plantilla de BD o usar por defecto
+     */
+    private function obtenerMensajeOtp(string $codigo, int $minutosExpiracion): string
+    {
+        // Buscar plantilla en BD
+        $plantilla = PlantillaNotificacion::where('tipo', 'otp')
+            ->where('medio', 'whatsapp')
+            ->where('activo', true)
+            ->first();
+
+        if ($plantilla) {
+            // Usar plantilla de BD
+            $mensaje = $plantilla->contenido;
+            $mensaje = str_replace('{{codigo_otp}}', $codigo, $mensaje);
+            $mensaje = str_replace('{{expiracion_minutos}}', (string) $minutosExpiracion, $mensaje);
+            return $mensaje;
+        }
+
+        // Plantilla por defecto si no existe en BD
+        return "🔐 *Código de verificación*\n\n"
+             . "Tu código es: *{$codigo}*\n\n"
+             . "⏱️ Válido por {$minutosExpiracion} minutos.\n\n"
+             . "⚠️ No compartas este código con nadie.";
     }
 }
 

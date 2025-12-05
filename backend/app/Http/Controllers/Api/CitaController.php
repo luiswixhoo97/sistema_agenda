@@ -838,6 +838,78 @@ class CitaController extends Controller
     }
 
     /**
+     * Escanear QR code y cambiar estado de cita a completada
+     * 
+     * POST /api/empleado/citas/scan-qr/{token}
+     * POST /api/admin/citas/scan-qr/{token}
+     */
+    public function escanearQr(Request $request, string $token): JsonResponse
+    {
+        // Validar que el usuario sea empleado o admin
+        $user = auth()->user();
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autenticado',
+            ], 401);
+        }
+
+        // Verificar que sea empleado o admin
+        $esEmpleado = $user->tipo === 'empleado' && $user->empleado;
+        $esAdmin = $user->tipo === 'admin';
+
+        if (!$esEmpleado && !$esAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permisos para escanear QR',
+            ], 403);
+        }
+
+        // Buscar cita por token_qr
+        $cita = Cita::where('token_qr', $token)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if (!$cita) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Código QR no válido o cita no encontrada',
+            ], 404);
+        }
+
+        // Validar que la cita pueda cambiarse a completada
+        if (!in_array($cita->estado, [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_EN_PROCESO])) {
+            return response()->json([
+                'success' => false,
+                'message' => "La cita no puede marcarse como completada. Estado actual: {$cita->estado}",
+            ], 422);
+        }
+
+        // Si es empleado, verificar que sea su cita
+        if ($esEmpleado && $cita->empleado_id !== $user->empleado->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta cita no está asignada a ti',
+            ], 403);
+        }
+
+        // Cambiar estado a completada
+        $empleadoId = $esEmpleado ? $user->empleado->id : null;
+        $resultado = $this->citaService->cambiarEstado($cita->id, Cita::ESTADO_COMPLETADA, $empleadoId);
+
+        if ($resultado['success']) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Cita marcada como completada exitosamente',
+                'cita' => $this->citaService->formatearCita($cita->fresh()),
+            ]);
+        }
+
+        return response()->json($resultado, 422);
+    }
+
+    /**
      * Obtener empleado autenticado
      */
     private function getEmpleadoAutenticado(Request $request): ?\App\Models\Empleado

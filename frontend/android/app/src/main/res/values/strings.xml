@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BeautySpa</string>
+    <string name="title_activity_main">BeautySpa</string>
+    <string name="package_name">com.beautyspa.app</string>
+    <string name="custom_url_scheme">com.beautyspa.app</string>
+</resources>

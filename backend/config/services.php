@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'whatsapp' => [
+        'api_url' => env('WHATSAPP_API_URL', 'https://wasenderapi.com/api'),
+        'api_token' => env('WHATSAPP_API_TOKEN', ''),
+        'session_id' => env('WHATSAPP_SESSION_ID', ''),
+    ],
+
 ];

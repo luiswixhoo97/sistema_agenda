@@ -206,7 +206,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { citaService } from '@/services/citaService';
+import citaService from '@/services/citaService';
 import type { Cita } from '@/types';
 
 const router = useRouter();

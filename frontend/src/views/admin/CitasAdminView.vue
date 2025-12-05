@@ -1059,7 +1059,11 @@ async function cambiarEstado(cita: any, nuevoEstado: string) {
     closeModal();
   } catch (error) {
     console.error('Error cambiando estado:', error);
-    alert('Error al cambiar el estado de la cita');
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Error al cambiar el estado de la cita'
+    });
   }
 }
 
@@ -1658,19 +1662,35 @@ function getHoraPlaceholder(): string {
 async function guardarCita() {
   // Validaciones
   if (!nuevaCitaData.value.cliente_id) {
-    alert('Debes seleccionar un cliente');
+    Swal.fire({
+      icon: 'warning',
+      title: 'Campo requerido',
+      text: 'Debes seleccionar un cliente'
+    });
     return;
   }
   if (!nuevaCitaData.value.empleado_id) {
-    alert('Debes seleccionar un empleado');
+    Swal.fire({
+      icon: 'warning',
+      title: 'Campo requerido',
+      text: 'Debes seleccionar un empleado'
+    });
     return;
   }
   if (!nuevaCitaData.value.fecha || !nuevaCitaData.value.hora) {
-    alert('Debes seleccionar fecha y hora');
+    Swal.fire({
+      icon: 'warning',
+      title: 'Campo requerido',
+      text: 'Debes seleccionar fecha y hora'
+    });
     return;
   }
   if (serviciosSeleccionados.value.length === 0) {
-    alert('Debes seleccionar al menos un servicio');
+    Swal.fire({
+      icon: 'warning',
+      title: 'Campo requerido',
+      text: 'Debes seleccionar al menos un servicio'
+    });
     return;
   }
 
@@ -1700,9 +1720,19 @@ async function guardarCita() {
     if (response.success) {
       await cargarCitas(pagination.value.current_page);
       closeModal();
-      alert('Cita creada exitosamente');
+      Swal.fire({
+        icon: 'success',
+        title: '¡Cita creada!',
+        text: 'La cita se ha creado exitosamente',
+        timer: 2500,
+        showConfirmButton: false
+      });
     } else {
-      alert(response.message || 'Error al crear la cita');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: response.message || 'Error al crear la cita'
+      });
     }
   } catch (error: any) {
     console.error('Error guardando cita:', error);
@@ -1722,10 +1752,13 @@ async function guardarCita() {
     // Mostrar más detalles en consola
     if (error.response?.data?.errors) {
       console.error('Errores de validación:', error.response.data.errors);
-      errorMessage += '\n\nErrores: ' + JSON.stringify(error.response.data.errors);
     }
     
-    alert(errorMessage);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error al crear cita',
+      text: errorMessage
+    });
   } finally {
     guardando.value = false;
   }
@@ -1733,7 +1766,11 @@ async function guardarCita() {
 
 async function guardarCliente() {
   if (!nuevoClienteData.value.nombre || !nuevoClienteData.value.telefono) {
-    alert('Nombre y teléfono son requeridos');
+    Swal.fire({
+      icon: 'warning',
+      title: 'Campos requeridos',
+      text: 'Nombre y teléfono son obligatorios'
+    });
     return;
   }
 
@@ -1756,14 +1793,28 @@ async function guardarCliente() {
         telefono: '',
         email: '',
       };
-      alert('Cliente creado exitosamente');
+      Swal.fire({
+        icon: 'success',
+        title: '¡Cliente creado!',
+        text: 'El cliente se ha registrado exitosamente',
+        timer: 2000,
+        showConfirmButton: false
+      });
     } else {
-      alert(response.message || 'Error al crear el cliente');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: response.message || 'Error al crear el cliente'
+      });
     }
   } catch (error: any) {
     console.error('Error guardando cliente:', error);
     const errorMessage = error.response?.data?.message || 'Error al crear el cliente';
-    alert(errorMessage);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: errorMessage
+    });
   }
 }
 

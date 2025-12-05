@@ -25,7 +25,7 @@ class OtpCode extends Model
     public $timestamps = false;
 
     const MAX_INTENTOS = 3;
-    const MINUTOS_EXPIRACION = 5;
+    const MINUTOS_EXPIRACION = 3; // 3 minutos de vida
 
     /**
      * Crear nuevo OTP para un teléfono

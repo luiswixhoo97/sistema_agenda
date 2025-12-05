@@ -23,6 +23,7 @@ class EnviarWhatsAppJob implements ShouldQueue
     protected string $mensaje;
     protected string $tipoPlantilla;
     protected ?int $notificacionId;
+    protected ?string $imagenUrl;
 
     /**
      * Create a new job instance.
@@ -31,12 +32,14 @@ class EnviarWhatsAppJob implements ShouldQueue
         string $telefono, 
         string $mensaje, 
         string $tipoPlantilla,
-        ?int $notificacionId = null
+        ?int $notificacionId = null,
+        ?string $imagenUrl = null
     ) {
         $this->telefono = $telefono;
         $this->mensaje = $mensaje;
         $this->tipoPlantilla = $tipoPlantilla;
         $this->notificacionId = $notificacionId;
+        $this->imagenUrl = $imagenUrl;
     }
 
     /**
@@ -48,11 +51,12 @@ class EnviarWhatsAppJob implements ShouldQueue
             $resultado = $whatsAppService->enviarMensaje(
                 $this->telefono,
                 $this->mensaje,
-                $this->tipoPlantilla
+                $this->tipoPlantilla,
+                $this->imagenUrl
             );
 
             if ($resultado['success']) {
-                $this->actualizarEstadoNotificacion('enviado');
+                $this->actualizarEstadoNotificacion(Notificacion::ESTADO_ENVIADA);
                 Log::info("WhatsApp enviado exitosamente a: {$this->telefono}");
             } else {
                 throw new \Exception($resultado['error'] ?? 'Error desconocido');
@@ -62,7 +66,7 @@ class EnviarWhatsAppJob implements ShouldQueue
             Log::error("Error enviando WhatsApp a {$this->telefono}: " . $e->getMessage());
             
             if ($this->attempts() >= $this->tries) {
-                $this->actualizarEstadoNotificacion('fallido');
+                $this->actualizarEstadoNotificacion(Notificacion::ESTADO_FALLIDA);
             }
             
             throw $e;
@@ -75,7 +79,7 @@ class EnviarWhatsAppJob implements ShouldQueue
     public function failed(\Throwable $exception): void
     {
         Log::error("Job de WhatsApp falló definitivamente para {$this->telefono}: " . $exception->getMessage());
-        $this->actualizarEstadoNotificacion('fallido');
+        $this->actualizarEstadoNotificacion(Notificacion::ESTADO_FALLIDA);
     }
 
     /**
@@ -87,7 +91,7 @@ class EnviarWhatsAppJob implements ShouldQueue
             Notificacion::where('id', $this->notificacionId)
                 ->update([
                     'estado' => $estado,
-                    'enviado_at' => $estado === 'enviado' ? now() : null,
+                    'enviado_at' => $estado === Notificacion::ESTADO_ENVIADA ? now() : null,
                 ]);
         }
     }

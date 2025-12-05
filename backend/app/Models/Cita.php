@@ -20,6 +20,7 @@ class Cita extends Model
         'fecha_hora',
         'duracion_total',
         'estado',
+        'token_qr',
         'precio_final',
         'metodo_pago',
         'notas',

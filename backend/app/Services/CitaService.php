@@ -10,6 +10,7 @@ use App\Models\Servicio;
 use App\Models\Promocion;
 use App\Models\Notificacion;
 use App\Models\Auditoria;
+use App\Services\NotificacionService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,7 +18,8 @@ use Illuminate\Support\Facades\Log;
 class CitaService
 {
     public function __construct(
-        private DisponibilidadService $disponibilidadService
+        private DisponibilidadService $disponibilidadService,
+        private NotificacionService $notificacionService
     ) {}
 
     /**
@@ -67,6 +69,9 @@ class CitaService
         try {
             DB::beginTransaction();
 
+            // Generar token único para QR
+            $tokenQr = $this->generarTokenQr();
+
             // Crear la cita
             $cita = Cita::create([
                 'cliente_id' => $clienteId,
@@ -76,6 +81,7 @@ class CitaService
                 'fecha_hora' => $fechaHora,
                 'duracion_total' => $duracionTotal,
                 'estado' => Cita::ESTADO_PENDIENTE,
+                'token_qr' => $tokenQr,
                 'precio_final' => $precioFinal,
                 'metodo_pago' => 'pendiente',
                 'notas' => $notas,
@@ -123,8 +129,17 @@ class CitaService
             // Cargar relaciones
             $cita->load(['cliente', 'empleado.user', 'servicio', 'servicios.servicio']);
 
-            // Encolar notificaciones (asíncrono)
-            $this->encolarNotificaciones($cita, 'nueva_cita');
+            // Enviar notificación de confirmación con QR (asíncrono)
+            // Envolver en try-catch para que no bloquee el agendamiento si falla
+            try {
+                $this->notificacionService->notificarCitaAgendada($cita);
+            } catch (\Exception $e) {
+                // Log del error pero no fallar el agendamiento
+                Log::error('Error enviando notificación de cita agendada (cita ya creada): ' . $e->getMessage(), [
+                    'cita_id' => $cita->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             return [
                 'success' => true,
@@ -363,8 +378,12 @@ class CitaService
             DB::commit();
 
             // Notificar según el nuevo estado
+            $citaActualizada = $cita->fresh()->load(['cliente', 'empleado.user', 'servicio', 'servicios.servicio']);
+            
             if ($nuevoEstado === Cita::ESTADO_CONFIRMADA) {
-                $this->encolarNotificaciones($cita->fresh()->load(['cliente', 'empleado.user']), 'confirmacion');
+                $this->encolarNotificaciones($citaActualizada, 'confirmacion');
+            } elseif ($nuevoEstado === Cita::ESTADO_CANCELADA) {
+                $this->encolarNotificaciones($citaActualizada, 'cancelacion');
             }
 
             return [
@@ -471,6 +490,9 @@ class CitaService
             ]);
 
             // 2. Crear la nueva cita con los mismos datos
+            // Generar nuevo token para QR
+            $nuevoTokenQr = $this->generarTokenQr();
+            
             $nuevaCita = Cita::create([
                 'cliente_id' => $citaOriginal->cliente_id,
                 'empleado_id' => $citaOriginal->empleado_id,
@@ -479,6 +501,7 @@ class CitaService
                 'fecha_hora' => $nuevaFechaHora,
                 'duracion_total' => $citaOriginal->duracion_total,
                 'estado' => Cita::ESTADO_CONFIRMADA, // La nueva cita queda confirmada
+                'token_qr' => $nuevoTokenQr, // Nuevo QR para la cita reagendada
                 'precio_final' => $citaOriginal->precio_final,
                 'metodo_pago' => $citaOriginal->metodo_pago,
                 'notas' => "Reagendada desde cita #{$citaOriginal->id}" . ($motivo ? " - Motivo: {$motivo}" : ''),
@@ -564,36 +587,62 @@ class CitaService
 
     /**
      * Encolar notificaciones para la cita
+     * Llama al NotificacionService para enviar las notificaciones reales
      */
     private function encolarNotificaciones(Cita $cita, string $tipo): void
     {
-        $cliente = $cita->cliente;
-
-        // Crear registros de notificación según preferencias del cliente
-        $medios = [];
-        
-        if ($cliente->notificaciones_whatsapp) {
-            $medios[] = 'whatsapp';
-        }
-        if ($cliente->notificaciones_email && $cliente->email) {
-            $medios[] = 'email';
-        }
-        if ($cliente->notificaciones_push) {
-            $medios[] = 'push';
-        }
-
-        foreach ($medios as $medio) {
-            Notificacion::create([
+        try {
+            // Cargar relaciones necesarias
+            $cita->load(['cliente', 'empleado.user', 'servicio', 'servicios.servicio']);
+            
+            switch ($tipo) {
+                case 'cancelacion':
+                    // Extraer motivo de las notas si existe
+                    $motivo = '';
+                    if ($cita->notas && preg_match('/\[Cancelación: (.+?)\]/', $cita->notas, $matches)) {
+                        $motivo = $matches[1];
+                    }
+                    $this->notificacionService->notificarCitaCancelada($cita, $motivo);
+                    break;
+                    
+                case 'reagendamiento':
+                case 'modificacion':
+                    // Enviar notificación de modificación con nuevo QR
+                    $this->notificacionService->notificarCitaModificada($cita);
+                    break;
+                    
+                case 'confirmacion':
+                    $this->notificacionService->notificarCitaAgendada($cita);
+                    break;
+                    
+                default:
+                    Log::warning("Tipo de notificación no reconocido: {$tipo}", ['cita_id' => $cita->id]);
+            }
+            
+            Log::info("✅ Notificación encolada correctamente", [
                 'cita_id' => $cita->id,
-                'cliente_id' => $cliente->id,
                 'tipo' => $tipo,
-                'medio' => $medio,
-                'estado' => 'pendiente',
+            ]);
+            
+        } catch (\Exception $e) {
+            // Log del error pero no fallar la operación principal
+            Log::error("Error encolando notificación de {$tipo}: " . $e->getMessage(), [
+                'cita_id' => $cita->id,
+                'error' => $e->getMessage(),
             ]);
         }
+    }
 
-        // TODO: Encolar job para procesar notificaciones
-        // dispatch(new ProcesarNotificacionesJob($cita->id, $tipo));
+    /**
+     * Generar token único para QR de la cita
+     */
+    protected function generarTokenQr(): string
+    {
+        do {
+            $token = bin2hex(random_bytes(32)); // Token de 64 caracteres
+        } while (Cita::where('token_qr', $token)->exists());
+
+        return $token;
     }
 
     /**

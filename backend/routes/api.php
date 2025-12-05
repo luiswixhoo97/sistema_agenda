@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\ConfiguracionController;
 use App\Http\Controllers\Api\DispositivoController;
 use App\Http\Controllers\Api\FotoController;
 use App\Http\Controllers\Api\AgendamientoPublicoController;
+use App\Http\Controllers\Api\PlantillaNotificacionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -126,6 +127,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/citas/{id}/reagendar', [CitaController::class, 'reagendarEmpleado']);
         Route::post('/citas/{id}/cancelar', [CitaController::class, 'cancelarEmpleado']);
         Route::post('/citas/{id}/fotos', [CitaController::class, 'subirFoto']);
+        Route::post('/citas/scan-qr/{token}', [CitaController::class, 'escanearQr']);
         
         // Mi perfil de empleado
         Route::get('/perfil', [EmpleadoController::class, 'miPerfil']);
@@ -186,6 +188,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/citas-calendario', [CitaController::class, 'calendario']);
         Route::post('/citas/{id}/reagendar', [CitaController::class, 'reagendarAdmin']);
         Route::post('/citas/{id}/cancelar', [CitaController::class, 'cancelarAdmin']);
+        Route::post('/citas/scan-qr/{token}', [CitaController::class, 'escanearQr']);
         
         // Disponibilidad (para reagendar citas, sin restricción de anticipación)
         Route::get('/disponibilidad/slots', [DisponibilidadController::class, 'slotsDisponiblesEmpleado']);
@@ -210,6 +213,21 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Días festivos
         Route::apiResource('dias-festivos', ConfiguracionController::class . '@diasFestivos');
+
+        // Plantillas de notificación y comunicaciones
+        Route::prefix('plantillas')->group(function () {
+            Route::get('/', [PlantillaNotificacionController::class, 'index']);
+            Route::get('/{id}', [PlantillaNotificacionController::class, 'show']);
+            Route::put('/{id}', [PlantillaNotificacionController::class, 'update']);
+            Route::post('/{id}/restablecer', [PlantillaNotificacionController::class, 'restablecer']);
+            Route::post('/{id}/preview', [PlantillaNotificacionController::class, 'preview']);
+        });
+
+        Route::prefix('comunicaciones')->group(function () {
+            Route::post('/enviar', [PlantillaNotificacionController::class, 'enviarComunicacion']);
+            Route::get('/clientes', [PlantillaNotificacionController::class, 'getClientes']);
+            Route::get('/estadisticas', [PlantillaNotificacionController::class, 'getEstadisticas']);
+        });
     });
 });
 

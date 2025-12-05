@@ -73,6 +73,12 @@ const router = createRouter({
       component: () => import('@/views/empleado/PerfilEmpleadoView.vue'),
       meta: { requiresAuth: true, tipo: 'empleado' },
     },
+    {
+      path: '/empleado/scan-qr',
+      name: 'empleado-scan-qr',
+      component: () => import('@/views/empleado/ScanQrView.vue'),
+      meta: { requiresAuth: true, tipo: 'empleado' },
+    },
 
     // =====================================================
     // RUTAS DE ADMIN
@@ -124,6 +130,27 @@ const router = createRouter({
       name: 'admin-configuracion',
       component: () => import('@/views/admin/ConfiguracionView.vue'),
       meta: { requiresAuth: true, tipo: 'admin' },
+    },
+    {
+      path: '/admin/mensajes',
+      name: 'admin-mensajes',
+      component: () => import('@/views/admin/MensajesView.vue'),
+      meta: { requiresAuth: true, tipo: 'admin' },
+    },
+    {
+      path: '/admin/scan-qr',
+      name: 'admin-scan-qr',
+      component: () => import('@/views/empleado/ScanQrView.vue'),
+      meta: { requiresAuth: true, tipo: 'admin' },
+    },
+
+    // =====================================================
+    // RUTA PÚBLICA SCAN QR (redirect)
+    // =====================================================
+    {
+      path: '/scan-qr/:token',
+      name: 'scan-qr-redirect',
+      component: () => import('@/views/ScanQrRedirectView.vue'),
     },
 
     // =====================================================
