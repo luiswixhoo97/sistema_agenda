@@ -91,7 +91,7 @@
             <input
               v-for="(digit, index) in 6"
               :key="index"
-              :ref="(el) => (otpRefs[index] = el)"
+              :ref="(el) => (otpRefs[index] = el as HTMLInputElement | null)"
               v-model="otpDigits[index]"
               type="text"
               maxlength="1"

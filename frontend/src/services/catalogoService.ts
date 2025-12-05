@@ -40,6 +40,18 @@ export interface ServicioPublico {
     id: number
     nombre: string
   }
+  // Propiedades de promoción (opcionales)
+  es_promocion?: boolean
+  promocion_id?: number
+  descuento?: string
+  servicios_incluidos?: Array<{
+    id: number
+    nombre: string
+    precio: number
+    duracion: number
+  }>
+  precio_con_descuento?: number
+  precio_con_descuento_texto?: string
 }
 
 export interface EmpleadoPublico {

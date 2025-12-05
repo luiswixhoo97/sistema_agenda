@@ -92,6 +92,7 @@ function nuevaCita() {
 function formatHora(hora: string): string {
   if (!hora) return ''
   const [hours, minutes] = hora.split(':')
+  if (!hours) return ''
   const hour = parseInt(hours)
   const ampm = hour >= 12 ? 'PM' : 'AM'
   const hour12 = hour % 12 || 12

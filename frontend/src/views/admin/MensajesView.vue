@@ -260,9 +260,9 @@
                 v-for="(desc, variable) in plantillaEditando?.variables" 
                 :key="variable"
                 class="variable-chip"
-                @click="insertarVariable(variable as string)"
+                @click="insertarVariable(String(variable))"
               >
-                <code v-text="formatVariable(variable as string)"></code>
+                <code v-text="formatVariable(String(variable))"></code>
                 <span>{{ desc }}</span>
               </div>
             </div>

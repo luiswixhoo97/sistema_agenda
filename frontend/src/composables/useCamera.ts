@@ -169,8 +169,13 @@ export function useCamera() {
    */
   function base64ToBlob(base64: string): Blob {
     const parts = base64.split(';base64,');
-    const contentType = parts[0].split(':')[1];
-    const raw = window.atob(parts[1]);
+    const contentTypePart = parts[0]?.split(':');
+    const contentType = contentTypePart?.[1] || 'image/png';
+    const base64Data = parts[1];
+    if (!base64Data) {
+      throw new Error('Invalid base64 data');
+    }
+    const raw = window.atob(base64Data);
     const rawLength = raw.length;
     const uInt8Array = new Uint8Array(rawLength);
 

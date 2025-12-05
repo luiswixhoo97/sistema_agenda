@@ -129,7 +129,7 @@ export const useCitasStore = defineStore('citas', () => {
       const serviciosPromoIds = promocion.servicios_info?.map((s: any) => s.id) || []
       const serviciosSeleccionadosIds = serviciosSeleccionados.value.map(s => s.id)
       const todosServiciosCoinciden = serviciosPromoIds.length > 0 && 
-        serviciosPromoIds.every(id => serviciosSeleccionadosIds.includes(id)) &&
+        serviciosPromoIds.every((id: number) => serviciosSeleccionadosIds.includes(id)) &&
         serviciosSeleccionadosIds.length === serviciosPromoIds.length
       
       // Solo aplicar descuento si los servicios coinciden exactamente con la promoción
@@ -684,7 +684,7 @@ export const useCitasStore = defineStore('citas', () => {
     
     if (modoMultiplesEmpleados.value) {
       // Usar el primer empleado de la lista de asignaciones
-      if (empleadosPorServicio.value.length > 0) {
+      if (empleadosPorServicio.value.length > 0 && empleadosPorServicio.value[0]) {
         empleadoIdParaCalendario = empleadosPorServicio.value[0].empleadoId
       }
     } else {
@@ -703,8 +703,13 @@ export const useCitasStore = defineStore('citas', () => {
       // En modo múltiples, solo pedimos el primer servicio para el calendario
       // Los slots coordinados se calculan cuando se selecciona una fecha
       const serviciosParaCalendario = modoMultiplesEmpleados.value 
-        ? [servicioIds.value[0]] 
-        : servicioIds.value
+        ? (servicioIds.value[0] !== undefined ? [servicioIds.value[0]] : [])
+        : servicioIds.value.filter((id): id is number => id !== undefined)
+      
+      if (serviciosParaCalendario.length === 0) {
+        console.warn('⚠️ No hay servicios válidos para el calendario')
+        return
+      }
       
       console.log('📡 Llamando a obtenerDiasDisponibles:', { empleadoIdParaCalendario, serviciosParaCalendario })
       

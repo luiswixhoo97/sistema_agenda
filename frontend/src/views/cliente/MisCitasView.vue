@@ -73,7 +73,7 @@
             </div>
 
             <div class="cita-precio">
-              ${{ formatPrecio(cita.precio_total) }}
+              ${{ formatPrecio(cita.precio_final) }}
             </div>
           </div>
 
@@ -128,7 +128,7 @@
                 <ul class="servicios-lista">
                   <li v-for="servicio in citaSeleccionada.servicios" :key="servicio.id">
                     <span class="servicio-nombre">{{ servicio.nombre }}</span>
-                    <span class="servicio-precio">${{ formatPrecio(servicio.pivot?.precio_aplicado || servicio.precio) }}</span>
+                    <span class="servicio-precio">${{ formatPrecio(servicio.precio_aplicado) }}</span>
                   </li>
                 </ul>
               </div>
@@ -145,7 +145,7 @@
 
               <div class="detalle-total">
                 <span>Total</span>
-                <span class="total-precio">${{ formatPrecio(citaSeleccionada.precio_total) }}</span>
+                <span class="total-precio">${{ formatPrecio(citaSeleccionada.precio_final) }}</span>
               </div>
 
               <div v-if="citaSeleccionada.notas" class="detalle-seccion">
@@ -208,15 +208,16 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import citaService from '@/services/citaService';
 import type { Cita } from '@/types';
+import type { CitaResponse } from '@/services/citaService';
 
 const router = useRouter();
 
 // Estado
-const citas = ref<Cita[]>([]);
+const citas = ref<CitaResponse[]>([]);
 const loading = ref(true);
 const filtroActual = ref('proximas');
-const citaSeleccionada = ref<Cita | null>(null);
-const citaACancelar = ref<Cita | null>(null);
+const citaSeleccionada = ref<CitaResponse | null>(null);
+const citaACancelar = ref<CitaResponse | null>(null);
 const cancelando = ref(false);
 
 // Tabs
@@ -268,15 +269,15 @@ async function cargarCitas() {
   }
 }
 
-function verDetalle(cita: Cita) {
+function verDetalle(cita: CitaResponse) {
   citaSeleccionada.value = cita;
 }
 
-function modificarCita(cita: Cita) {
+function modificarCita(cita: CitaResponse) {
   router.push(`/agendar?modificar=${cita.id}`);
 }
 
-function confirmarCancelacion(cita: Cita) {
+function confirmarCancelacion(cita: CitaResponse) {
   citaSeleccionada.value = null;
   citaACancelar.value = cita;
 }
@@ -290,7 +291,7 @@ async function cancelarCita() {
     
     // Actualizar estado local
     const index = citas.value.findIndex(c => c.id === citaACancelar.value?.id);
-    if (index !== -1) {
+    if (index !== -1 && citas.value[index]) {
       citas.value[index].estado = 'cancelada';
     }
     
@@ -302,7 +303,7 @@ async function cancelarCita() {
   }
 }
 
-function puedeCancelar(cita: Cita): boolean {
+function puedeCancelar(cita: CitaResponse): boolean {
   if (['cancelada', 'completada', 'no_show', 'en_proceso'].includes(cita.estado)) {
     return false;
   }
@@ -311,7 +312,7 @@ function puedeCancelar(cita: Cita): boolean {
   return horasRestantes > 2;
 }
 
-function puedeModificar(cita: Cita): boolean {
+function puedeModificar(cita: CitaResponse): boolean {
   if (['cancelada', 'completada', 'no_show', 'en_proceso'].includes(cita.estado)) {
     return false;
   }

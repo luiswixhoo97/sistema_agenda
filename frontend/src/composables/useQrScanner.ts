@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { Capacitor } from '@capacitor/core'
-import { Camera, CameraPermissionState } from '@capacitor/camera'
+import { Camera, type CameraPermissionState } from '@capacitor/camera'
 import { Html5Qrcode, Html5QrcodeScanner } from 'html5-qrcode'
 
 export function useQrScanner() {
@@ -160,7 +160,7 @@ export function useQrScanner() {
   function extractToken(qrContent: string): string | null {
     // Intentar extraer de URL
     const urlMatch = qrContent.match(/scan-qr\/([a-zA-Z0-9]+)/)
-    if (urlMatch) {
+    if (urlMatch && urlMatch[1]) {
       return urlMatch[1]
     }
     

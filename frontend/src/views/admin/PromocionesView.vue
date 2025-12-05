@@ -156,7 +156,7 @@
                     v-else 
                     type="button" 
                     class="btn-upload-image"
-                    @click="$refs.imagenInput?.click()"
+                    @click="imagenInput?.click()"
                   >
                     <i class="fa fa-image"></i>
                     Seleccionar imagen
@@ -390,13 +390,18 @@ async function actualizarInfoServicios() {
     const empleadosComunes: any[] = [];
 
     // Si hay solo un servicio, usar sus empleados
-    if (todosServiciosIds.length === 1) {
+    if (todosServiciosIds.length === 1 && todosServiciosIds[0] !== undefined) {
       empleadosDisponibles.value = empleadosPorServicio[todosServiciosIds[0]] || [];
       return;
     }
 
     // Si hay múltiples servicios, encontrar intersección
-    const primerServicioEmpleados = empleadosPorServicio[todosServiciosIds[0]] || [];
+    const primerServicioId = todosServiciosIds[0];
+    if (primerServicioId === undefined) {
+      empleadosDisponibles.value = [];
+      return;
+    }
+    const primerServicioEmpleados = empleadosPorServicio[primerServicioId] || [];
     
     for (const empleado of primerServicioEmpleados) {
       const serviciosEmpleado = empleado.servicios.map((s: any) => s.id);

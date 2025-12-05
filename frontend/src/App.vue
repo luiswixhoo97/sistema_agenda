@@ -6,7 +6,7 @@ import { useNetwork } from '@/composables/useNetwork';
 import { usePushNotifications } from '@/composables/usePushNotifications';
 import { useAppkit } from '@/composables/useAppkit';
 import { Capacitor } from '@capacitor/core';
-import { StatusBar } from '@capacitor/status-bar';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { App } from '@capacitor/app';
 import NavBar from '@/components/NavBar.vue';
@@ -80,7 +80,7 @@ onMounted(async () => {
 async function configurarAppNativa() {
   // Configurar barra de estado
   try {
-    await StatusBar.setStyle({ style: 'LIGHT' });
+    await StatusBar.setStyle({ style: Style.Light });
     await StatusBar.setBackgroundColor({ color: '#ec407a' });
   } catch (error) {
     console.log('StatusBar no disponible:', error);

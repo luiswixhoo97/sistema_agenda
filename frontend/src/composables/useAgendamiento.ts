@@ -151,6 +151,7 @@ export function useAgendamiento() {
     
     const dias: { fecha: string; dia: number; disponible: boolean; esFestivo: boolean; esHoy: boolean; esPasado: boolean }[] = []
     const hoy = new Date().toISOString().split('T')[0]
+    if (!hoy) return []
     
     for (let i = 1; i <= diasEnMes; i++) {
       const fecha = `${anioActual.value}-${String(mesActual.value).padStart(2, '0')}-${String(i).padStart(2, '0')}`

@@ -24,10 +24,10 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const response = await authService.login({ email, password })
+      const response = await authService.login(email, password)
       
       if (response.success) {
-        token.value = response.token
+        token.value = response.token || null
         user.value = response.user!
         userType.value = response.user!.role as 'empleado' | 'admin'
         // Guardar info del empleado si existe
@@ -70,7 +70,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authService.verificarOtp({ telefono, codigo })
       
       if (response.success && response.token) {
-        token.value = response.token
+        token.value = response.token || null
         user.value = response.cliente!
         userType.value = 'cliente'
       }
@@ -98,7 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authService.registrarCliente(data)
       
       if (response.success) {
-        token.value = response.token
+        token.value = response.token || null
         user.value = response.cliente!
         userType.value = 'cliente'
         return true

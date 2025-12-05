@@ -28,7 +28,7 @@
         />
       </div>
       <div class="filter-row">
-        <select v-model="filtroEstado" @change="cargarCitas" class="filter-select">
+        <select v-model="filtroEstado" @change="() => cargarCitas()" class="filter-select">
           <option value="">Todos</option>
           <option value="pendiente">Pendiente</option>
           <option value="confirmada">Confirmada</option>
@@ -42,7 +42,7 @@
           v-model="filtroFecha" 
           type="date" 
           class="filter-date"
-          @change="cargarCitas" 
+          @change="() => cargarCitas()" 
         />
       </div>
     </div>
@@ -1252,7 +1252,7 @@ async function confirmarReagendar() {
     // Usar el nuevo endpoint de reagendamiento
     const response = await reagendarCitaAdmin(citaAReagendar.value.id, {
       fecha_hora: fechaHora,
-      motivo: reagendarData.value.motivo || null
+      motivo: reagendarData.value.motivo || undefined
     });
     
     if (response.success) {
@@ -1634,6 +1634,7 @@ function formatHora(hora: string): string {
   if (!hora) return '';
   // Formato HH:mm a HH:mm AM/PM
   const [hours, minutes] = hora.split(':');
+  if (!hours) return '';
   const hour = parseInt(hours);
   const ampm = hour >= 12 ? 'PM' : 'AM';
   const hour12 = hour % 12 || 12;
