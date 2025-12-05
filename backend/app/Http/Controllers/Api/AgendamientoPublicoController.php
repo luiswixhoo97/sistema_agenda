@@ -46,75 +46,95 @@ class AgendamientoPublicoController extends Controller
      */
     public function enviarOtp(Request $request): JsonResponse
     {
-        $request->validate([
-            'telefono' => 'required|string|size:10',
-        ]);
-
-        $telefono = $request->telefono;
-
-        // Verificar rate limiting (máximo 5 OTPs por hora)
-        $intentosRecientes = OtpCode::where('telefono', $telefono)
-            ->where('created_at', '>=', now()->subHour())
-            ->count();
-
-        if ($intentosRecientes >= 5) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Has solicitado demasiados códigos. Intenta en 1 hora.',
-            ], 429);
-        }
-
-        // Generar código OTP
-        $codigo = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $minutosExpiracion = OtpCode::MINUTOS_EXPIRACION; // 3 minutos
-        $expiracion = now()->addMinutes($minutosExpiracion);
-
-        // Eliminar OTPs anteriores para este teléfono y tipo
-        OtpCode::where('telefono', $telefono)
-            ->where('tipo', 'agendamiento')
-            ->delete();
-
-        // Crear nuevo OTP
-        OtpCode::create([
-            'telefono' => $telefono,
-            'tipo' => 'agendamiento',
-            'codigo' => $codigo,
-            'intentos' => 0,
-            'expira_at' => $expiracion,
-            'created_at' => now(),
-        ]);
-
-        // Enviar OTP por WhatsApp usando plantilla de BD
-        $mensaje = $this->obtenerMensajeOtp($codigo, $minutosExpiracion);
-
         try {
-            $resultado = $this->whatsAppService->enviarMensaje($telefono, $mensaje, 'otp');
-            
-            if (!$resultado['success']) {
-                Log::error("Error enviando OTP por WhatsApp", [
+            $request->validate([
+                'telefono' => 'required|string|size:10',
+            ]);
+
+            $telefono = $request->telefono;
+
+            // Verificar rate limiting (máximo 5 OTPs por hora)
+            $intentosRecientes = OtpCode::where('telefono', $telefono)
+                ->where('created_at', '>=', now()->subHour())
+                ->count();
+
+            if ($intentosRecientes >= 5) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Has solicitado demasiados códigos. Intenta en 1 hora.',
+                ], 429);
+            }
+
+            // Generar código OTP
+            $codigo = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $minutosExpiracion = OtpCode::MINUTOS_EXPIRACION; // 3 minutos
+            $expiracion = now()->addMinutes($minutosExpiracion);
+
+            // Eliminar OTPs anteriores para este teléfono y tipo
+            OtpCode::where('telefono', $telefono)
+                ->where('tipo', 'agendamiento')
+                ->delete();
+
+            // Crear nuevo OTP
+            OtpCode::create([
+                'telefono' => $telefono,
+                'tipo' => 'agendamiento',
+                'codigo' => $codigo,
+                'intentos' => 0,
+                'expira_at' => $expiracion,
+                'created_at' => now(),
+            ]);
+
+            // Enviar OTP por WhatsApp usando plantilla de BD
+            $mensaje = $this->obtenerMensajeOtp($codigo, $minutosExpiracion);
+
+            try {
+                $resultado = $this->whatsAppService->enviarMensaje($telefono, $mensaje, 'otp');
+                
+                if (!$resultado['success']) {
+                    Log::error("Error enviando OTP por WhatsApp", [
+                        'telefono' => $telefono,
+                        'error' => $resultado['error'] ?? 'Error desconocido',
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error("Excepción enviando OTP por WhatsApp: " . $e->getMessage(), [
                     'telefono' => $telefono,
-                    'error' => $resultado['error'] ?? 'Error desconocido',
                 ]);
             }
+
+            $response = [
+                'success' => true,
+                'message' => 'Código enviado a tu WhatsApp',
+                'expira_en' => $minutosExpiracion * 60, // segundos
+            ];
+
+            // En desarrollo, devolver el código para testing
+            if (config('app.debug')) {
+                $response['codigo_debug'] = $codigo;
+                Log::info("🔐 OTP Agendamiento para {$telefono}: {$codigo}");
+            }
+
+            return response()->json($response);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos inválidos',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
-            Log::error("Excepción enviando OTP por WhatsApp: " . $e->getMessage(), [
-                'telefono' => $telefono,
+            Log::error('Error al enviar OTP: ' . $e->getMessage(), [
+                'telefono' => $request->telefono ?? null,
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
             ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al enviar el código. Intenta de nuevo.',
+                'debug' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
-
-        $response = [
-            'success' => true,
-            'message' => 'Código enviado a tu WhatsApp',
-            'expira_en' => $minutosExpiracion * 60, // segundos
-        ];
-
-        // En desarrollo, devolver el código para testing
-        if (config('app.debug')) {
-            $response['codigo_debug'] = $codigo;
-            Log::info("🔐 OTP Agendamiento para {$telefono}: {$codigo}");
-        }
-
-        return response()->json($response);
     }
 
     /**
@@ -578,21 +598,26 @@ class AgendamientoPublicoController extends Controller
      */
     private function obtenerMensajeOtp(string $codigo, int $minutosExpiracion): string
     {
-        // Buscar plantilla en BD
-        $plantilla = PlantillaNotificacion::where('tipo', 'otp')
-            ->where('medio', 'whatsapp')
-            ->where('activo', true)
-            ->first();
+        try {
+            // Buscar plantilla en BD
+            $plantilla = PlantillaNotificacion::where('tipo', 'otp')
+                ->where('medio', 'whatsapp')
+                ->where('activo', true)
+                ->first();
 
-        if ($plantilla) {
-            // Usar plantilla de BD
-            $mensaje = $plantilla->contenido;
-            $mensaje = str_replace('{{codigo_otp}}', $codigo, $mensaje);
-            $mensaje = str_replace('{{expiracion_minutos}}', (string) $minutosExpiracion, $mensaje);
-            return $mensaje;
+            if ($plantilla) {
+                // Usar plantilla de BD
+                $mensaje = $plantilla->contenido;
+                $mensaje = str_replace('{{codigo_otp}}', $codigo, $mensaje);
+                $mensaje = str_replace('{{expiracion_minutos}}', (string) $minutosExpiracion, $mensaje);
+                return $mensaje;
+            }
+        } catch (\Exception $e) {
+            // Si hay error al buscar plantilla, usar la por defecto
+            Log::warning('Error al obtener plantilla OTP de BD, usando plantilla por defecto: ' . $e->getMessage());
         }
 
-        // Plantilla por defecto si no existe en BD
+        // Plantilla por defecto si no existe en BD o hay error
         return "🔐 *Código de verificación*\n\n"
              . "Tu código es: *{$codigo}*\n\n"
              . "⏱️ Válido por {$minutosExpiracion} minutos.\n\n"

@@ -153,7 +153,7 @@ import Swal from 'sweetalert2'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+const API_URL = import.meta.env.VITE_API_URL || 'https://salmon-eland-125157.hostingersite.com/backend/public/api'
 
 // Composable de QR Scanner
 const { 

@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'tipo' => \App\Http\Middleware\TipoUsuario::class,
         ]);
 
+        // Configuración de CORS
+        $middleware->api(prepend: [
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
+
         // Configuración de Sanctum para API
         $middleware->statefulApi();
     })

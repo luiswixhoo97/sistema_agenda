@@ -318,7 +318,7 @@ import { useAuthStore } from '@/stores/auth'
 import Swal from 'sweetalert2'
 
 const authStore = useAuthStore()
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+const API_URL = import.meta.env.VITE_API_URL || 'https://salmon-eland-125157.hostingersite.com/backend/public/api'
 
 // State
 const loading = ref(true)

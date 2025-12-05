@@ -8,13 +8,15 @@ const getApiUrl = () => {
     return import.meta.env.VITE_API_URL
   }
   
-  // Si accedemos desde localhost, usar localhost
+  // URL del servidor de producción
+  return 'https://salmon-eland-125157.hostingersite.com/backend/public/api'
+  
+  /* Para desarrollo local, descomenta esto:
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:8000/api'
   }
-  
-  // Si accedemos desde otra IP (celular), usar la misma IP para el backend
   return `http://${window.location.hostname}:8000/api`
+  */
 }
 
 const API_URL = getApiUrl()
