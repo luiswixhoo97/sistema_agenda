@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { Capacitor } from '@capacitor/core'
-import { Camera, type CameraPermissionState } from '@capacitor/camera'
-import { Html5Qrcode, Html5QrcodeScanner } from 'html5-qrcode'
+import { Camera } from '@capacitor/camera'
+import { Html5Qrcode } from 'html5-qrcode'
 
 export function useQrScanner() {
   const scanning = ref(false)
@@ -30,6 +30,7 @@ export function useQrScanner() {
       }
     } catch (e) {
       // En algunos navegadores no se puede consultar permisos
+      console.warn('No se pudo verificar permisos de cámara:', e)
       hasPermission.value = null
       return true // Intentar de todas formas
     }
@@ -56,8 +57,22 @@ export function useQrScanner() {
         return true
       }
     } catch (e: any) {
+      console.error('Error solicitando permisos:', e)
       error.value = e.message || 'Error al solicitar permisos'
       return false
+    }
+  }
+
+  /**
+   * Obtener la lista de cámaras disponibles
+   */
+  async function getCameras(): Promise<{ id: string; label: string }[]> {
+    try {
+      const devices = await Html5Qrcode.getCameras()
+      return devices.map(d => ({ id: d.id, label: d.label }))
+    } catch (e) {
+      console.error('Error obteniendo cámaras:', e)
+      return []
     }
   }
 
@@ -71,28 +86,79 @@ export function useQrScanner() {
   ): Promise<boolean> {
     error.value = null
     
-    // Verificar/solicitar permisos
-    const hasAccess = await checkPermissions()
-    if (!hasAccess) {
-      const granted = await requestPermissions()
-      if (!granted) {
+    // Primero solicitar permisos explícitamente en Android
+    if (isNative) {
+      try {
+        const permStatus = await Camera.checkPermissions()
+        if (permStatus.camera !== 'granted') {
+          const requestResult = await Camera.requestPermissions({ permissions: ['camera'] })
+          if (requestResult.camera !== 'granted') {
+            error.value = 'Permiso de cámara denegado. Por favor habilita el acceso a la cámara en la configuración de la app.'
+            return false
+          }
+        }
+        hasPermission.value = true
+      } catch (e: any) {
+        console.error('Error con permisos de cámara:', e)
+        error.value = 'Error al solicitar permisos de cámara'
         return false
       }
     }
 
     try {
+      // Esperar un momento para que el DOM esté listo
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      // Verificar que el elemento exista
+      const element = document.getElementById(elementId)
+      if (!element) {
+        error.value = 'Error interno: contenedor de cámara no encontrado'
+        return false
+      }
+
       html5QrCode = new Html5Qrcode(elementId)
       
+      // Intentar obtener las cámaras disponibles
+      let cameraId: string | { facingMode: string } = { facingMode: 'environment' }
+      
+      try {
+        const cameras = await Html5Qrcode.getCameras()
+        if (cameras && cameras.length > 0) {
+          // Buscar cámara trasera
+          const backCamera = cameras.find(c => 
+            c.label.toLowerCase().includes('back') || 
+            c.label.toLowerCase().includes('trasera') ||
+            c.label.toLowerCase().includes('rear') ||
+            c.label.toLowerCase().includes('environment')
+          )
+          if (backCamera) {
+            cameraId = backCamera.id
+          } else {
+            // Usar la última cámara (generalmente la trasera)
+            const lastCamera = cameras[cameras.length - 1]
+            if (lastCamera) {
+              cameraId = lastCamera.id
+            }
+          }
+          console.log('Cámaras disponibles:', cameras.map(c => c.label))
+          console.log('Usando cámara:', cameraId)
+        }
+      } catch (camError) {
+        console.warn('No se pudieron listar cámaras, usando facingMode:', camError)
+      }
+
       const config = {
         fps: 10,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1,
-        // En móviles usar la cámara trasera
-        ...(isNative && { videoConstraints: { facingMode: 'environment' } })
+        disableFlip: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        }
       }
 
       await html5QrCode.start(
-        { facingMode: 'environment' },
+        cameraId,
         config,
         (decodedText) => {
           // Detener escáner antes de procesar
@@ -103,7 +169,8 @@ export function useQrScanner() {
         (errorMessage) => {
           // Ignorar errores de "no QR found" - es normal mientras busca
           if (!errorMessage.includes('No QR code found') && 
-              !errorMessage.includes('NotFoundException')) {
+              !errorMessage.includes('NotFoundException') &&
+              !errorMessage.includes('No MultiFormat Readers')) {
             onError?.(errorMessage)
           }
         }
@@ -116,15 +183,21 @@ export function useQrScanner() {
       
       // Manejar errores específicos
       if (e.message?.includes('Permission denied') || 
-          e.name === 'NotAllowedError') {
+          e.name === 'NotAllowedError' ||
+          e.message?.includes('Permission')) {
         error.value = 'Permiso de cámara denegado. Por favor habilita el acceso a la cámara en la configuración de la app.'
       } else if (e.message?.includes('NotFoundError') || 
-                 e.name === 'NotFoundError') {
+                 e.name === 'NotFoundError' ||
+                 e.message?.includes('Requested device not found')) {
         error.value = 'No se encontró ninguna cámara en el dispositivo.'
-      } else if (e.message?.includes('NotReadableError')) {
-        error.value = 'La cámara está siendo usada por otra aplicación.'
+      } else if (e.message?.includes('NotReadableError') ||
+                 e.name === 'NotReadableError' ||
+                 e.message?.includes('Could not start video source')) {
+        error.value = 'La cámara está siendo usada por otra aplicación o no está disponible.'
+      } else if (e.message?.includes('OverconstrainedError')) {
+        error.value = 'La configuración de cámara no es compatible con tu dispositivo.'
       } else {
-        error.value = e.message || 'Error al iniciar el escáner de QR'
+        error.value = 'Error al iniciar el escáner de QR. Verifica que la app tenga permisos de cámara.'
       }
       
       scanning.value = false

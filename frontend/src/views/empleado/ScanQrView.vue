@@ -198,26 +198,41 @@ const iniciarEscaner = async () => {
   iniciandoEscaner.value = true
   resultado.value = null
   
-  // Esperar a que el DOM se actualice
-  await new Promise(resolve => setTimeout(resolve, 100))
+  // Esperar a que el DOM se actualice completamente
+  await new Promise(resolve => setTimeout(resolve, 300))
   
-  const success = await startScanner(
-    'qr-reader',
-    onScanSuccess,
-    onScanError
-  )
-  
-  if (!success) {
-    if (scannerError.value?.includes('Permiso') || scannerError.value?.includes('denegado')) {
-      permisoDenegado.value = true
-    } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error de cámara',
-        text: scannerError.value || 'No se pudo acceder a la cámara',
-        confirmButtonColor: '#667eea'
-      })
+  try {
+    const success = await startScanner(
+      'qr-reader',
+      onScanSuccess,
+      onScanError
+    )
+    
+    if (!success) {
+      if (scannerError.value?.includes('Permiso') || 
+          scannerError.value?.includes('denegado') ||
+          scannerError.value?.includes('Permission')) {
+        permisoDenegado.value = true
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de cámara',
+          text: scannerError.value || 'Error al iniciar el escáner de QR',
+          confirmButtonColor: '#667eea',
+          footer: isNative 
+            ? '<small>Verifica que la app tenga permisos de cámara en Configuración > Apps > BeautySpa > Permisos</small>'
+            : undefined
+        })
+      }
     }
+  } catch (e: any) {
+    console.error('Error inesperado:', e)
+    Swal.fire({
+      icon: 'error',
+      title: 'Error de cámara',
+      text: 'Ocurrió un error inesperado al iniciar la cámara',
+      confirmButtonColor: '#667eea'
+    })
   }
   
   iniciandoEscaner.value = false

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "530582725392",
+    "project_id": "com-beautyspa-app",
+    "storage_bucket": "com-beautyspa-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:530582725392:android:818771328c6d6eb4c5bb95",
+        "android_client_info": {
+          "package_name": "com_beautyspa.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBeO4Jc023gHxXV7N8D3efmtqvJ91EbCTk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
