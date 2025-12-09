@@ -4,7 +4,7 @@ android {
     namespace "com.beautyspa.app"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com_beautyspa.app"
+        applicationId "com.beautyspa.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -17,9 +17,15 @@ android {
         }
     }
     buildTypes {
+        debug {
+            debuggable true
+            // Usa el keystore de debug por defecto de Android
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Para release necesitarás crear un keystore
+            // signingConfig signingConfigs.release
         }
     }
 }
