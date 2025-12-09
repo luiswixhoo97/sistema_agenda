@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.beautyspa.app',
+  appId: 'com_beautyspa.app',
   appName: 'BeautySpa',
   webDir: 'dist',
   server: {
@@ -31,6 +31,8 @@ const config: CapacitorConfig = {
     allowMixedContent: true,
     captureInput: true,
     webContentsDebuggingEnabled: true,
+    // Habilitar características avanzadas del WebView para cámara
+    appendUserAgent: 'BeautySpaApp',
   },
   ios: {
     contentInset: 'automatic',

@@ -280,4 +280,15 @@ body.theme-dark {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Estilos para ML Kit Barcode Scanner */
+body.barcode-scanner-active {
+  visibility: hidden;
+  --background: transparent;
+  --ion-background-color: transparent;
+}
+
+body.barcode-scanner-active #app-container {
+  visibility: hidden;
+}
 </style>

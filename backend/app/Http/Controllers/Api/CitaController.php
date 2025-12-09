@@ -855,14 +855,25 @@ class CitaController extends Controller
             ], 401);
         }
 
-        // Verificar que sea empleado o admin
-        $esEmpleado = $user->tipo === 'empleado' && $user->empleado;
-        $esAdmin = $user->tipo === 'admin';
+        // Cargar relaciones necesarias
+        $user->load('role', 'empleado');
+
+        // Verificar que sea empleado o admin usando los métodos helper
+        $esAdmin = $user->isAdmin();
+        $esEmpleado = $user->isEmpleado() && $user->empleado;
 
         if (!$esEmpleado && !$esAdmin) {
+            // Si es empleado pero no tiene relación empleado, dar mensaje específico
+            if ($user->isEmpleado() && !$user->empleado) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tu cuenta de empleado no está correctamente configurada. Contacta al administrador.',
+                ], 403);
+            }
+            
             return response()->json([
                 'success' => false,
-                'message' => 'No tienes permisos para escanear QR',
+                'message' => 'No tienes permisos para escanear QR. Solo empleados y administradores pueden usar esta función.',
             ], 403);
         }
 

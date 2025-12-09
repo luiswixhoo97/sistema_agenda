@@ -1,7 +1,11 @@
 import { ref } from 'vue'
 import { Capacitor } from '@capacitor/core'
-import { Camera } from '@capacitor/camera'
 import { Html5Qrcode } from 'html5-qrcode'
+import { 
+  BarcodeScanner, 
+  BarcodeFormat,
+  LensFacing
+} from '@capacitor-mlkit/barcode-scanning'
 
 export function useQrScanner() {
   const scanning = ref(false)
@@ -18,8 +22,8 @@ export function useQrScanner() {
   async function checkPermissions(): Promise<boolean> {
     try {
       if (isNative) {
-        // En plataforma nativa, usar Capacitor Camera
-        const status = await Camera.checkPermissions()
+        // En plataforma nativa, usar ML Kit BarcodeScanner
+        const status = await BarcodeScanner.checkPermissions()
         hasPermission.value = status.camera === 'granted'
         return hasPermission.value
       } else {
@@ -29,7 +33,6 @@ export function useQrScanner() {
         return hasPermission.value
       }
     } catch (e) {
-      // En algunos navegadores no se puede consultar permisos
       console.warn('No se pudo verificar permisos de cámara:', e)
       hasPermission.value = null
       return true // Intentar de todas formas
@@ -42,8 +45,8 @@ export function useQrScanner() {
   async function requestPermissions(): Promise<boolean> {
     try {
       if (isNative) {
-        // En plataforma nativa
-        const status = await Camera.requestPermissions({ permissions: ['camera'] })
+        // En plataforma nativa, usar ML Kit
+        const status = await BarcodeScanner.requestPermissions()
         hasPermission.value = status.camera === 'granted'
         
         if (!hasPermission.value) {
@@ -53,7 +56,6 @@ export function useQrScanner() {
         return hasPermission.value
       } else {
         // En web, el permiso se solicita al acceder a getUserMedia
-        // que se hace automáticamente al iniciar el escáner
         return true
       }
     } catch (e: any) {
@@ -64,52 +66,106 @@ export function useQrScanner() {
   }
 
   /**
-   * Obtener la lista de cámaras disponibles
+   * Verificar si Google Barcode Scanner está disponible (Android)
    */
-  async function getCameras(): Promise<{ id: string; label: string }[]> {
+  async function checkGoogleBarcodeScanner(): Promise<boolean> {
+    if (!isNative) return false
+    
     try {
-      const devices = await Html5Qrcode.getCameras()
-      return devices.map(d => ({ id: d.id, label: d.label }))
+      const { available } = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable()
+      if (!available) {
+        console.log('Instalando módulo de Google Barcode Scanner...')
+        await BarcodeScanner.installGoogleBarcodeScannerModule()
+        return true
+      }
+      return true
     } catch (e) {
-      console.error('Error obteniendo cámaras:', e)
-      return []
+      console.warn('Google Barcode Scanner no disponible:', e)
+      return false
     }
   }
 
   /**
-   * Iniciar escáner de QR
+   * Iniciar escáner de QR (NATIVO con ML Kit)
    */
-  async function startScanner(
+  async function startNativeScanner(
+    onSuccess: (decodedText: string) => void
+  ): Promise<boolean> {
+    error.value = null
+    
+    try {
+      // Verificar/solicitar permisos
+      const permStatus = await BarcodeScanner.checkPermissions()
+      if (permStatus.camera !== 'granted') {
+        const requestResult = await BarcodeScanner.requestPermissions()
+        if (requestResult.camera !== 'granted') {
+          error.value = 'Permiso de cámara denegado. Por favor habilita el acceso a la cámara en la configuración de la app.'
+          return false
+        }
+      }
+      hasPermission.value = true
+
+      // Verificar que el módulo de Google esté disponible
+      await checkGoogleBarcodeScanner()
+
+      // Agregar clase al body para ocultar el fondo
+      document.querySelector('body')?.classList.add('barcode-scanner-active')
+      
+      scanning.value = true
+
+      // Iniciar escaneo con ML Kit
+      const result = await BarcodeScanner.scan({
+        formats: [BarcodeFormat.QrCode],
+      })
+
+      // Remover clase del body
+      document.querySelector('body')?.classList.remove('barcode-scanner-active')
+      scanning.value = false
+
+      if (result.barcodes && result.barcodes.length > 0) {
+        const barcode = result.barcodes[0]
+        if (barcode && barcode.rawValue) {
+          onSuccess(barcode.rawValue)
+          return true
+        }
+      }
+
+      error.value = 'No se detectó ningún código QR'
+      return false
+
+    } catch (e: any) {
+      document.querySelector('body')?.classList.remove('barcode-scanner-active')
+      scanning.value = false
+      console.error('Error en escáner nativo:', e)
+      
+      if (e.message?.includes('canceled') || e.message?.includes('cancelled')) {
+        // Usuario canceló el escaneo
+        error.value = null
+        return false
+      }
+      
+      if (e.message?.includes('Permission') || e.message?.includes('permission')) {
+        error.value = 'Permiso de cámara denegado. Por favor habilita el acceso a la cámara en la configuración de la app.'
+      } else {
+        error.value = e.message || 'Error al escanear código QR'
+      }
+      return false
+    }
+  }
+
+  /**
+   * Iniciar escáner de QR (WEB con html5-qrcode)
+   */
+  async function startWebScanner(
     elementId: string,
     onSuccess: (decodedText: string) => void,
     onError?: (errorMessage: string) => void
   ): Promise<boolean> {
     error.value = null
-    
-    // Primero solicitar permisos explícitamente en Android
-    if (isNative) {
-      try {
-        const permStatus = await Camera.checkPermissions()
-        if (permStatus.camera !== 'granted') {
-          const requestResult = await Camera.requestPermissions({ permissions: ['camera'] })
-          if (requestResult.camera !== 'granted') {
-            error.value = 'Permiso de cámara denegado. Por favor habilita el acceso a la cámara en la configuración de la app.'
-            return false
-          }
-        }
-        hasPermission.value = true
-      } catch (e: any) {
-        console.error('Error con permisos de cámara:', e)
-        error.value = 'Error al solicitar permisos de cámara'
-        return false
-      }
-    }
 
     try {
-      // Esperar un momento para que el DOM esté listo
       await new Promise(resolve => setTimeout(resolve, 200))
       
-      // Verificar que el elemento exista
       const element = document.getElementById(elementId)
       if (!element) {
         error.value = 'Error interno: contenedor de cámara no encontrado'
@@ -118,13 +174,11 @@ export function useQrScanner() {
 
       html5QrCode = new Html5Qrcode(elementId)
       
-      // Intentar obtener las cámaras disponibles
       let cameraId: string | { facingMode: string } = { facingMode: 'environment' }
       
       try {
         const cameras = await Html5Qrcode.getCameras()
         if (cameras && cameras.length > 0) {
-          // Buscar cámara trasera
           const backCamera = cameras.find(c => 
             c.label.toLowerCase().includes('back') || 
             c.label.toLowerCase().includes('trasera') ||
@@ -134,17 +188,14 @@ export function useQrScanner() {
           if (backCamera) {
             cameraId = backCamera.id
           } else {
-            // Usar la última cámara (generalmente la trasera)
             const lastCamera = cameras[cameras.length - 1]
             if (lastCamera) {
               cameraId = lastCamera.id
             }
           }
-          console.log('Cámaras disponibles:', cameras.map(c => c.label))
-          console.log('Usando cámara:', cameraId)
         }
       } catch (camError) {
-        console.warn('No se pudieron listar cámaras, usando facingMode:', camError)
+        console.warn('No se pudieron listar cámaras:', camError)
       }
 
       const config = {
@@ -161,13 +212,11 @@ export function useQrScanner() {
         cameraId,
         config,
         (decodedText) => {
-          // Detener escáner antes de procesar
           stopScanner().then(() => {
             onSuccess(decodedText)
           })
         },
         (errorMessage) => {
-          // Ignorar errores de "no QR found" - es normal mientras busca
           if (!errorMessage.includes('No QR code found') && 
               !errorMessage.includes('NotFoundException') &&
               !errorMessage.includes('No MultiFormat Readers')) {
@@ -179,25 +228,16 @@ export function useQrScanner() {
       scanning.value = true
       return true
     } catch (e: any) {
-      console.error('Error iniciando escáner:', e)
+      console.error('Error iniciando escáner web:', e)
       
-      // Manejar errores específicos
-      if (e.message?.includes('Permission denied') || 
-          e.name === 'NotAllowedError' ||
-          e.message?.includes('Permission')) {
-        error.value = 'Permiso de cámara denegado. Por favor habilita el acceso a la cámara en la configuración de la app.'
-      } else if (e.message?.includes('NotFoundError') || 
-                 e.name === 'NotFoundError' ||
-                 e.message?.includes('Requested device not found')) {
+      if (e.message?.includes('Permission denied') || e.name === 'NotAllowedError') {
+        error.value = 'Permiso de cámara denegado.'
+      } else if (e.message?.includes('NotFoundError') || e.name === 'NotFoundError') {
         error.value = 'No se encontró ninguna cámara en el dispositivo.'
-      } else if (e.message?.includes('NotReadableError') ||
-                 e.name === 'NotReadableError' ||
-                 e.message?.includes('Could not start video source')) {
-        error.value = 'La cámara está siendo usada por otra aplicación o no está disponible.'
-      } else if (e.message?.includes('OverconstrainedError')) {
-        error.value = 'La configuración de cámara no es compatible con tu dispositivo.'
+      } else if (e.message?.includes('NotReadableError') || e.name === 'NotReadableError') {
+        error.value = 'La cámara está siendo usada por otra aplicación.'
       } else {
-        error.value = 'Error al iniciar el escáner de QR. Verifica que la app tenga permisos de cámara.'
+        error.value = 'Error al iniciar el escáner de QR.'
       }
       
       scanning.value = false
@@ -206,9 +246,35 @@ export function useQrScanner() {
   }
 
   /**
+   * Iniciar escáner de QR (detecta automáticamente nativo vs web)
+   */
+  async function startScanner(
+    elementId: string,
+    onSuccess: (decodedText: string) => void,
+    onError?: (errorMessage: string) => void
+  ): Promise<boolean> {
+    if (isNative) {
+      // Usar escáner nativo con ML Kit
+      return startNativeScanner(onSuccess)
+    } else {
+      // Usar html5-qrcode para web
+      return startWebScanner(elementId, onSuccess, onError)
+    }
+  }
+
+  /**
    * Detener escáner
    */
   async function stopScanner(): Promise<void> {
+    if (isNative) {
+      try {
+        await BarcodeScanner.stopScan()
+        document.querySelector('body')?.classList.remove('barcode-scanner-active')
+      } catch (e) {
+        // Ignorar error si no estaba escaneando
+      }
+    }
+    
     if (html5QrCode) {
       try {
         if (html5QrCode.isScanning) {
@@ -225,10 +291,6 @@ export function useQrScanner() {
 
   /**
    * Extraer token de una URL de QR
-   * Formatos soportados:
-   * - https://miapp.com/scan-qr/TOKEN
-   * - /scan-qr/TOKEN
-   * - TOKEN (directo)
    */
   function extractToken(qrContent: string): string | null {
     // Intentar extraer de URL
@@ -260,9 +322,10 @@ export function useQrScanner() {
     checkPermissions,
     requestPermissions,
     startScanner,
+    startNativeScanner,
+    startWebScanner,
     stopScanner,
     extractToken,
     isScanning
   }
 }
-

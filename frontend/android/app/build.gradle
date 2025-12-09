@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com_beautyspa.app"
+    namespace "com.beautyspa.app"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com_beautyspa.app"

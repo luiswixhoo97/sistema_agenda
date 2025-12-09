@@ -37,14 +37,19 @@
         <p>Escanea el código QR del cliente para marcar su cita como completada</p>
         <button class="btn-scan" @click="iniciarEscaner" :disabled="iniciandoEscaner">
           <i :class="iniciandoEscaner ? 'fa fa-spinner fa-spin' : 'fa fa-camera'"></i>
-          {{ iniciandoEscaner ? 'Iniciando...' : 'Iniciar cámara' }}
+          {{ iniciandoEscaner ? 'Iniciando...' : 'Escanear QR' }}
         </button>
+        <p v-if="isNative" class="scan-native-hint">
+          <i class="fa fa-info-circle"></i>
+          Se abrirá la cámara en pantalla completa
+        </p>
       </div>
 
-      <!-- Scanner activo -->
-      <div v-if="scanning" class="scanner-active">
-        <div id="qr-reader" ref="qrReaderRef"></div>
-        <div class="scanner-overlay">
+      <!-- Scanner activo (web y fallback) -->
+      <!-- IMPORTANTE: Usar v-show en lugar de v-if para que el elemento siempre exista en el DOM -->
+      <div v-show="scanning || iniciandoEscaner" class="scanner-active">
+        <div id="qr-reader" ref="qrReaderRef" class="qr-reader-container"></div>
+        <div class="scanner-overlay" v-if="scanning && !isNative">
           <div class="scanner-frame">
             <div class="corner top-left"></div>
             <div class="corner top-right"></div>
@@ -53,11 +58,17 @@
             <div class="scan-line"></div>
           </div>
         </div>
-        <p class="scan-hint">Apunta hacia el código QR</p>
-        <button class="btn-cancel" @click="detenerEscaner">
+        <p class="scan-hint" v-if="scanning && !isNative">Apunta hacia el código QR</p>
+        <button class="btn-cancel" @click="detenerEscaner" v-if="scanning && !isNative">
           <i class="fa fa-times"></i>
           Cancelar
         </button>
+      </div>
+      
+      <!-- Indicador de escaneo nativo -->
+      <div v-if="iniciandoEscaner && isNative && !scanning" class="scanner-loading">
+        <div class="spinner"></div>
+        <p>Abriendo cámara...</p>
       </div>
 
       <!-- Resultado exitoso -->
@@ -198,15 +209,71 @@ const iniciarEscaner = async () => {
   iniciandoEscaner.value = true
   resultado.value = null
   
+  // Timeout de seguridad para evitar estado de carga infinito
+  const safetyTimeout = setTimeout(() => {
+    if (iniciandoEscaner.value) {
+      console.warn('⚠️ Safety timeout: La cámara tardó más de 8 segundos')
+      iniciandoEscaner.value = false
+      
+      if (!scanning.value) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Tiempo de espera agotado',
+          html: 'La cámara tardó demasiado en responder.<br><br><strong>Intenta:</strong><br>• Cerrar otras apps que usen la cámara<br>• Reiniciar la aplicación<br>• Reiniciar tu dispositivo',
+          confirmButtonColor: '#667eea'
+        })
+      }
+    }
+  }, 8000)
+  
   // Esperar a que el DOM se actualice completamente
   await new Promise(resolve => setTimeout(resolve, 300))
   
   try {
-    const success = await startScanner(
+    let success = await startScanner(
       'qr-reader',
       onScanSuccess,
       onScanError
     )
+    
+    // Si el escáner nativo falló en dispositivo móvil, intentar con web scanner
+    if (!success && isNative && scannerError.value) {
+      const errorMsg = scannerError.value
+      // Solo usar fallback si NO es error de permisos
+      if (!errorMsg.includes('Permiso') && !errorMsg.includes('Permission') && !errorMsg.includes('denegado')) {
+        console.log('🔄 Intentando con escáner web como alternativa...')
+        
+        // Mostrar notificación al usuario
+        const Toast = Swal.mixin({
+          toast: true,
+          position: 'top',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true
+        })
+        
+        Toast.fire({
+          icon: 'info',
+          title: 'Usando escáner alternativo...'
+        })
+        
+        // Limpiar error y reintentar con web scanner
+        scannerError.value = null
+        
+        // Dar tiempo para que el mensaje se muestre
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Intentar de nuevo - el composable debería usar web scanner como fallback
+        success = await startScanner(
+          'qr-reader',
+          onScanSuccess,
+          onScanError
+        )
+      }
+    }
+    
+    // Limpiar timeout de seguridad
+    clearTimeout(safetyTimeout)
     
     if (!success) {
       if (scannerError.value?.includes('Permiso') || 
@@ -214,28 +281,35 @@ const iniciarEscaner = async () => {
           scannerError.value?.includes('Permission')) {
         permisoDenegado.value = true
       } else {
+        // Mostrar error con formato mejorado
+        const errorText = scannerError.value || 'Error al iniciar el escáner de QR'
+        const errorLines = errorText.split('\n')
+        
         Swal.fire({
           icon: 'error',
           title: 'Error de cámara',
-          text: scannerError.value || 'Error al iniciar el escáner de QR',
+          html: errorLines.join('<br>'),
           confirmButtonColor: '#667eea',
           footer: isNative 
-            ? '<small>Verifica que la app tenga permisos de cámara en Configuración > Apps > BeautySpa > Permisos</small>'
+            ? '<small>Si el problema persiste, ve a Configuración > Apps > [Esta app] > Permisos y verifica que la cámara esté habilitada</small>'
             : undefined
         })
       }
     }
   } catch (e: any) {
     console.error('Error inesperado:', e)
+    clearTimeout(safetyTimeout)
+    
     Swal.fire({
       icon: 'error',
       title: 'Error de cámara',
       text: 'Ocurrió un error inesperado al iniciar la cámara',
       confirmButtonColor: '#667eea'
     })
+  } finally {
+    // Asegurar que el estado se resetee
+    iniciandoEscaner.value = false
   }
-  
-  iniciandoEscaner.value = false
 }
 
 const detenerEscaner = async () => {
@@ -275,10 +349,30 @@ const procesarToken = async (token: string) => {
   procesando.value = true
   
   try {
+    // Verificar que el usuario esté autenticado
+    if (!authStore.isAuthenticated || !authStore.token) {
+      resultado.value = {
+        success: false,
+        message: 'No estás autenticado. Por favor inicia sesión nuevamente.'
+      }
+      return
+    }
+
+    // Verificar tipo de usuario
+    if (!authStore.userType || (authStore.userType !== 'admin' && authStore.userType !== 'empleado')) {
+      resultado.value = {
+        success: false,
+        message: 'Solo empleados y administradores pueden escanear códigos QR. Tu tipo de usuario: ' + (authStore.userType || 'no definido')
+      }
+      return
+    }
+
     // Determinar endpoint según tipo de usuario
     const endpoint = authStore.userType === 'admin' 
       ? `/admin/citas/scan-qr/${token}`
       : `/empleado/citas/scan-qr/${token}`
+    
+    console.log('🔍 Escaneando QR:', { token, endpoint, userType: authStore.userType })
     
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
@@ -290,6 +384,34 @@ const procesarToken = async (token: string) => {
     })
     
     const data = await response.json()
+    console.log('📥 Respuesta del servidor:', { status: response.status, data })
+    
+    // Manejar diferentes códigos de estado HTTP
+    if (!response.ok) {
+      // Error del servidor (403, 404, 422, etc.)
+      let mensajeError = data.message || `Error ${response.status}: ${response.statusText}`
+      
+      // Si es error de permisos, mostrar mensaje más claro
+      if (response.status === 403) {
+        if (data.message?.includes('permisos') || data.message?.includes('No tienes permisos')) {
+          mensajeError = 'No tienes permisos para escanear QR. Solo empleados y administradores pueden usar esta función. Verifica que tu cuenta esté correctamente configurada.'
+        } else if (data.message?.includes('asignada')) {
+          mensajeError = 'Esta cita no está asignada a ti. Solo puedes escanear QR de tus propias citas.'
+        }
+      } else if (response.status === 401) {
+        mensajeError = 'Sesión expirada. Por favor inicia sesión nuevamente.'
+      } else if (response.status === 404) {
+        mensajeError = 'Código QR no válido o cita no encontrada. Verifica que el código sea correcto.'
+      }
+      
+      resultado.value = {
+        success: false,
+        message: mensajeError
+      }
+      
+      return
+    }
+    
     resultado.value = data
     
     if (data.success) {
@@ -299,12 +421,31 @@ const procesarToken = async (token: string) => {
           await Haptics.impact({ style: ImpactStyle.Heavy })
         }
       } catch (e) {}
+      
+      // Mostrar mensaje de éxito
+      Swal.fire({
+        icon: 'success',
+        title: '¡Cita completada!',
+        html: `
+          <p>La cita se ha marcado como <strong>completada</strong> exitosamente.</p>
+          <p class="mt-2"><small>Esta cita ahora aparecerá en el dashboard y contará en las estadísticas.</small></p>
+        `,
+        confirmButtonColor: '#667eea',
+        timer: 4000,
+        timerProgressBar: true
+      })
+    } else {
+      // Si success es false pero no hay error HTTP
+      resultado.value = {
+        success: false,
+        message: data.message || 'Error al procesar el código QR'
+      }
     }
   } catch (error: any) {
-    console.error('Error procesando QR:', error)
+    console.error('❌ Error procesando QR:', error)
     resultado.value = {
       success: false,
-      message: 'Error de conexión. Intenta de nuevo.'
+      message: 'Error de conexión. Verifica tu internet e intenta de nuevo.'
     }
   } finally {
     procesando.value = false
@@ -499,21 +640,94 @@ onUnmounted(async () => {
   cursor: not-allowed;
 }
 
+.scan-native-hint {
+  margin-top: 1rem;
+  color: #888;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.scan-native-hint i {
+  color: #667eea;
+}
+
+/* Scanner loading (nativo) */
+.scanner-loading {
+  padding: 3rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.scanner-loading p {
+  color: #666;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+}
+
 /* Scanner activo */
 .scanner-active {
   position: relative;
   background: #000;
+  min-height: 350px; /* Asegurar altura mínima incluso cuando está oculto */
 }
 
+.qr-reader-container,
 #qr-reader {
   width: 100%;
   min-height: 350px;
+  position: relative;
+  z-index: 1;
+  background: #000;
+  overflow: hidden;
+  display: block !important;
 }
 
 #qr-reader video {
   width: 100% !important;
-  height: auto !important;
+  height: 100% !important;
+  min-height: 350px;
+  max-height: 100vh;
   object-fit: cover;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  background: #000;
+  transform: scaleX(1);
+}
+
+/* Forzar visibilidad del video */
+#qr-reader video[autoplay] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+#qr-reader canvas {
+  display: none !important;
+  visibility: hidden !important;
+  position: absolute;
+  z-index: -1;
+}
+
+#qr-reader img {
+  display: none !important;
+}
+
+/* Asegurar que cualquier elemento hijo del contenedor sea visible */
+#qr-reader > *:not(canvas):not(img) {
+  display: block !important;
+  visibility: visible !important;
 }
 
 .scanner-overlay {
@@ -523,6 +737,7 @@ onUnmounted(async () => {
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  z-index: 2;
 }
 
 .scanner-frame {
