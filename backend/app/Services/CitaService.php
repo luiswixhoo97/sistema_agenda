@@ -346,9 +346,10 @@ class CitaService
 
         // Validar transición de estado
         $transicionesValidas = [
-            Cita::ESTADO_PENDIENTE => [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_CANCELADA, Cita::ESTADO_REAGENDADA],
-            Cita::ESTADO_CONFIRMADA => [Cita::ESTADO_EN_PROCESO, Cita::ESTADO_CANCELADA, Cita::ESTADO_NO_SHOW, Cita::ESTADO_REAGENDADA],
-            Cita::ESTADO_EN_PROCESO => [Cita::ESTADO_COMPLETADA, Cita::ESTADO_CANCELADA],
+            Cita::ESTADO_CONFIRMADA => [Cita::ESTADO_COMPLETADA, Cita::ESTADO_CANCELADA, Cita::ESTADO_REAGENDADA],
+            Cita::ESTADO_REAGENDADA => [Cita::ESTADO_COMPLETADA, Cita::ESTADO_CANCELADA, Cita::ESTADO_REAGENDADA], // Se puede reagendar de nuevo
+            Cita::ESTADO_COMPLETADA => [], // Estado final, no se puede cambiar
+            Cita::ESTADO_CANCELADA => [], // Estado final, no se puede cambiar
         ];
 
         if (!isset($transicionesValidas[$cita->estado]) || 
@@ -435,11 +436,11 @@ class CitaService
             ];
         }
 
-        // Solo se pueden reagendar citas confirmadas
-        if ($citaOriginal->estado !== Cita::ESTADO_CONFIRMADA) {
+        // Se pueden reagendar citas confirmadas o reagendadas
+        if (!in_array($citaOriginal->estado, [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_REAGENDADA])) {
             return [
                 'success' => false,
-                'message' => 'Solo se pueden reagendar citas confirmadas',
+                'message' => 'Solo se pueden reagendar citas confirmadas o reagendadas',
             ];
         }
 
