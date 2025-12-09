@@ -19,14 +19,14 @@ const navegarA = (ruta: string) => {
 const cerrarSesion = async () => {
   await authStore.logout()
   mostrarMenuMas.value = false
-  router.push('/login-cliente')
+  router.push('/')
 }
 
 // Items principales del footer (máximo 5)
 const footerItems = computed(() => {
   if (authStore.userType === 'cliente') {
     return [
-      { icon: 'fa-calendar-plus', label: 'Agendar', ruta: '/agendar' },
+      { icon: 'fa-calendar-plus', label: 'Agendar', ruta: '/' },
       { icon: 'fa-calendar-check', label: 'Mis Citas', ruta: '/mis-citas' },
       { icon: 'fa-user', label: 'Perfil', ruta: '/perfil' },
     ]

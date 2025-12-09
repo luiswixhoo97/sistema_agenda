@@ -247,7 +247,7 @@ function verHistorial() {
 
 function cerrarSesion() {
   authStore.logout();
-  router.push('/login-cliente');
+  router.push('/');
 }
 
 onMounted(() => {

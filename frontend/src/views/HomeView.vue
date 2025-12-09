@@ -1,11 +1,5 @@
 <template>
   <div class="home-view">
-    <!-- Dev toolbar -->
-    <div v-if="isAuthenticated" class="dev-toolbar">
-      <span>Sesión activa: {{ userType }}</span>
-      <button @click="cerrarSesion">Cerrar sesión</button>
-    </div>
-
     <!-- Hero Section -->
     <section class="hero">
       <div class="hero-content">
@@ -14,7 +8,7 @@
         <p class="hero-subtitle">Tu espacio de belleza y bienestar</p>
         
         <div class="hero-actions">
-          <router-link to="/login-cliente" class="btn-primary">
+          <router-link to="/" class="btn-primary">
             Agendar Cita
           </router-link>
           <router-link to="/login" class="btn-secondary">
@@ -108,8 +102,8 @@
       <div class="cta-content">
         <h2>¿Lista para lucir increíble?</h2>
         <p>Agenda tu cita ahora y recibe un 10% de descuento en tu primera visita</p>
-        <router-link to="/login-cliente" class="btn-cta">
-          Agendar mi cita
+          <router-link to="/" class="btn-cta">
+            Agendar mi cita
         </router-link>
       </div>
     </section>
@@ -151,9 +145,6 @@ import { useAuthStore } from '@/stores/auth';
 const router = useRouter();
 const authStore = useAuthStore();
 
-const isAuthenticated = computed(() => authStore.isAuthenticated);
-const userType = computed(() => authStore.userType);
-
 // Redirigir si el usuario ya está logueado
 onMounted(() => {
   if (authStore.isAuthenticated) {
@@ -167,38 +158,9 @@ onMounted(() => {
     }
   }
 });
-
-function cerrarSesion() {
-  localStorage.clear();
-  window.location.reload();
-}
 </script>
 
 <style scoped>
-.dev-toolbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: #333;
-  color: white;
-  padding: 8px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
-  z-index: 9999;
-}
-
-.dev-toolbar button {
-  background: #e94560;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
 .home-view {
   min-height: 100vh;
   background: white;

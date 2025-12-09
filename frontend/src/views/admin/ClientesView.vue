@@ -112,13 +112,13 @@
       <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
         <div class="modal-content">
           <div class="modal-header">
-            <h3>{{ isEditing ? 'Editar Cliente' : (selectedCliente ? 'Detalle Cliente' : 'Nuevo Cliente') }}</h3>
+            <h3>{{ isEditing && selectedCliente ? 'Editar Cliente' : (isEditing ? 'Nuevo Cliente' : 'Detalle Cliente') }}</h3>
             <button class="modal-close" @click="closeModal">
               <i class="fa fa-times"></i>
             </button>
           </div>
-          <div class="modal-body" v-if="selectedCliente || isEditing">
-            <!-- Modo Edición -->
+          <div class="modal-body">
+            <!-- Modo Edición/Nuevo -->
             <div v-if="isEditing" class="edit-form">
               <div class="form-group">
                 <label>Nombre completo</label>
@@ -206,7 +206,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { getClientes, updateCliente } from '@/services/adminService';
+import { getClientes, updateCliente, createCliente } from '@/services/adminService';
 
 const clientes = ref<any[]>([]);
 const busqueda = ref('');
@@ -287,6 +287,12 @@ function formatFecha(fecha: string): string {
 
 function nuevoCliente() { 
   selectedCliente.value = null;
+  isEditing.value = true;
+  formData.value = {
+    nombre: '',
+    telefono: '',
+    email: '',
+  };
   showModal.value = true;
 }
 
@@ -319,33 +325,51 @@ function verHistorial(c: any) {
 }
 
 async function guardarCliente() {
-  if (!selectedCliente.value) return;
-  
   if (!formData.value.nombre || !formData.value.telefono) {
     alert('El nombre y teléfono son obligatorios');
     return;
   }
   
   try {
-    const response = await updateCliente(selectedCliente.value.id, {
-      nombre: formData.value.nombre,
-      telefono: formData.value.telefono,
-      email: formData.value.email || null,
-    });
+    let response;
     
-    if (response.success) {
-      // Actualizar el cliente en la lista
-      const index = clientes.value.findIndex(c => c.id === selectedCliente.value.id);
-      if (index !== -1) {
-        clientes.value[index] = { ...clientes.value[index], ...formData.value };
+    // Si es nuevo cliente (selectedCliente es null)
+    if (!selectedCliente.value) {
+      response = await createCliente({
+        nombre: formData.value.nombre,
+        telefono: formData.value.telefono,
+        email: formData.value.email || null,
+      });
+      
+      if (response.success) {
+        // Recargar la lista para mostrar el nuevo cliente
+        await cargarClientes(pagination.value.current_page);
+        closeModal();
+      } else {
+        alert(response.message || 'Error al crear el cliente');
       }
-      closeModal();
     } else {
-      alert('Error al guardar los cambios');
+      // Si es edición (selectedCliente tiene id)
+      response = await updateCliente(selectedCliente.value.id, {
+        nombre: formData.value.nombre,
+        telefono: formData.value.telefono,
+        email: formData.value.email || null,
+      });
+      
+      if (response.success) {
+        // Actualizar el cliente en la lista
+        const index = clientes.value.findIndex(c => c.id === selectedCliente.value.id);
+        if (index !== -1) {
+          clientes.value[index] = { ...clientes.value[index], ...formData.value };
+        }
+        closeModal();
+      } else {
+        alert(response.message || 'Error al guardar los cambios');
+      }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error guardando cliente:', error);
-    alert('Error al guardar los cambios');
+    alert(error.response?.data?.message || 'Error al guardar los cambios');
   }
 }
 

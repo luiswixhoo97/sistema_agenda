@@ -80,8 +80,8 @@
       <!-- Link para clientes -->
       <div class="client-link">
         <p>¿Eres cliente?</p>
-        <router-link to="/login-cliente">
-          Accede aquí →
+        <router-link to="/">
+          Agendar cita →
         </router-link>
       </div>
     </div>

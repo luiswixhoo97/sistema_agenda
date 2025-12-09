@@ -29,6 +29,8 @@ const api: AxiosInstance = axios.create({
     'Accept': 'application/json',
   },
   timeout: 30000,
+  // No enviar cookies para evitar problemas con CSRF en apps móviles
+  withCredentials: false,
 })
 
 // Interceptor para agregar token
@@ -61,7 +63,7 @@ api.interceptors.response.use(
         
         // Redirigir solo si no estamos en login
         if (!window.location.pathname.includes('login')) {
-          window.location.href = '/login-cliente'
+          window.location.href = '/'
         }
       }
     }

@@ -995,6 +995,8 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .cita-setting {
@@ -1005,6 +1007,9 @@ onMounted(() => {
   border-radius: 14px;
   padding: 12px;
   transition: all 0.2s;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .cita-setting:focus-within {
@@ -1051,6 +1056,8 @@ onMounted(() => {
 .setting-content {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .setting-content label {
@@ -1067,6 +1074,9 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  flex: 1;
+  box-sizing: border-box;
 }
 
 .setting-input {
@@ -1079,6 +1089,17 @@ onMounted(() => {
   outline: none;
   padding: 0;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.setting-unit {
+  font-size: 12px;
+  font-weight: 600;
+  color: #999;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .setting-input::-webkit-inner-spin-button,
@@ -1087,12 +1108,6 @@ onMounted(() => {
   height: auto;
 }
 
-.setting-unit {
-  font-size: 12px;
-  font-weight: 600;
-  color: #999;
-  white-space: nowrap;
-}
 
 /* Input Suffix */
 .input-suffix {

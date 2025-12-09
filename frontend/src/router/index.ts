@@ -9,20 +9,14 @@ const router = createRouter({
     // =====================================================
     {
       path: '/',
-      name: 'home',
-      component: () => import('@/views/HomeView.vue'),
-    },
-    {
-      path: '/login',
       name: 'login',
       component: () => import('@/views/auth/LoginView.vue'),
       meta: { guest: true },
     },
     {
-      path: '/login-cliente',
-      name: 'login-cliente',
-      component: () => import('@/views/auth/LoginClienteView.vue'),
-      meta: { guest: true },
+      path: '/home',
+      name: 'home',
+      component: () => import('@/views/HomeView.vue'),
     },
 
     // =====================================================
@@ -38,13 +32,13 @@ const router = createRouter({
       path: '/mis-citas',
       name: 'mis-citas',
       component: () => import('@/views/cliente/MisCitasView.vue'),
-      meta: { requiresAuth: true, tipo: 'cliente' },
+      // Sin autenticación requerida - acceso público
     },
     {
       path: '/perfil',
       name: 'perfil-cliente',
       component: () => import('@/views/cliente/PerfilView.vue'),
-      meta: { requiresAuth: true, tipo: 'cliente' },
+      // Sin autenticación requerida - acceso público
     },
 
     // =====================================================
@@ -171,8 +165,8 @@ router.beforeEach(async (to, from, next) => {
   // Rutas que requieren autenticación
   if (to.meta.requiresAuth) {
     if (!authStore.isAuthenticated) {
-      // Redirigir a login cliente por defecto
-      const loginRoute = to.meta.tipo === 'cliente' ? 'login-cliente' : 'login'
+      // Redirigir a login (empleados/admin) o agendar (clientes)
+      const loginRoute = to.meta.tipo === 'cliente' ? 'agendar' : 'login'
       return next({ name: loginRoute, query: { redirect: to.fullPath } })
     }
 

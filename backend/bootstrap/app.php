@@ -22,8 +22,15 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
 
+        // Usar middleware personalizado de CSRF que omite automáticamente peticiones API
+        $middleware->web(replace: [
+            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class => \App\Http\Middleware\ValidateCsrfToken::class,
+        ]);
+
         // Configuración de Sanctum para API
-        $middleware->statefulApi();
+        // Usar stateless (solo tokens) para aplicaciones móviles
+        // No usar statefulApi() porque requiere CSRF token (solo para SPAs web)
+        // $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -29,7 +29,8 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => true,
+    // Deshabilitar cookies para aplicaciones móviles (solo tokens Bearer)
+    'supports_credentials' => false,
 
 ];
 

@@ -17,7 +17,7 @@ const { init: initAppkit } = useAppkit();
 
 // Mostrar navbar en rutas de app (no en login, landing ni agendar)
 const mostrarNavbar = computed(() => {
-  const rutasSinNavbar = ['/login', '/login-cliente', '/', '/agendar'];
+  const rutasSinNavbar = ['/login', '/', '/home', '/agendar'];
   // Mostrar solo para usuarios autenticados
   return authStore.isAuthenticated && !rutasSinNavbar.includes(route.path);
 });
