@@ -80,7 +80,7 @@ class CitaService
                 'promocion_id' => $promocionId,
                 'fecha_hora' => $fechaHora,
                 'duracion_total' => $duracionTotal,
-                'estado' => Cita::ESTADO_PENDIENTE,
+                'estado' => Cita::ESTADO_CONFIRMADA,
                 'token_qr' => $tokenQr,
                 'precio_final' => $precioFinal,
                 'metodo_pago' => 'pendiente',
@@ -435,11 +435,11 @@ class CitaService
             ];
         }
 
-        // Solo se pueden reagendar citas pendientes o confirmadas
-        if (!in_array($citaOriginal->estado, [Cita::ESTADO_PENDIENTE, Cita::ESTADO_CONFIRMADA])) {
+        // Solo se pueden reagendar citas confirmadas
+        if ($citaOriginal->estado !== Cita::ESTADO_CONFIRMADA) {
             return [
                 'success' => false,
-                'message' => 'Solo se pueden reagendar citas pendientes o confirmadas',
+                'message' => 'Solo se pueden reagendar citas confirmadas',
             ];
         }
 
@@ -460,7 +460,9 @@ class CitaService
             $citaOriginal->empleado_id,
             $nuevaFechaHora,
             $servicioIds,
-            true // Ignorar anticipación mínima para empleados/admin
+            true, // Ignorar anticipación mínima para empleados/admin
+            null, // tokenReservaExcluir
+            $citaOriginal->id // Excluir la cita que se está reagendando
         );
 
         Log::info('Resultado disponibilidad', $disponibilidad);

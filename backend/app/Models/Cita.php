@@ -34,13 +34,10 @@ class Cita extends Model
         'active' => 'boolean',
     ];
 
-    const ESTADO_PENDIENTE = 'pendiente';
     const ESTADO_CONFIRMADA = 'confirmada';
-    const ESTADO_EN_PROCESO = 'en_proceso';
     const ESTADO_COMPLETADA = 'completada';
-    const ESTADO_CANCELADA = 'cancelada';
-    const ESTADO_NO_SHOW = 'no_show';
     const ESTADO_REAGENDADA = 'reagendada';
+    const ESTADO_CANCELADA = 'cancelada';
 
     // Relaciones
     public function cliente(): BelongsTo
@@ -114,19 +111,19 @@ class Cita extends Model
         return $query->where('cliente_id', $clienteId);
     }
 
-    public function scopePendientes($query)
-    {
-        return $query->where('estado', self::ESTADO_PENDIENTE);
-    }
-
     public function scopeConfirmadas($query)
     {
         return $query->where('estado', self::ESTADO_CONFIRMADA);
     }
 
+    public function scopeCompletadas($query)
+    {
+        return $query->where('estado', self::ESTADO_COMPLETADA);
+    }
+
     public function scopeActivas($query)
     {
-        return $query->whereNotIn('estado', [self::ESTADO_CANCELADA, self::ESTADO_NO_SHOW, self::ESTADO_REAGENDADA]);
+        return $query->whereNotIn('estado', [self::ESTADO_CANCELADA, self::ESTADO_COMPLETADA]);
     }
 
     public function scopeFuturas($query)
@@ -142,19 +139,14 @@ class Cita extends Model
     // Helpers
     public function puedeCancelarse(): bool
     {
-        return in_array($this->estado, [self::ESTADO_PENDIENTE, self::ESTADO_CONFIRMADA])
+        return $this->estado === self::ESTADO_CONFIRMADA
             && $this->fecha_hora > now();
     }
 
     public function puedeModificarse(): bool
     {
-        return in_array($this->estado, [self::ESTADO_PENDIENTE, self::ESTADO_CONFIRMADA])
+        return $this->estado === self::ESTADO_CONFIRMADA
             && $this->fecha_hora > now();
-    }
-
-    public function estaEnCurso(): bool
-    {
-        return $this->estado === self::ESTADO_EN_PROCESO;
     }
 
     public function estaCompletada(): bool

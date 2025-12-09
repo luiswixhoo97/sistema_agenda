@@ -122,13 +122,16 @@ class DisponibilidadService
      * @param int $empleadoId
      * @param string $fecha (Y-m-d)
      * @param array $servicioIds
+     * @param bool $ignorarAnticipacionMinima
+     * @param int|null $citaIdExcluir Cita a excluir de la verificación (útil para reagendamiento)
      * @return array
      */
     public function obtenerSlotsDisponibles(
         int $empleadoId,
         string $fecha,
         array $servicioIds,
-        bool $ignorarAnticipacionMinima = false
+        bool $ignorarAnticipacionMinima = false,
+        ?int $citaIdExcluir = null
     ): array {
         $fechaCarbon = Carbon::parse($fecha);
         $duracionTotal = $this->calcularDuracionTotal($servicioIds);
@@ -194,12 +197,19 @@ class DisponibilidadService
             ])
             ->toArray();
         
-        // Obtener citas del día (excluir canceladas, no_show y reagendadas)
-        $citas = Cita::where('empleado_id', $empleadoId)
+        // Obtener citas del día (excluir canceladas, completadas y reagendadas)
+        // Solo las citas en estado 'confirmada' ocupan el horario
+        $queryCitas = Cita::where('empleado_id', $empleadoId)
             ->whereDate('fecha_hora', $fecha)
-            ->whereNotIn('estado', ['cancelada', 'no_show', 'reagendada'])
-            ->whereNull('deleted_at')
-            ->get()
+            ->where('estado', 'confirmada') // Solo citas confirmadas ocupan el horario
+            ->whereNull('deleted_at');
+        
+        // Excluir la cita que se está reagendando (si se proporciona)
+        if ($citaIdExcluir) {
+            $queryCitas->where('id', '!=', $citaIdExcluir);
+        }
+        
+        $citas = $queryCitas->get()
             ->map(function ($cita) {
                 $inicio = Carbon::parse($cita->fecha_hora);
                 $fin = $inicio->copy()->addMinutes($cita->duracion_total);
@@ -243,6 +253,9 @@ class DisponibilidadService
      * @param int $empleadoId
      * @param string $fechaHora (Y-m-d H:i:s)
      * @param array $servicioIds
+     * @param bool $ignorarAnticipacionMinima
+     * @param string|null $tokenReservaExcluir
+     * @param int|null $citaIdExcluir Cita a excluir de la verificación (útil para reagendamiento)
      * @return array
      */
     public function verificarDisponibilidad(
@@ -250,7 +263,8 @@ class DisponibilidadService
         string $fechaHora,
         array $servicioIds,
         bool $ignorarAnticipacionMinima = false,
-        ?string $tokenReservaExcluir = null
+        ?string $tokenReservaExcluir = null,
+        ?int $citaIdExcluir = null
     ): array {
         $fechaHoraCarbon = Carbon::parse($fechaHora);
         $fecha = $fechaHoraCarbon->format('Y-m-d');
@@ -338,12 +352,18 @@ class DisponibilidadService
             ];
         }
         
-        // Verificar citas existentes (excluir canceladas, no_show y reagendadas)
-        $hayCita = Cita::where('empleado_id', $empleadoId)
+        // Verificar citas existentes (solo citas confirmadas ocupan el horario)
+        $queryCitas = Cita::where('empleado_id', $empleadoId)
             ->whereDate('fecha_hora', $fecha)
-            ->whereNotIn('estado', ['cancelada', 'no_show', 'reagendada'])
-            ->whereNull('deleted_at')
-            ->get()
+            ->where('estado', 'confirmada') // Solo citas confirmadas ocupan el horario
+            ->whereNull('deleted_at');
+        
+        // Excluir la cita que se está reagendando (si se proporciona)
+        if ($citaIdExcluir) {
+            $queryCitas->where('id', '!=', $citaIdExcluir);
+        }
+        
+        $hayCita = $queryCitas->get()
             ->contains(function ($cita) use ($hora, $horaFin) {
                 $citaInicio = Carbon::parse($cita->fecha_hora)->format('H:i');
                 $citaFin = Carbon::parse($cita->fecha_hora)->addMinutes($cita->duracion_total)->format('H:i');

@@ -552,9 +552,9 @@ class EmpleadoController extends Controller
             ->where('estado', 'completada')
             ->count();
 
-        $citasHoyPendientes = \App\Models\Cita::where('empleado_id', $empleado->id)
+        $citasHoyConfirmadas = \App\Models\Cita::where('empleado_id', $empleado->id)
             ->whereDate('fecha_hora', $hoy)
-            ->whereIn('estado', ['pendiente', 'confirmada'])
+            ->where('estado', 'confirmada')
             ->count();
 
         $ingresosHoy = \App\Models\Cita::where('empleado_id', $empleado->id)
@@ -604,18 +604,13 @@ class EmpleadoController extends Controller
             ->where('estado', 'completada')
             ->count();
 
-        $noShows = \App\Models\Cita::where('empleado_id', $empleado->id)
-            ->whereBetween('fecha_hora', [$inicioMes, $finMes . ' 23:59:59'])
-            ->where('estado', 'no_show')
-            ->count();
-
         return response()->json([
             'success' => true,
             'data' => [
                 'hoy' => [
                     'total' => $citasHoyTotal,
                     'completadas' => $citasHoyCompletadas,
-                    'pendientes' => $citasHoyPendientes,
+                    'confirmadas' => $citasHoyConfirmadas,
                     'ingresos' => round($ingresosHoy, 2),
                 ],
                 'semana' => [
@@ -627,7 +622,6 @@ class EmpleadoController extends Controller
                     'total' => $citasMesTotal,
                     'completadas' => $citasMesCompletadas,
                     'ingresos' => round($ingresosMes, 2),
-                    'no_shows' => $noShows,
                 ],
                 'totales' => [
                     'clientes_atendidos' => $clientesAtendidos,

@@ -29,11 +29,11 @@ class ConfiguracionController extends Controller
 
         // Citas del día
         $citasHoy = Cita::whereDate('fecha_hora', $hoy)
-            ->whereNotIn('estado', ['cancelada', 'no_show'])
+            ->whereNotIn('estado', ['cancelada'])
             ->count();
 
-        // Citas pendientes
-        $citasPendientes = Cita::where('estado', 'pendiente')
+        // Citas confirmadas (pendientes de finalizar)
+        $citasConfirmadas = Cita::where('estado', 'confirmada')
             ->where('fecha_hora', '>=', now())
             ->count();
 
@@ -62,7 +62,7 @@ class ConfiguracionController extends Controller
         // Empleados más ocupados
         $empleadosOcupados = Cita::with('empleado.user')
             ->whereBetween('fecha_hora', [$inicioMes, $finMes])
-            ->whereNotIn('estado', ['cancelada', 'no_show'])
+            ->whereNotIn('estado', ['cancelada'])
             ->select('empleado_id', DB::raw('COUNT(*) as citas'))
             ->groupBy('empleado_id')
             ->orderByDesc('citas')
@@ -78,18 +78,11 @@ class ConfiguracionController extends Controller
         $totalEmpleados = Empleado::where('active', true)->count();
         $totalServicios = Servicio::where('active', true)->count();
 
-        // Tasa de no-show del mes
-        $citasTotalesMes = Cita::whereBetween('fecha_hora', [$inicioMes, now()])->count();
-        $noShowMes = Cita::whereBetween('fecha_hora', [$inicioMes, now()])
-            ->where('estado', 'no_show')
-            ->count();
-        $tasaNoShow = $citasTotalesMes > 0 ? round(($noShowMes / $citasTotalesMes) * 100, 1) : 0;
-
         return response()->json([
             'success' => true,
             'data' => [
                 'citas_hoy' => $citasHoy,
-                'citas_pendientes' => $citasPendientes,
+                'citas_confirmadas' => $citasConfirmadas,
                 'ingresos_hoy' => $ingresosHoy,
                 'ingresos_mes' => $ingresosMes,
                 'servicios_populares' => $serviciosPopulares,
@@ -98,7 +91,6 @@ class ConfiguracionController extends Controller
                     'total_clientes' => $totalClientes,
                     'total_empleados' => $totalEmpleados,
                     'total_servicios' => $totalServicios,
-                    'tasa_no_show' => $tasaNoShow,
                 ],
             ],
         ]);
@@ -182,8 +174,9 @@ class ConfiguracionController extends Controller
         $resumen = [
             'total' => $citas->count(),
             'completadas' => $citas->where('estado', 'completada')->count(),
+            'confirmadas' => $citas->where('estado', 'confirmada')->count(),
+            'reagendadas' => $citas->where('estado', 'reagendada')->count(),
             'canceladas' => $citas->where('estado', 'cancelada')->count(),
-            'no_show' => $citas->where('estado', 'no_show')->count(),
             'ingresos' => $citas->where('estado', 'completada')->sum('precio_final'),
         ];
 

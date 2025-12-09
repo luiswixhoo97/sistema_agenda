@@ -429,7 +429,7 @@ class CitaController extends Controller
         }
 
         $request->validate([
-            'estado' => 'required|in:confirmada,en_proceso,completada,no_show',
+            'estado' => 'required|in:confirmada,completada,reagendada,cancelada',
         ]);
 
         $resultado = $this->citaService->cambiarEstado($id, $request->estado, $empleado->id);
@@ -637,7 +637,7 @@ class CitaController extends Controller
             'servicios' => 'required|array|min:1',
             'servicios.*' => 'integer|exists:servicios,id',
             'fecha_hora' => 'required|date|after_or_equal:today',
-            'estado' => 'nullable|in:pendiente,confirmada,en_proceso,completada,cancelada,no_show',
+            'estado' => 'nullable|in:confirmada,completada,reagendada,cancelada',
             'notas' => 'nullable|string|max:500',
         ]);
 
@@ -890,10 +890,11 @@ class CitaController extends Controller
         }
 
         // Validar que la cita pueda cambiarse a completada
-        if (!in_array($cita->estado, [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_EN_PROCESO])) {
+        // Solo se pueden completar citas en estado "confirmada" o "reagendada"
+        if (!in_array($cita->estado, [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_REAGENDADA])) {
             return response()->json([
                 'success' => false,
-                'message' => "La cita no puede marcarse como completada. Estado actual: {$cita->estado}",
+                'message' => "La cita no puede marcarse como completada. Estado actual: {$cita->estado}. Solo se pueden completar citas en estado 'confirmada' o 'reagendada'.",
             ], 422);
         }
 
