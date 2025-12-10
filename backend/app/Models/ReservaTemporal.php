@@ -88,7 +88,7 @@ class ReservaTemporal extends Model
      * @param string $fecha (Y-m-d)
      * @param string $horaInicio (H:i)
      * @param string $horaFin (H:i)
-     * @param string|null $tokenExcluir - Token a excluir (para la misma sesión)
+     * @param string|array|null $tokensExcluir - Token(s) a excluir (para la misma sesión)
      * @return bool
      */
     public static function slotReservado(
@@ -96,14 +96,22 @@ class ReservaTemporal extends Model
         string $fecha,
         string $horaInicio,
         string $horaFin,
-        ?string $tokenExcluir = null
+        $tokensExcluir = null
     ): bool {
         $query = self::where('empleado_id', $empleadoId)
             ->where('fecha', $fecha)
             ->where('expira_at', '>', Carbon::now());
         
-        if ($tokenExcluir) {
-            $query->where('token', '!=', $tokenExcluir);
+        if ($tokensExcluir) {
+            if (is_array($tokensExcluir)) {
+                // Excluir múltiples tokens
+                if (!empty($tokensExcluir)) {
+                    $query->whereNotIn('token', $tokensExcluir);
+                }
+            } else {
+                // Excluir un solo token
+                $query->where('token', '!=', $tokensExcluir);
+            }
         }
 
         // Verificar solapamiento de horarios

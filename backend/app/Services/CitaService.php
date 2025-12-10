@@ -493,8 +493,17 @@ class CitaService
             ]);
 
             // 2. Crear la nueva cita con los mismos datos
-            // Generar nuevo token para QR
-            $nuevoTokenQr = $this->generarTokenQr();
+            // Verificar si la cita original es parte de un grupo coordinado (comparte token_qr con otras citas)
+            $citasCoordinadas = Cita::where('token_qr', $citaOriginal->token_qr)
+                ->where('id', '!=', $citaOriginal->id)
+                ->whereNull('deleted_at')
+                ->count();
+            
+            // Si hay otras citas con el mismo token_qr, mantener el mismo token para el grupo
+            // Si no, generar un nuevo token (cita individual)
+            $tokenQrParaNuevaCita = ($citasCoordinadas > 0) 
+                ? $citaOriginal->token_qr  // Mantener el mismo token del grupo coordinado
+                : $this->generarTokenQr(); // Generar nuevo token para cita individual
             
             $nuevaCita = Cita::create([
                 'cliente_id' => $citaOriginal->cliente_id,
@@ -504,7 +513,7 @@ class CitaService
                 'fecha_hora' => $nuevaFechaHora,
                 'duracion_total' => $citaOriginal->duracion_total,
                 'estado' => Cita::ESTADO_CONFIRMADA, // La nueva cita queda confirmada
-                'token_qr' => $nuevoTokenQr, // Nuevo QR para la cita reagendada
+                'token_qr' => $tokenQrParaNuevaCita, // Mantener token del grupo si es coordinada, o nuevo si es individual
                 'precio_final' => $citaOriginal->precio_final,
                 'metodo_pago' => $citaOriginal->metodo_pago,
                 'notas' => "Reagendada desde cita #{$citaOriginal->id}" . ($motivo ? " - Motivo: {$motivo}" : ''),

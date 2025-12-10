@@ -877,48 +877,109 @@ class CitaController extends Controller
             ], 403);
         }
 
-        // Buscar cita por token_qr
-        $cita = Cita::where('token_qr', $token)
+        // Buscar todas las citas con el mismo token_qr (citas coordinadas)
+        $citas = Cita::where('token_qr', $token)
             ->whereNull('deleted_at')
-            ->first();
+            ->get();
 
-        if (!$cita) {
+        if ($citas->isEmpty()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Código QR no válido o cita no encontrada',
             ], 404);
         }
 
-        // Validar que la cita pueda cambiarse a completada
-        // Solo se pueden completar citas en estado "confirmada" o "reagendada"
-        if (!in_array($cita->estado, [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_REAGENDADA])) {
+        // Si es empleado, buscar SOLO su cita específica (no todas las del grupo)
+        if ($esEmpleado) {
+            $cita = $citas->firstWhere('empleado_id', $user->empleado->id);
+
+            if (!$cita) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta cita no está asignada a ti. Este QR corresponde a otras citas coordinadas.',
+                ], 403);
+            }
+
+            // Validar que la cita pueda cambiarse a completada
+            if (!in_array($cita->estado, [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_REAGENDADA])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "La cita no puede marcarse como completada. Estado actual: {$cita->estado}. Solo se pueden completar citas en estado 'confirmada' o 'reagendada'.",
+                ], 422);
+            }
+
+            // Cambiar estado a completada SOLO de la cita del empleado que escanea
+            $resultado = $this->citaService->cambiarEstado($cita->id, Cita::ESTADO_COMPLETADA, $user->empleado->id);
+
+            if ($resultado['success']) {
+                // Obtener información de las otras citas del grupo para mostrar contexto
+                $otrasCitas = $citas->where('id', '!=', $cita->id)->values();
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Tu servicio ha sido marcado como completado exitosamente',
+                    'cita' => $this->citaService->formatearCita($cita->fresh()),
+                    'citas_coordinadas' => [
+                        'total' => $citas->count(),
+                        'completadas' => $citas->where('estado', Cita::ESTADO_COMPLETADA)->count(),
+                        'pendientes' => $citas->whereNotIn('estado', [Cita::ESTADO_COMPLETADA, Cita::ESTADO_CANCELADA])->count(),
+                    ],
+                    'otras_citas' => $otrasCitas->map(fn($c) => [
+                        'id' => $c->id,
+                        'empleado' => $c->empleado->user->nombre ?? 'Empleado',
+                        'estado' => $c->estado,
+                        'fecha_hora' => $c->fecha_hora->format('Y-m-d H:i'),
+                    ]),
+                ]);
+            }
+
+            return response()->json($resultado, 422);
+        }
+
+        // Si es admin, puede completar todas las citas del grupo
+        $citasACompletar = $citas->filter(function ($cita) {
+            return in_array($cita->estado, [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_REAGENDADA]);
+        });
+
+        if ($citasACompletar->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => "La cita no puede marcarse como completada. Estado actual: {$cita->estado}. Solo se pueden completar citas en estado 'confirmada' o 'reagendada'.",
+                'message' => 'No hay citas que puedan marcarse como completadas. Todas están en un estado inválido.',
             ], 422);
         }
 
-        // Si es empleado, verificar que sea su cita
-        if ($esEmpleado && $cita->empleado_id !== $user->empleado->id) {
+        // Marcar todas las citas relacionadas como completadas (solo admin)
+        $citasCompletadas = [];
+        $errores = [];
+
+        foreach ($citasACompletar as $cita) {
+            $resultado = $this->citaService->cambiarEstado($cita->id, Cita::ESTADO_COMPLETADA, null);
+            
+            if ($resultado['success']) {
+                $citasCompletadas[] = $this->citaService->formatearCita($cita->fresh());
+            } else {
+                $errores[] = "Cita ID {$cita->id}: " . ($resultado['message'] ?? 'Error desconocido');
+            }
+        }
+
+        if (empty($citasCompletadas)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Esta cita no está asignada a ti',
-            ], 403);
+                'message' => 'No se pudo completar ninguna cita. Errores: ' . implode('; ', $errores),
+            ], 422);
         }
 
-        // Cambiar estado a completada
-        $empleadoId = $esEmpleado ? $user->empleado->id : null;
-        $resultado = $this->citaService->cambiarEstado($cita->id, Cita::ESTADO_COMPLETADA, $empleadoId);
+        $mensaje = count($citasCompletadas) === 1 
+            ? 'Cita marcada como completada exitosamente'
+            : count($citasCompletadas) . ' citas coordinadas marcadas como completadas exitosamente';
 
-        if ($resultado['success']) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Cita marcada como completada exitosamente',
-                'cita' => $this->citaService->formatearCita($cita->fresh()),
-            ]);
-        }
-
-        return response()->json($resultado, 422);
+        return response()->json([
+            'success' => true,
+            'message' => $mensaje,
+            'citas' => $citasCompletadas,
+            'total_completadas' => count($citasCompletadas),
+            'total_en_grupo' => $citas->count(),
+        ]);
     }
 
     /**

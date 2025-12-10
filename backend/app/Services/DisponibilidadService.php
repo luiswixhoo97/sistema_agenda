@@ -254,7 +254,7 @@ class DisponibilidadService
      * @param string $fechaHora (Y-m-d H:i:s)
      * @param array $servicioIds
      * @param bool $ignorarAnticipacionMinima
-     * @param string|null $tokenReservaExcluir
+     * @param string|array|null $tokensReservaExcluir - Token(s) de reserva a excluir (puede ser string o array)
      * @param int|null $citaIdExcluir Cita a excluir de la verificación (útil para reagendamiento)
      * @return array
      */
@@ -263,7 +263,7 @@ class DisponibilidadService
         string $fechaHora,
         array $servicioIds,
         bool $ignorarAnticipacionMinima = false,
-        ?string $tokenReservaExcluir = null,
+        $tokensReservaExcluir = null,
         ?int $citaIdExcluir = null
     ): array {
         $fechaHoraCarbon = Carbon::parse($fechaHora);
@@ -379,8 +379,8 @@ class DisponibilidadService
             ];
         }
         
-        // Verificar reservas temporales de otros usuarios (excluir el token de reserva del mismo usuario si se proporciona)
-        if (ReservaTemporal::slotReservado($empleadoId, $fecha, $hora, $horaFin, $tokenReservaExcluir)) {
+        // Verificar reservas temporales de otros usuarios (excluir los tokens de reserva del mismo usuario si se proporcionan)
+        if (ReservaTemporal::slotReservado($empleadoId, $fecha, $hora, $horaFin, $tokensReservaExcluir)) {
             return [
                 'disponible' => false,
                 'duracion_total' => $duracionTotal,

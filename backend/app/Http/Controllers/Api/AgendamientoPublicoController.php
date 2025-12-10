@@ -405,10 +405,18 @@ class AgendamientoPublicoController extends Controller
             }
         }
 
+        // Recopilar todos los tokens de reserva válidos para excluirlos en todas las verificaciones
+        $todosLosTokensExcluir = [];
+        foreach ($reservasValidas as $empleadoTokens) {
+            foreach ($empleadoTokens as $reservaData) {
+                $todosLosTokensExcluir[] = $reservaData['token'];
+            }
+        }
+
         // Verificar disponibilidad de todos los slots
         foreach ($request->servicios as $servicio) {
-            // Buscar token de reserva que coincida con este slot
-            $tokenExcluir = null;
+            // Buscar token de reserva que coincida con este slot específico
+            $tokenExcluirEspecifico = null;
             $fechaHoraServicio = \Carbon\Carbon::parse($servicio['fecha_hora']);
             $fechaServicio = $fechaHoraServicio->format('Y-m-d');
             $horaServicio = $fechaHoraServicio->format('H:i');
@@ -427,14 +435,14 @@ class AgendamientoPublicoController extends Controller
                     if ($fechaReserva === $fechaServicio) {
                         // Verificar solapamiento de horarios
                         if ($this->haySolapamientoHorarios($horaServicio, $horaFinServicio, $reserva->hora_inicio, $reserva->hora_fin)) {
-                            $tokenExcluir = $reservaData['token'];
+                            $tokenExcluirEspecifico = $reservaData['token'];
                             
                             if (config('app.debug')) {
                                 Log::info('🔑 Token encontrado para excluir', [
                                     'empleado_id' => $servicio['empleado_id'],
                                     'fecha' => $fechaServicio,
                                     'hora' => $horaServicio,
-                                    'token' => $tokenExcluir,
+                                    'token' => $tokenExcluirEspecifico,
                                 ]);
                             }
                             break;
@@ -443,7 +451,10 @@ class AgendamientoPublicoController extends Controller
                 }
             }
             
-            if (config('app.debug') && !$tokenExcluir && !empty($reservasValidas)) {
+            // Usar todos los tokens para excluir (para evitar conflictos entre reservas del mismo usuario)
+            $tokensParaExcluir = !empty($todosLosTokensExcluir) ? $todosLosTokensExcluir : ($tokenExcluirEspecifico ? [$tokenExcluirEspecifico] : null);
+            
+            if (config('app.debug') && empty($tokensParaExcluir) && !empty($reservasValidas)) {
                 Log::warning('⚠️ No se encontró token para excluir', [
                     'empleado_id' => $servicio['empleado_id'],
                     'fecha' => $fechaServicio,
@@ -459,7 +470,7 @@ class AgendamientoPublicoController extends Controller
                 $servicio['fecha_hora'],
                 [$servicio['servicio_id']],
                 false, // ignorarAnticipacionMinima
-                $tokenExcluir // token de reserva a excluir
+                $tokensParaExcluir // todos los tokens de reserva a excluir
             );
 
             if (!$disponibilidad['disponible']) {
@@ -492,6 +503,10 @@ class AgendamientoPublicoController extends Controller
 
             $citasCreadas = [];
 
+            // Generar UN SOLO token QR para todas las citas coordinadas
+            // Esto permite que un solo QR marque todas las citas relacionadas como completadas
+            $tokenQrCompartido = $this->generarTokenQr();
+
             // Crear cada cita
             foreach ($request->servicios as $index => $servicioData) {
                 $servicio = Servicio::find($servicioData['servicio_id']);
@@ -500,7 +515,7 @@ class AgendamientoPublicoController extends Controller
                     throw new \Exception("Servicio no encontrado: {$servicioData['servicio_id']}");
                 }
 
-                // Crear cita
+                // Crear cita con el mismo token QR compartido
                 $cita = Cita::create([
                     'cliente_id' => $cliente->id,
                     'empleado_id' => $servicioData['empleado_id'],
@@ -509,6 +524,7 @@ class AgendamientoPublicoController extends Controller
                     'estado' => 'pendiente',
                     'precio_total' => $servicio->precio,
                     'precio_final' => $servicio->precio,
+                    'token_qr' => $tokenQrCompartido, // Mismo token para todas las citas coordinadas
                     'notas' => $index === 0 && $request->notas 
                         ? $request->notas . ' (Cita coordinada ' . ($index + 1) . ' de ' . count($request->servicios) . ')'
                         : 'Cita coordinada ' . ($index + 1) . ' de ' . count($request->servicios),
@@ -591,6 +607,18 @@ class AgendamientoPublicoController extends Controller
                 'debug' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
+    }
+
+    /**
+     * Generar token único para QR de la cita
+     */
+    private function generarTokenQr(): string
+    {
+        do {
+            $token = bin2hex(random_bytes(32)); // Token de 64 caracteres
+        } while (Cita::where('token_qr', $token)->exists());
+
+        return $token;
     }
 
     /**
