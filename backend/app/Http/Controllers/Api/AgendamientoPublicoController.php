@@ -12,6 +12,7 @@ use App\Models\PlantillaNotificacion;
 use App\Services\DisponibilidadService;
 use App\Services\CitaService;
 use App\Services\WhatsAppService;
+use App\Services\NotificacionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,15 +23,18 @@ class AgendamientoPublicoController extends Controller
     protected DisponibilidadService $disponibilidadService;
     protected CitaService $citaService;
     protected WhatsAppService $whatsAppService;
+    protected NotificacionService $notificacionService;
 
     public function __construct(
         DisponibilidadService $disponibilidadService, 
         CitaService $citaService,
-        WhatsAppService $whatsAppService
+        WhatsAppService $whatsAppService,
+        NotificacionService $notificacionService
     ) {
         $this->disponibilidadService = $disponibilidadService;
         $this->citaService = $citaService;
         $this->whatsAppService = $whatsAppService;
+        $this->notificacionService = $notificacionService;
     }
     
     /**
@@ -521,7 +525,7 @@ class AgendamientoPublicoController extends Controller
                     'empleado_id' => $servicioData['empleado_id'],
                     'fecha_hora' => $servicioData['fecha_hora'],
                     'duracion_total' => $servicio->duracion,
-                    'estado' => 'pendiente',
+                    'estado' => Cita::ESTADO_CONFIRMADA, // Citas coordinadas se crean como confirmadas
                     'precio_total' => $servicio->precio,
                     'precio_final' => $servicio->precio,
                     'token_qr' => $tokenQrCompartido, // Mismo token para todas las citas coordinadas
@@ -573,6 +577,33 @@ class AgendamientoPublicoController extends Controller
             $duracionTotal = array_sum(array_column($citasCreadas, 'duracion_total'));
 
             Log::info("✅ Citas coordinadas agendadas - Cliente: {$cliente->nombre}, Citas: " . count($citasCreadas));
+
+            // Enviar notificación con QR usando la primera cita (todas comparten el mismo token_qr)
+            // Envolver en try-catch para que no bloquee el agendamiento si falla
+            if (!empty($citasCreadas)) {
+                try {
+                    // Obtener la primera cita creada para enviar la notificación
+                    $primeraCita = Cita::with(['cliente', 'empleado.user', 'servicios.servicio'])
+                        ->find($citasCreadas[0]['id']);
+                    
+                    if ($primeraCita) {
+                        Log::info("📧 Enviando notificación con QR para citas coordinadas", [
+                            'cita_id' => $primeraCita->id,
+                            'total_citas' => count($citasCreadas),
+                            'token_qr' => $primeraCita->token_qr,
+                        ]);
+                        
+                        $this->notificacionService->notificarCitaAgendada($primeraCita);
+                    }
+                } catch (\Exception $e) {
+                    // Log del error pero no fallar el agendamiento
+                    Log::error('Error enviando notificación de citas coordinadas agendadas (citas ya creadas): ' . $e->getMessage(), [
+                        'cliente_id' => $cliente->id,
+                        'total_citas' => count($citasCreadas),
+                        'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+                    ]);
+                }
+            }
 
             return response()->json([
                 'success' => true,
