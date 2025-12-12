@@ -1,35 +1,56 @@
 <template>
-  <div class="admin-view">
+  <div class="citas-view">
     <!-- Header -->
-    <div class="view-header">
-      <div class="header-info">
+    <header class="citas-header">
+      <div class="header-left">
         <div class="header-icon">
-          <i class="fa fa-calendar-alt"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
         </div>
         <div class="header-text">
           <h1>Citas</h1>
           <p class="header-subtitle">{{ totalCitas }} registradas</p>
         </div>
       </div>
-      <button class="btn-action" @click="nuevaCita">
-        <i class="fa fa-plus"></i>
+      <button class="btn-new-cita" @click="nuevaCita">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Nueva cita
       </button>
-    </div>
+    </header>
 
     <!-- Filters -->
-    <div class="filters-section">
-      <div class="search-box">
-        <i class="fa fa-search"></i>
+    <section class="filters-section">
+      <div class="search-container">
+        <div class="search-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+        </div>
         <input 
           v-model="busqueda" 
           type="text" 
+          class="search-input"
           placeholder="Buscar cliente..." 
           @input="debouncedSearch"
         />
       </div>
-      <div class="filter-row">
-        <select v-model="filtroEstado" @change="() => cargarCitas()" class="filter-select">
-          <option value="">Todos</option>
+      <div class="filters-row">
+        <select 
+          v-model="filtroEstado" 
+          @change="() => cargarCitas()" 
+          @focus="onSelectFocus"
+          class="filter-select"
+          ref="selectEstadoRef"
+        >
+          <option value="">Todos los estados</option>
           <option value="pendiente">Pendiente</option>
           <option value="confirmada">Confirmada</option>
           <option value="en_proceso">En proceso</option>
@@ -42,20 +63,29 @@
           v-model="filtroFecha" 
           type="date" 
           class="filter-date"
-          @change="() => cargarCitas()" 
+          @change="() => cargarCitas()"
+          @focus="onDateFocus"
+          ref="dateInputRef"
         />
       </div>
-    </div>
+    </section>
 
     <!-- Citas List -->
     <div class="citas-container">
-      <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
+      <div v-if="loading" class="loading-container">
+        <div class="loader"></div>
         <p>Cargando citas...</p>
       </div>
       
       <div v-else-if="citas.length === 0" class="empty-state">
-        <i class="fa fa-calendar-times"></i>
+        <div class="empty-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </div>
         <p>No hay citas que mostrar</p>
       </div>
       
@@ -66,56 +96,83 @@
           class="cita-card"
           @click="verCita(cita)"
         >
-          <div class="cita-header">
-            <span class="cita-id">#{{ cita.id }}</span>
-            <span :class="['status-badge', cita.estado]">
-              {{ estadoLabel(cita.estado) }}
-            </span>
+          <div class="cita-card-body">
+            <div class="cita-time-row">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span class="cita-time">{{ formatFecha(cita.fecha_hora) }}</span>
+              <span :class="['cita-status', cita.estado]">
+                {{ estadoLabel(cita.estado) }}
+              </span>
+            </div>
+            
+            <div class="cita-info-grid">
+              <div class="cita-info-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span class="cita-info-label">Cliente</span>
+                <span class="cita-info-value">{{ cita.cliente?.nombre || 'Sin cliente' }}</span>
+              </div>
+              
+              <div class="cita-info-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span class="cita-info-label">Empleado</span>
+                <span class="cita-info-value">{{ cita.empleado?.nombre || 'Sin asignar' }}</span>
+              </div>
+            </div>
+            
+            <div class="cita-servicios-row">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+              </svg>
+              <span class="cita-servicios-text">{{ getServiciosNombres(cita) }}</span>
+            </div>
           </div>
           
-          <div class="cita-body">
-            <div class="cita-datetime">
-              <i class="fa fa-clock"></i>
-              <span>{{ formatFecha(cita.fecha_hora) }}</span>
+          <div class="cita-card-footer">
+            <div class="cita-price">
+              <span class="price-label">Total</span>
+              <span class="price-value">${{ formatPrecio(cita.precio_final || cita.precio_total) }}</span>
             </div>
-            
-            <div class="cita-cliente">
-              <i class="fa fa-user"></i>
-              <span>{{ cita.cliente?.nombre || 'Sin cliente' }}</span>
-            </div>
-            
-            <div class="cita-empleado">
-              <i class="fa fa-user-tie"></i>
-              <span>{{ cita.empleado?.nombre || 'Sin asignar' }}</span>
-            </div>
-            
-            <div class="cita-servicios">
-              <i class="fa fa-cut"></i>
-              <span>{{ getServiciosNombres(cita) }}</span>
-            </div>
-          </div>
-          
-          <div class="cita-footer">
-            <span class="cita-total">${{ formatPrecio(cita.precio_final || cita.precio_total) }}</span>
             <div class="cita-actions">
-              <button class="btn-icon-sm" @click.stop="editarCita(cita)" title="Ver detalle">
-                <i class="fa fa-eye"></i>
+              <button class="action-btn" @click.stop="editarCita(cita)" title="Ver detalle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
               </button>
               <button 
                 v-if="puedeReagendar(cita)" 
-                class="btn-icon-sm reagendar" 
+                class="action-btn reagendar" 
                 @click.stop="abrirModalReagendar(cita)" 
                 title="Reagendar"
               >
-                <i class="fa fa-calendar-alt"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
               </button>
               <button 
                 v-if="cita.estado !== 'cancelada' && cita.estado !== 'completada'" 
-                class="btn-icon-sm danger" 
+                class="action-btn danger" 
                 @click.stop="confirmarCancelacion(cita)" 
                 title="Cancelar"
               >
-                <i class="fa fa-times"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
               </button>
             </div>
           </div>
@@ -774,7 +831,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { 
   getCitas, 
   updateCita, 
@@ -805,6 +862,10 @@ const pagination = ref({
   last_page: 1,
   total: 0,
 });
+
+// Refs para los elementos de filtro
+const selectEstadoRef = ref<HTMLSelectElement | null>(null);
+const dateInputRef = ref<HTMLInputElement | null>(null);
 
 // Datos para formulario de nueva cita
 const clientes = ref<any[]>([]);
@@ -1829,6 +1890,51 @@ function cancelarNuevoCliente() {
   };
 }
 
+// Funciones para forzar que los dropdowns se abran hacia abajo
+function onSelectFocus(event: Event) {
+  const target = event.target as HTMLSelectElement;
+  if (!target) return;
+  
+  nextTick(() => {
+    // Hacer scroll para que haya más espacio debajo
+    const rect = target.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    
+    // Si hay más espacio arriba que abajo, hacer scroll para crear más espacio debajo
+    if (spaceAbove > spaceBelow || spaceBelow < 400) {
+      // Scroll para posicionar el elemento más arriba y dejar espacio debajo
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Scroll adicional para asegurar espacio
+      setTimeout(() => {
+        window.scrollBy({ top: 300, behavior: 'smooth' });
+      }, 100);
+    }
+  });
+}
+
+function onDateFocus(event: Event) {
+  const target = event.target as HTMLInputElement;
+  if (!target) return;
+  
+  nextTick(() => {
+    // Hacer scroll para que haya más espacio debajo
+    const rect = target.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    
+    // Si hay más espacio arriba que abajo, hacer scroll para crear más espacio debajo
+    if (spaceAbove > spaceBelow || spaceBelow < 400) {
+      // Scroll para posicionar el elemento más arriba y dejar espacio debajo
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Scroll adicional para asegurar espacio
+      setTimeout(() => {
+        window.scrollBy({ top: 300, behavior: 'smooth' });
+      }, 100);
+    }
+  });
+}
+
 onMounted(() => {
   cargarCitas();
   cargarClientes();
@@ -1837,314 +1943,520 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.admin-view {
-  padding: 16px;
-  padding-bottom: 100px;
+/* ===== Apple-inspired Citas View Design ===== */
+
+.citas-view {
+  min-height: 100vh;
+  background: #f5f5f7;
+  padding: 24px;
+  padding-bottom: 120px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Header */
-.view-header {
+.citas-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
+  border-radius: 20px;
   color: white;
 }
 
-.header-info {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .header-icon {
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
+  width: 46px;
+  height: 46px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  backdrop-filter: blur(10px);
 }
 
 .header-text h1 {
+  font-size: 22px;
+  font-weight: 600;
   margin: 0;
-  font-size: 20px;
-  font-weight: 700;
+  letter-spacing: -0.3px;
 }
 
 .header-subtitle {
-  margin: 2px 0 0;
-  font-size: 12px;
-  opacity: 0.9;
+  font-size: 13px;
+  opacity: 0.7;
+  margin: 4px 0 0;
 }
 
-.btn-action {
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
+.btn-new-cita {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   color: white;
-  font-size: 18px;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  backdrop-filter: blur(10px);
 }
 
-.btn-action:active {
-  background: rgba(255, 255, 255, 0.3);
+.btn-new-cita:active {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(0.98);
 }
 
 /* Filters */
 .filters-section {
-  margin-bottom: 16px;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: white;
-  border-radius: 12px;
-  padding: 12px 16px;
   margin-bottom: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding-bottom: 20px;
 }
 
-.search-box i {
-  color: #999;
+.search-container {
+  position: relative;
+  margin-bottom: 12px;
 }
 
-.search-box input {
-  flex: 1;
-  border: none;
+.search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #86868b;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.search-input {
+  width: 100%;
+  padding: 14px 16px 14px 48px;
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 14px;
+  font-size: 15px;
+  color: #1d1d1f;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.search-input:focus {
   outline: none;
-  font-size: 14px;
-  background: transparent;
+  border-color: #007aff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
-.filter-row {
+.search-input::placeholder {
+  color: #86868b;
+}
+
+.filters-row {
   display: flex;
   gap: 10px;
+  position: relative;
+  z-index: 1;
+  flex-wrap: wrap;
 }
 
 .filter-select,
 .filter-date {
   flex: 1;
-  padding: 12px;
-  border: none;
-  border-radius: 12px;
-  font-size: 14px;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  color: #333;
+  min-width: 0;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 14px;
+  font-size: 15px;
+  color: #1d1d1f;
+  font-family: inherit;
+  transition: all 0.2s;
+  position: relative;
+  /* Forzar que el dropdown se abra hacia abajo */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Forzar que el select se abra hacia abajo en móviles */
+.filter-select {
+  /* En iOS Safari, esto ayuda a que se abra hacia abajo */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* Estilo para el icono del select (flecha) */
+.filter-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231d1d1f' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 12px;
+  padding-right: 40px;
+}
+
+.filter-select:focus,
+.filter-date:focus {
+  outline: none;
+  border-color: #007aff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+}
+
+/* Asegurar que el datepicker se abra hacia abajo */
+.filter-date {
+  /* En algunos navegadores móviles, esto ayuda */
+  position: relative;
+  z-index: 10;
+}
+
+/* En iOS, forzar que el datepicker se abra hacia abajo */
+@supports (-webkit-touch-callout: none) {
+  .filter-date {
+    /* iOS Safari específico */
+    transform: translateZ(0);
+  }
+}
+
+/* Media Queries para Responsividad del Selector de Fechas */
+@media (max-width: 640px) {
+  .filters-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .filter-select,
+  .filter-date {
+    width: 100% !important;
+    min-width: 100% !important;
+    flex: none !important;
+    font-size: 16px; /* Prevenir zoom en iOS */
+    padding: 12px 14px;
+  }
+  
+  .filter-date {
+    /* Asegurar que el datepicker nativo no se salga de la vista */
+    max-width: 100%;
+    overflow: visible;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .filters-row {
+    gap: 8px;
+  }
+  
+  .filter-select,
+  .filter-date {
+    min-width: 140px;
+    font-size: 14px;
+    padding: 12px 14px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .filters-row {
+    gap: 10px;
+  }
+  
+  .filter-select,
+  .filter-date {
+    min-width: 180px;
+  }
+}
+
+@media (min-width: 1025px) {
+  .filters-row {
+    gap: 12px;
+  }
+  
+  .filter-select,
+  .filter-date {
+    min-width: 200px;
+    max-width: 300px;
+  }
+}
+
+/* Prevenir que el datepicker se salga de la vista en pantallas pequeñas */
+@media (max-width: 768px) {
+  .filter-date:focus {
+    position: relative;
+    z-index: 100;
+  }
+  
+  /* Asegurar que el contenedor de filtros no cause overflow */
+  .filters-section {
+    overflow-x: visible;
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 /* Loading & Empty */
-.loading-state,
-.empty-state {
+.loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: #999;
+  color: #86868b;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f0f0f0;
-  border-top-color: #667eea;
+.loading-container p {
+  margin: 16px 0 0;
+  font-size: 15px;
+  color: #86868b;
+}
+
+.loader {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f5f5f7;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin-bottom: 12px;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-.empty-state i {
-  font-size: 48px;
-  margin-bottom: 12px;
-  opacity: 0.5;
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  color: #d1d1d6;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  color: #86868b;
+  font-size: 15px;
+  margin: 0;
 }
 
 /* Citas List */
 .citas-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .cita-card {
-  background: white;
-  border-radius: 18px;
+  background: #ffffff;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid #f0f0f0;
+  border: 1px solid #e5e5ea;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .cita-card:active {
   transform: scale(0.98);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
-.cita-card:hover {
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
-  transform: translateY(-2px);
+.cita-card-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 16px 18px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.cita-header {
+.cita-status {
+  padding: 5px 11px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.2px;
+}
+
+.cita-status.pendiente {
+  background: rgba(255, 149, 0, 0.12);
+  color: #ff9500;
+}
+
+.cita-status.confirmada {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34c759;
+}
+
+.cita-status.en_proceso {
+  background: rgba(0, 122, 255, 0.12);
+  color: #007aff;
+}
+
+.cita-status.completada {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34c759;
+}
+
+.cita-status.cancelada {
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
+}
+
+.cita-status.no_show {
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
+}
+
+.cita-status.reagendada {
+  background: rgba(255, 149, 0, 0.12);
+  color: #ff9500;
+}
+
+.cita-card-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cita-time-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  flex-wrap: wrap;
+}
+
+.cita-time-row svg {
+  color: #007aff;
+  flex-shrink: 0;
+}
+
+.cita-time {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
+  flex: 1;
+}
+
+.cita-time-row .cita-status {
+  margin-left: auto;
+}
+
+.cita-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.cita-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cita-info-item svg {
+  color: #86868b;
+  margin-bottom: 2px;
+}
+
+.cita-info-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.cita-info-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d1d1f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cita-servicios-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.cita-servicios-row svg {
+  color: #86868b;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.cita-servicios-text {
+  font-size: 13px;
+  color: #86868b;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.cita-card-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 14px 18px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  border-top: 1px solid #f0f0f0;
 }
 
-.cita-id {
-  font-size: 13px;
-  font-weight: 600;
-  color: #666;
-}
-
-.status-badge {
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.status-badge.pendiente { 
-  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); 
-  color: #e65100; 
-}
-.status-badge.confirmada { 
-  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); 
-  color: #2e7d32; 
-}
-.status-badge.en_proceso { 
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); 
-  color: #1565c0; 
-}
-.status-badge.completada { 
-  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); 
-  color: #7b1fa2; 
-}
-.status-badge.cancelada { 
-  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); 
-  color: #c62828; 
-}
-.status-badge.no_show { 
-  background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%); 
-  color: #c2185b; 
-}
-.status-badge.reagendada { 
-  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); 
-  color: #e65100; 
-}
-
-.cita-body {
-  padding: 12px 14px;
+.cita-price {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: white;
+  gap: 2px;
 }
 
-.cita-datetime,
-.cita-cliente,
-.cita-empleado,
-.cita-servicios {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: #333;
-  padding: 4px 0;
+.price-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.cita-datetime i,
-.cita-cliente i,
-.cita-empleado i,
-.cita-servicios i {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 6px;
-  font-size: 10px;
-  flex-shrink: 0;
-}
-
-.cita-cliente i {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-}
-
-.cita-empleado i {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.cita-servicios i {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-}
-
-.cita-datetime {
+.price-value {
+  font-size: 18px;
   font-weight: 700;
-  color: #667eea;
-  font-size: 15px;
-}
-
-.cita-servicios span {
-  color: #666;
-  line-height: 1.4;
-}
-
-.cita-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 14px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-top: 1px solid #e0e0e0;
-}
-
-.cita-total {
-  font-size: 16px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #1d1d1f;
+  letter-spacing: -0.3px;
 }
 
 .cita-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
-.btn-icon-sm {
-  width: 32px;
-  height: 32px;
+.action-btn {
+  width: 36px;
+  height: 36px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #f0f0f0;
-  color: #666;
-  font-size: 12px;
+  color: #86868b;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2152,18 +2464,19 @@ onMounted(() => {
   transition: all 0.2s;
 }
 
-.btn-icon-sm:active {
+.action-btn:active {
   transform: scale(0.95);
+  background: #e5e5ea;
 }
 
-.btn-icon-sm.danger {
-  background: #ffebee;
-  color: #c62828;
+.action-btn.reagendar {
+  background: rgba(0, 122, 255, 0.12);
+  color: #007aff;
 }
 
-.btn-icon-sm.reagendar {
-  background: #e3f2fd;
-  color: #1565c0;
+.action-btn.danger {
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
 }
 
 /* Pagination */
@@ -2172,47 +2485,56 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   gap: 16px;
-  margin-top: 20px;
-  padding: 16px;
+  margin-top: 24px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #f0f0f0;
 }
 
 .page-btn {
   width: 40px;
   height: 40px;
   border: none;
-  border-radius: 10px;
-  background: white;
-  color: #667eea;
+  border-radius: 12px;
+  background: #f5f5f7;
+  color: #007aff;
   font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s;
+}
+
+.page-btn:active:not(:disabled) {
+  transform: scale(0.95);
+  background: #e5e5ea;
 }
 
 .page-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .page-info {
-  font-size: 14px;
-  color: #666;
-  font-weight: 500;
+  font-size: 15px;
+  color: #1d1d1f;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   z-index: 1000;
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.2s ease;
 }
 
 @keyframes fadeIn {
@@ -2224,10 +2546,10 @@ onMounted(() => {
   background: white;
   width: 100%;
   max-height: 90vh;
-  border-radius: 28px 28px 0 0;
+  border-radius: 24px 24px 0 0;
   overflow: hidden;
-  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes slideUp {
@@ -2247,24 +2569,24 @@ onMounted(() => {
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid #f0f0f0;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  background: #ffffff;
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 20px;
-  font-weight: 700;
-  color: #1a1a2e;
+  font-weight: 600;
+  color: #1d1d1f;
   letter-spacing: -0.3px;
 }
 
 .modal-close {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border: none;
-  border-radius: 50%;
-  background: #f0f0f0;
-  color: #666;
+  border-radius: 10px;
+  background: #f5f5f7;
+  color: #86868b;
   font-size: 16px;
   cursor: pointer;
   display: flex;
@@ -2273,20 +2595,16 @@ onMounted(() => {
   transition: all 0.2s;
 }
 
-.modal-close:hover {
-  background: #e0e0e0;
-  transform: rotate(90deg);
-}
-
 .modal-close:active {
-  transform: rotate(90deg) scale(0.95);
+  background: #e5e5ea;
+  transform: scale(0.95);
 }
 
 .modal-body {
   padding: 24px;
   overflow-y: auto;
   max-height: calc(90vh - 80px);
-  background: #fafafa;
+  background: #f5f5f7;
 }
 
 .modal-body::-webkit-scrollbar {
@@ -2325,11 +2643,10 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 18px;
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
+  border-radius: 16px;
   color: white;
-  margin-bottom: 12px;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+  margin-bottom: 16px;
 }
 
 .detail-id {
@@ -2353,28 +2670,22 @@ onMounted(() => {
 
 .status-badge-large {
   padding: 10px 18px;
-  border-radius: 24px;
+  border-radius: 20px;
   font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: rgba(255, 255, 255, 0.25);
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
   color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .detail-section {
-  background: #f8f9fa;
+  background: #ffffff;
   border-radius: 16px;
   padding: 18px;
-  border: 1px solid #e9ecef;
+  border: 1px solid #f0f0f0;
   transition: all 0.2s;
-}
-
-.detail-section:hover {
-  background: #f0f0f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .section-title {
@@ -2383,21 +2694,21 @@ onMounted(() => {
   gap: 10px;
   margin-bottom: 14px;
   font-size: 12px;
-  font-weight: 700;
-  color: #667eea;
+  font-weight: 600;
+  color: #007aff;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .section-title i {
-  font-size: 16px;
-  width: 28px;
-  height: 28px;
+  font-size: 14px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: rgba(0, 122, 255, 0.1);
+  color: #007aff;
   border-radius: 8px;
 }
 
@@ -2417,21 +2728,19 @@ onMounted(() => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: 800;
+  font-weight: 700;
   font-size: 16px;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   border: 3px solid white;
 }
 
 .avatar-small.empleado {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+  background: #34c759;
 }
 
 .info-content {
@@ -2444,21 +2753,21 @@ onMounted(() => {
 
 .info-label {
   font-size: 10px;
-  color: #999;
+  color: #86868b;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: 600;
+  letter-spacing: 0.5px;
+  font-weight: 500;
 }
 
 .info-value {
   font-size: 16px;
-  font-weight: 700;
-  color: #333;
+  font-weight: 600;
+  color: #1d1d1f;
   line-height: 1.3;
 }
 
 .phone-link {
-  color: #667eea;
+  color: #007aff;
   text-decoration: none;
 }
 
@@ -2468,7 +2777,7 @@ onMounted(() => {
 
 .info-item i {
   width: 20px;
-  color: #667eea;
+  color: #007aff;
   text-align: center;
   flex-shrink: 0;
 }
@@ -2486,14 +2795,13 @@ onMounted(() => {
   padding: 14px;
   background: white;
   border-radius: 12px;
-  border: 1px solid #e9ecef;
+  border: 1px solid #f0f0f0;
   transition: all 0.2s;
 }
 
 .servicio-item:hover {
   background: #f8f9fa;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transform: translateX(4px);
+  border-color: #e5e5ea;
 }
 
 .servicio-info {
@@ -2505,8 +2813,8 @@ onMounted(() => {
 
 .servicio-nombre {
   font-size: 15px;
-  font-weight: 700;
-  color: #333;
+  font-weight: 600;
+  color: #1d1d1f;
 }
 
 .servicio-duracion {
@@ -2517,17 +2825,14 @@ onMounted(() => {
 
 .servicio-precio {
   font-size: 18px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: -0.3px;
 }
 
 .total-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
   color: white;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
   border: none;
 }
 
@@ -2539,15 +2844,15 @@ onMounted(() => {
 
 .total-label {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  opacity: 0.95;
+  letter-spacing: 0.5px;
+  opacity: 0.9;
 }
 
 .total-value {
   font-size: 32px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -1px;
 }
 
@@ -2556,9 +2861,9 @@ onMounted(() => {
   background: white;
   border-radius: 12px;
   font-size: 14px;
-  color: #666;
+  color: #86868b;
   line-height: 1.7;
-  border: 1px solid #e9ecef;
+  border: 1px solid #f0f0f0;
   font-style: italic;
 }
 
@@ -2571,68 +2876,61 @@ onMounted(() => {
 
 .btn-action-primary,
 .btn-action-secondary,
-.btn-action-danger {
+.btn-action-danger,
+.btn-action-reagendar {
   width: 100%;
   padding: 16px;
   border: none;
   border-radius: 14px;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+  letter-spacing: -0.1px;
 }
 
 .btn-action-primary {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  background: #34c759;
   color: white;
 }
 
-.btn-action-primary:hover {
-  box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
-  transform: translateY(-2px);
+.btn-action-primary:active {
+  transform: scale(0.98);
+  background: #30d158;
 }
 
 .btn-action-secondary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #007aff;
   color: white;
 }
 
-.btn-action-secondary:hover {
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-  transform: translateY(-2px);
+.btn-action-secondary:active {
+  transform: scale(0.98);
+  background: #0051d5;
 }
 
 .btn-action-danger {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: #ff3b30;
   color: white;
 }
 
-.btn-action-danger:hover {
-  box-shadow: 0 6px 20px rgba(250, 112, 154, 0.4);
-  transform: translateY(-2px);
+.btn-action-danger:active {
+  transform: scale(0.98);
+  background: #ff2d55;
 }
 
 .btn-action-reagendar {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #007aff;
   color: white;
 }
 
-.btn-action-reagendar:hover {
-  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
-  transform: translateY(-2px);
-}
-
-.btn-action-primary:active,
-.btn-action-secondary:active,
-.btn-action-danger:active {
-  transform: translateY(0) scale(0.98);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+.btn-action-reagendar:active {
+  transform: scale(0.98);
+  background: #0051d5;
 }
 
 /* Formulario Nueva Cita */
@@ -2730,11 +3028,11 @@ onMounted(() => {
 }
 
 .cliente-option:hover {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  background: rgba(0, 122, 255, 0.05);
 }
 
 .cliente-option.selected {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  background: rgba(0, 122, 255, 0.1);
 }
 
 .cliente-info {
@@ -2763,7 +3061,7 @@ onMounted(() => {
 }
 
 .cliente-option i.fa-check {
-  color: #667eea;
+  color: #007aff;
   font-size: 16px;
   flex-shrink: 0;
 }
@@ -2794,26 +3092,21 @@ onMounted(() => {
 .btn-create-client {
   padding: 12px 20px;
   border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  background: #007aff;
   color: white;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
   transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.btn-create-client:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .btn-create-client:active {
-  transform: translateY(0);
+  transform: scale(0.98);
+  background: #0051d5;
 }
 
 .cliente-selected {
@@ -2821,9 +3114,9 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+  background: rgba(52, 199, 89, 0.1);
   border-radius: 12px;
-  border: 2px solid rgba(17, 153, 142, 0.2);
+  border: 1px solid rgba(52, 199, 89, 0.2);
   margin-top: 10px;
 }
 
@@ -2835,7 +3128,7 @@ onMounted(() => {
 }
 
 .selected-info i {
-  color: #11998e;
+  color: #34c759;
   font-size: 18px;
 }
 
@@ -2855,9 +3148,9 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border: none;
-  background: rgba(250, 112, 154, 0.1);
+  background: rgba(255, 59, 48, 0.1);
   border-radius: 8px;
-  color: #fa709a;
+  color: #ff3b30;
   font-size: 14px;
   cursor: pointer;
   display: flex;
@@ -2867,12 +3160,8 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.btn-remove-selection:hover {
-  background: rgba(250, 112, 154, 0.2);
-  transform: scale(1.1);
-}
-
 .btn-remove-selection:active {
+  background: rgba(255, 59, 48, 0.2);
   transform: scale(0.95);
 }
 
@@ -2898,22 +3187,22 @@ onMounted(() => {
 .nuevo-cliente-fields {
   margin-top: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  background: rgba(0, 122, 255, 0.05);
   border-radius: 16px;
-  border: 2px solid rgba(102, 126, 234, 0.2);
+  border: 1px solid rgba(0, 122, 255, 0.2);
 }
 
 .nuevo-cliente-header {
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 2px solid rgba(102, 126, 234, 0.1);
+  border-bottom: 1px solid rgba(0, 122, 255, 0.1);
 }
 
 .nuevo-cliente-header h4 {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
-  color: #667eea;
+  font-weight: 600;
+  color: #007aff;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2934,11 +3223,11 @@ onMounted(() => {
 .form-label-small {
   display: block;
   font-size: 12px;
-  font-weight: 700;
-  color: #667eea;
+  font-weight: 600;
+  color: #007aff;
   margin-bottom: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .nuevo-cliente-actions {
@@ -2946,7 +3235,7 @@ onMounted(() => {
   gap: 10px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(102, 126, 234, 0.1);
+  border-top: 1px solid rgba(0, 122, 255, 0.1);
 }
 
 .btn-cancel-small,
@@ -2966,23 +3255,23 @@ onMounted(() => {
 }
 
 .btn-cancel-small {
-  background: #f0f0f0;
-  color: #666;
+  background: #f5f5f7;
+  color: #1d1d1f;
 }
 
-.btn-cancel-small:hover {
-  background: #e0e0e0;
+.btn-cancel-small:active {
+  background: #e5e5ea;
+  transform: scale(0.98);
 }
 
 .btn-submit-small {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #007aff;
   color: white;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
-.btn-submit-small:hover:not(:disabled) {
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  transform: translateY(-2px);
+.btn-submit-small:active:not(:disabled) {
+  transform: scale(0.98);
+  background: #0051d5;
 }
 
 .btn-submit-small:disabled {
@@ -2991,7 +3280,7 @@ onMounted(() => {
 }
 
 .btn-add-client.active {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: #ff3b30;
   transform: rotate(45deg);
 }
 
@@ -3057,11 +3346,11 @@ onMounted(() => {
   gap: 8px;
   margin-top: 8px;
   padding: 10px 12px;
-  background: rgba(102, 126, 234, 0.1);
-  border-radius: 8px;
+  background: rgba(0, 122, 255, 0.1);
+  border-radius: 10px;
   font-size: 12px;
-  color: #667eea;
-  font-weight: 600;
+  color: #007aff;
+  font-weight: 500;
 }
 
 .form-hint i {
@@ -3130,10 +3419,10 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  font-weight: 700;
-  color: #667eea;
+  font-weight: 600;
+  color: #007aff;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .form-label i {
@@ -3164,11 +3453,11 @@ onMounted(() => {
 .form-textarea {
   width: 100%;
   padding: 14px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
+  border: 1px solid #e5e5ea;
+  border-radius: 14px;
   font-size: 15px;
   background: white;
-  color: #333;
+  color: #1d1d1f;
   transition: all 0.2s;
   font-family: inherit;
 }
@@ -3177,8 +3466,8 @@ onMounted(() => {
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #007aff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
 .form-textarea {
@@ -3191,7 +3480,7 @@ onMounted(() => {
   height: 44px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #007aff;
   color: white;
   font-size: 16px;
   cursor: pointer;
@@ -3200,16 +3489,11 @@ onMounted(() => {
   justify-content: center;
   flex-shrink: 0;
   transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.btn-add-client:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .btn-add-client:active {
-  transform: translateY(0) scale(0.95);
+  transform: scale(0.95);
+  background: #0051d5;
 }
 
 /* Selector de Servicios */
@@ -3235,15 +3519,13 @@ onMounted(() => {
 }
 
 .servicio-option:hover {
-  border-color: #667eea;
-  background: #f8f9ff;
-  transform: translateX(4px);
+  border-color: #007aff;
+  background: rgba(0, 122, 255, 0.05);
 }
 
 .servicio-option.selected {
-  border-color: #667eea;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+  border-color: #007aff;
+  background: rgba(0, 122, 255, 0.1);
 }
 
 .servicio-checkbox {
@@ -3260,8 +3542,8 @@ onMounted(() => {
 }
 
 .servicio-option.selected .servicio-checkbox {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: #667eea;
+  background: #007aff;
+  border-color: #007aff;
   color: white;
 }
 
@@ -3289,10 +3571,10 @@ onMounted(() => {
 }
 
 .total-preview {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: #ffffff;
   padding: 18px;
-  border-radius: 12px;
-  border: 2px solid #e0e0e0;
+  border-radius: 16px;
+  border: 1px solid #f0f0f0;
 }
 
 .total-preview .total-row {
@@ -3304,19 +3586,17 @@ onMounted(() => {
 
 .total-preview .total-label {
   font-size: 14px;
-  font-weight: 700;
-  color: #666;
+  font-weight: 600;
+  color: #86868b;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .total-preview .total-value {
   font-size: 24px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: -0.5px;
 }
 
 .total-duration {
@@ -3324,8 +3604,8 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #999;
-  font-weight: 600;
+  color: #86868b;
+  font-weight: 500;
 }
 
 .total-duration i {
@@ -3334,9 +3614,12 @@ onMounted(() => {
 
 .form-error {
   font-size: 12px;
-  color: #fa709a;
-  font-weight: 600;
+  color: #ff3b30;
+  font-weight: 500;
   margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .form-actions {
@@ -3364,25 +3647,23 @@ onMounted(() => {
 }
 
 .btn-cancel {
-  background: #f0f0f0;
-  color: #666;
+  background: #f5f5f7;
+  color: #1d1d1f;
 }
 
-.btn-cancel:hover {
-  background: #e0e0e0;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.btn-cancel:active {
+  background: #e5e5ea;
+  transform: scale(0.98);
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  background: #34c759;
   color: white;
-  box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
 }
 
-.btn-submit:hover:not(:disabled) {
-  box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
-  transform: translateY(-2px);
+.btn-submit:active:not(:disabled) {
+  transform: scale(0.98);
+  background: #30d158;
 }
 
 .btn-submit:disabled {
@@ -3416,11 +3697,11 @@ onMounted(() => {
 
 /* Reagendar Modal */
 .reagendar-info {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: #ffffff;
   border-radius: 16px;
   padding: 20px;
   margin-bottom: 24px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #f0f0f0;
 }
 
 .info-actual {
@@ -3451,7 +3732,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #007aff;
   color: white;
   border-radius: 10px;
   font-size: 14px;
@@ -3474,7 +3755,7 @@ onMounted(() => {
 }
 
 .info-cliente i {
-  color: #667eea;
+  color: #007aff;
   font-size: 14px;
 }
 
