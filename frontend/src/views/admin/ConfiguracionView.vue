@@ -1,10 +1,13 @@
 <template>
-  <div class="admin-view">
+  <div class="configuracion-view">
     <!-- Header -->
-    <div class="view-header">
-      <div class="header-info">
+    <div class="configuracion-header">
+      <div class="header-left">
         <div class="header-icon">
-          <i class="fa fa-cog"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"></path>
+          </svg>
         </div>
         <div class="header-text">
           <h1>Configuración</h1>
@@ -12,17 +15,32 @@
         </div>
       </div>
       <button 
-        class="btn-save" 
+        class="btn-save-header" 
         @click="guardarConfiguracion" 
         :disabled="guardando"
+        title="Guardar cambios"
       >
-        <i :class="guardando ? 'fa fa-spinner fa-spin' : 'fa fa-save'"></i>
+        <svg v-if="guardando" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinning">
+          <line x1="12" y1="2" x2="12" y2="6"></line>
+          <line x1="12" y1="18" x2="12" y2="22"></line>
+          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+          <line x1="2" y1="12" x2="6" y2="12"></line>
+          <line x1="18" y1="12" x2="22" y2="12"></line>
+          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+        </svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+          <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
       </button>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
+    <div v-if="loading" class="loading-container">
+      <div class="loader"></div>
       <p>Cargando configuración...</p>
     </div>
 
@@ -32,7 +50,10 @@
       <div class="config-card">
         <div class="card-header">
           <div class="card-icon blue">
-            <i class="fa fa-store"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
           </div>
           <h3>Información del Negocio</h3>
         </div>
@@ -40,7 +61,10 @@
           <!-- Nombre del negocio -->
           <div class="info-field">
             <div class="field-icon name">
-              <i class="fa fa-building"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
             </div>
             <div class="field-content">
               <label>Nombre del negocio</label>
@@ -56,7 +80,9 @@
           <!-- Teléfono -->
           <div class="info-field">
             <div class="field-icon phone">
-              <i class="fa fa-phone"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
             </div>
             <div class="field-content">
               <label>Teléfono de contacto</label>
@@ -72,7 +98,10 @@
           <!-- Email -->
           <div class="info-field">
             <div class="field-icon email">
-              <i class="fa fa-envelope"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
             </div>
             <div class="field-content">
               <label>Correo electrónico</label>
@@ -88,7 +117,10 @@
           <!-- Dirección -->
           <div class="info-field full-width">
             <div class="field-icon address">
-              <i class="fa fa-map-marker-alt"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
             </div>
             <div class="field-content">
               <label>Dirección completa</label>
@@ -107,53 +139,73 @@
       <div class="config-card">
         <div class="card-header">
           <div class="card-icon green">
-            <i class="fa fa-clock"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
           </div>
           <h3>Horario de Atención</h3>
         </div>
         <div class="card-body">
           <!-- Horario de apertura y cierre -->
-          <div class="horario-times">
-            <div class="time-block">
-              <div class="time-icon apertura">
-                <i class="fa fa-sun"></i>
-              </div>
-              <div class="time-content">
-                <span class="time-label">Apertura</span>
-                <input 
-                  v-model="config.hora_apertura" 
-                  type="time" 
-                  class="time-input"
-                />
-              </div>
+          <div class="horario-section">
+            <div class="horario-header">
+              <span class="horario-label">Horario de atención</span>
             </div>
-            <div class="time-divider">
-              <div class="divider-line"></div>
-              <span class="divider-text">hasta</span>
-              <div class="divider-line"></div>
-            </div>
-            <div class="time-block">
-              <div class="time-icon cierre">
-                <i class="fa fa-moon"></i>
+            <div class="horario-times">
+              <div class="time-block">
+              <div class="time-icon-wrapper apertura">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="5"></circle>
+                  <line x1="12" y1="1" x2="12" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="23"></line>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                  <line x1="1" y1="12" x2="3" y2="12"></line>
+                  <line x1="21" y1="12" x2="23" y2="12"></line>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
               </div>
-              <div class="time-content">
-                <span class="time-label">Cierre</span>
-                <input 
-                  v-model="config.hora_cierre" 
-                  type="time" 
-                  class="time-input"
-                />
+                <div class="time-content">
+                  <span class="time-label">Apertura</span>
+                  <input 
+                    v-model="config.hora_apertura" 
+                    type="time" 
+                    class="time-input"
+                  />
+                </div>
+              </div>
+              <div class="time-connector">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+              <div class="time-block">
+              <div class="time-icon-wrapper cierre">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+              </div>
+                <div class="time-content">
+                  <span class="time-label">Cierre</span>
+                  <input 
+                    v-model="config.hora_cierre" 
+                    type="time" 
+                    class="time-input"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Días laborales -->
           <div class="dias-section">
-            <div class="dias-title">
-              <span>Días de atención</span>
+            <div class="dias-header">
+              <span class="dias-label">Días de atención</span>
               <span class="dias-badge">{{ config.dias_laborales.length }}/7</span>
             </div>
-            <div class="dias-grid-new">
+            <div class="dias-grid">
               <button
                 v-for="dia in diasSemana"
                 :key="dia.value"
@@ -163,8 +215,9 @@
                 @click="toggleDiaDirecto(dia.value)"
               >
                 <span class="dia-abbr">{{ dia.abbr }}</span>
-                <span class="dia-full">{{ dia.label }}</span>
-                <i class="fa fa-check dia-check"></i>
+                <svg v-if="config.dias_laborales.includes(dia.value)" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="dia-check">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
               </button>
             </div>
           </div>
@@ -175,7 +228,12 @@
       <div class="config-card">
         <div class="card-header">
           <div class="card-icon purple">
-            <i class="fa fa-calendar-alt"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
           </div>
           <h3>Configuración de Citas</h3>
         </div>
@@ -183,13 +241,18 @@
           <!-- Anticipación -->
           <div class="citas-section">
             <div class="section-title">
-              <i class="fa fa-clock"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
               <span>Anticipación</span>
             </div>
             <div class="citas-grid">
               <div class="cita-setting">
                 <div class="setting-icon min">
-                  <i class="fa fa-hourglass-start"></i>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                  </svg>
                 </div>
                 <div class="setting-content">
                   <label>Mínima</label>
@@ -206,7 +269,9 @@
               </div>
               <div class="cita-setting">
                 <div class="setting-icon max">
-                  <i class="fa fa-hourglass-end"></i>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="2 12 6 12 9 3 15 21 18 12 22 12"></polyline>
+                  </svg>
                 </div>
                 <div class="setting-content">
                   <label>Máxima</label>
@@ -227,13 +292,19 @@
           <!-- Tiempos -->
           <div class="citas-section">
             <div class="section-title">
-              <i class="fa fa-stopwatch"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
               <span>Tiempos</span>
             </div>
             <div class="citas-grid">
               <div class="cita-setting">
                 <div class="setting-icon buffer">
-                  <i class="fa fa-pause-circle"></i>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="10" y1="12" x2="14" y2="12"></line>
+                  </svg>
                 </div>
                 <div class="setting-content">
                   <label>Buffer entre citas</label>
@@ -251,7 +322,11 @@
               </div>
               <div class="cita-setting">
                 <div class="setting-icon cancel">
-                  <i class="fa fa-times-circle"></i>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                  </svg>
                 </div>
                 <div class="setting-content">
                   <label>Cancelación</label>
@@ -275,7 +350,10 @@
       <div class="config-card">
         <div class="card-header">
           <div class="card-icon orange">
-            <i class="fa fa-bell"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
           </div>
           <h3>Notificaciones</h3>
         </div>
@@ -283,7 +361,10 @@
           <!-- Confirmación -->
           <div class="notif-item">
             <div class="notif-icon confirm">
-              <i class="fa fa-check-circle"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
             </div>
             <div class="notif-content">
               <div class="notif-title">Confirmación de cita</div>
@@ -301,7 +382,10 @@
           <!-- Recordatorio -->
           <div class="notif-item">
             <div class="notif-icon reminder">
-              <i class="fa fa-clock"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
             </div>
             <div class="notif-content">
               <div class="notif-title">Recordatorio</div>
@@ -319,7 +403,11 @@
           <!-- Cancelación -->
           <div class="notif-item">
             <div class="notif-icon cancel">
-              <i class="fa fa-times-circle"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
             </div>
             <div class="notif-content">
               <div class="notif-title">Cancelaciones</div>
@@ -342,7 +430,21 @@
         @click="guardarConfiguracion" 
         :disabled="guardando"
       >
-        <i :class="guardando ? 'fa fa-spinner fa-spin' : 'fa fa-save'"></i>
+        <svg v-if="guardando" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinning">
+          <line x1="12" y1="2" x2="12" y2="6"></line>
+          <line x1="12" y1="18" x2="12" y2="22"></line>
+          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+          <line x1="2" y1="12" x2="6" y2="12"></line>
+          <line x1="18" y1="12" x2="22" y2="12"></line>
+          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+        </svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+          <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
         {{ guardando ? 'Guardando...' : 'Guardar Cambios' }}
       </button>
     </div>
@@ -352,10 +454,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { getConfiguracion, updateConfiguracion } from '@/services/adminService';
+import Swal from 'sweetalert2';
 
 const loading = ref(true);
 const guardando = ref(false);
-const mostrarDias = ref(false);
 
 const diasSemana = [
   { value: 1, label: 'Lunes', short: 'L', abbr: 'LUN' },
@@ -391,7 +493,16 @@ async function cargarConfiguracion() {
       // Mapear configuraciones del servidor
       response.data.forEach((c: any) => {
         if (c.clave in config) {
-          (config as any)[c.clave] = c.valor;
+          // Convertir valores según el tipo esperado
+          if (c.clave === 'dias_laborales') {
+            (config as any)[c.clave] = Array.isArray(c.valor) ? c.valor : JSON.parse(c.valor || '[]');
+          } else if (c.clave === 'notif_confirmacion' || c.clave === 'notif_recordatorio' || c.clave === 'notif_cancelacion') {
+            (config as any)[c.clave] = c.valor === true || c.valor === '1' || c.valor === 1 || c.valor === 'true';
+          } else if (c.clave === 'anticipacion_minima' || c.clave === 'anticipacion_maxima' || c.clave === 'buffer_citas' || c.clave === 'tiempo_cancelacion') {
+            (config as any)[c.clave] = Number(c.valor) || 0;
+          } else {
+            (config as any)[c.clave] = c.valor;
+          }
         }
       });
     }
@@ -399,20 +510,6 @@ async function cargarConfiguracion() {
     console.error('Error cargando configuración:', error);
   } finally {
     loading.value = false;
-  }
-}
-
-function toggleDia(diaValue: number, event: Event) {
-  const checked = (event.target as HTMLInputElement).checked;
-  if (checked) {
-    if (!config.dias_laborales.includes(diaValue)) {
-      config.dias_laborales.push(diaValue);
-    }
-  } else {
-    const index = config.dias_laborales.indexOf(diaValue);
-    if (index > -1) {
-      config.dias_laborales.splice(index, 1);
-    }
   }
 }
 
@@ -425,17 +522,6 @@ function toggleDiaDirecto(diaValue: number) {
   }
 }
 
-function getDiasSeleccionadosTexto(): string {
-  if (config.dias_laborales.length === 0) return 'Ninguno';
-  if (config.dias_laborales.length === 7) return 'Todos';
-  
-  const nombres = config.dias_laborales
-    .map(val => diasSemana.find(d => d.value === val)?.short || '')
-    .filter(Boolean)
-    .join(', ');
-  return nombres;
-}
-
 async function guardarConfiguracion() {
   guardando.value = true;
   try {
@@ -445,10 +531,22 @@ async function guardarConfiguracion() {
     }));
     
     await updateConfiguracion(configuraciones);
-    alert('Configuración guardada correctamente');
-  } catch (error) {
+    Swal.fire({
+      icon: 'success',
+      title: '¡Éxito!',
+      text: 'Configuración guardada correctamente',
+      confirmButtonColor: '#34c759',
+      timer: 1500,
+      showConfirmButton: false
+    });
+  } catch (error: any) {
     console.error('Error guardando configuración:', error);
-    alert('Error al guardar configuración');
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: error.response?.data?.message || 'Error al guardar configuración',
+      confirmButtonColor: '#ff3b30'
+    });
   } finally {
     guardando.value = false;
   }
@@ -460,91 +558,126 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.admin-view {
-  padding: 16px;
-  padding-bottom: 100px;
+/* ===== Apple-inspired Configuración View Design ===== */
+
+.configuracion-view {
+  min-height: 100vh;
+  background: #f5f5f7;
+  padding: 24px;
+  padding-bottom: 120px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Header */
-.view-header {
+.configuracion-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding: 16px;
-  background: linear-gradient(135deg, #536976 0%, #292e49 100%);
-  border-radius: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
+  border-radius: 20px;
   color: white;
 }
 
-.header-info {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
 }
 
 .header-icon {
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
+  width: 46px;
+  height: 46px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  backdrop-filter: blur(10px);
+  flex-shrink: 0;
+}
+
+.header-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .header-text h1 {
+  font-size: 22px;
+  font-weight: 600;
   margin: 0;
-  font-size: 20px;
-  font-weight: 700;
+  letter-spacing: -0.3px;
 }
 
 .header-subtitle {
-  margin: 2px 0 0;
-  font-size: 12px;
-  opacity: 0.9;
+  font-size: 13px;
+  opacity: 0.7;
+  margin: 4px 0 0;
 }
 
-.btn-save {
+.btn-save-header {
   width: 44px;
   height: 44px;
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   color: white;
-  font-size: 18px;
   cursor: pointer;
-  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  backdrop-filter: blur(10px);
+  flex-shrink: 0;
 }
 
-.btn-save:disabled {
+.btn-save-header:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(0.98);
+}
+
+.btn-save-header:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
+.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Loading */
-.loading-state {
+.loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: #999;
+  text-align: center;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f0f0f0;
-  border-top-color: #536976;
+.loader {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f5f5f7;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.loading-container p {
+  color: #86868b;
+  font-size: 15px;
+  margin: 0;
 }
 
 /* Config Container */
@@ -556,102 +689,75 @@ onMounted(() => {
 
 /* Config Card */
 .config-card {
-  background: white;
-  border-radius: 18px;
+  background: #ffffff;
+  border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e5ea;
 }
 
 .card-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e5e5ea;
+  background: #fafafa;
 }
 
 .card-icon {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  flex-shrink: 0;
 }
 
 .card-icon.blue {
-  background: rgba(79, 172, 254, 0.15);
-  color: #4facfe;
+  background: #e8f4fd;
+  color: #007aff;
 }
 
 .card-icon.green {
-  background: rgba(56, 239, 125, 0.15);
-  color: #11998e;
+  background: #e8f5e9;
+  color: #34c759;
 }
 
 .card-icon.purple {
-  background: rgba(118, 75, 162, 0.15);
-  color: #764ba2;
+  background: #f3e8ff;
+  color: #5856d6;
 }
 
 .card-icon.orange {
-  background: rgba(250, 112, 154, 0.15);
-  color: #fa709a;
+  background: #fff3e0;
+  color: #ff9500;
 }
 
 .card-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
 }
 
 .card-body {
-  padding: 16px;
+  padding: 20px;
 }
 
-/* Form */
-.form-group {
-  margin-bottom: 14px;
-}
-
-.form-group:last-child {
-  margin-bottom: 0;
-}
-
-.form-group label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #666;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.form-group input,
-.form-group textarea {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 14px;
-  color: #333;
-  transition: border-color 0.2s;
-  box-sizing: border-box;
-}
-
-/* Info Fields - Mejorado */
+/* Info Fields */
 .info-field {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   padding: 12px;
-  background: #f8f9fa;
-  border-radius: 14px;
+  background: #f5f5f7;
+  border-radius: 12px;
   transition: all 0.2s;
+  border: 1px solid transparent;
 }
 
 .info-field:last-child {
@@ -663,20 +769,21 @@ onMounted(() => {
 }
 
 .info-field:focus-within {
-  background: #fff;
-  box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.2);
+  background: #ffffff;
+  border-color: #007aff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
 
 .field-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
   flex-shrink: 0;
   transition: transform 0.2s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .info-field:focus-within .field-icon {
@@ -684,22 +791,22 @@ onMounted(() => {
 }
 
 .field-icon.name {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
   color: white;
 }
 
 .field-icon.phone {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
   color: white;
 }
 
 .field-icon.email {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: linear-gradient(135deg, #ff9500 0%, #ffad33 100%);
   color: white;
 }
 
 .field-icon.address {
-  background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+  background: linear-gradient(135deg, #5856d6 0%, #af52de 100%);
   color: white;
 }
 
@@ -710,12 +817,13 @@ onMounted(() => {
 
 .field-content label {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  color: #999;
-  margin-bottom: 6px;
+  color: #86868b;
+  margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  line-height: 1.2;
 }
 
 .field-input,
@@ -726,53 +834,46 @@ onMounted(() => {
   background: transparent;
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
   outline: none;
   box-sizing: border-box;
+  font-family: inherit;
+  line-height: 1.4;
 }
 
 .field-input::placeholder,
 .field-textarea::placeholder {
-  color: #bbb;
+  color: #86868b;
   font-weight: 400;
 }
 
 .field-textarea {
   resize: none;
-  min-height: 50px;
-  font-family: inherit;
+  min-height: 44px;
   line-height: 1.5;
 }
 
-.form-group input:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #667eea;
+/* Horario Section */
+.horario-section {
+  margin-bottom: 20px;
 }
 
-.form-row {
-  display: flex;
-  gap: 12px;
+.horario-header {
+  margin-bottom: 12px;
 }
 
-.form-row .form-group {
-  flex: 1;
+.horario-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* Time Row */
-.time-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-/* Horario Times - Nuevo diseño */
 .horario-times {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
-  margin-bottom: 24px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -783,37 +884,48 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #f8f9fa;
-  border-radius: 14px;
-  padding: 10px 12px;
+  background: #f5f5f7;
+  border-radius: 12px;
+  padding: 12px;
   transition: all 0.2s;
   box-sizing: border-box;
+  border: 1px solid transparent;
 }
 
 .time-block:focus-within {
-  background: #fff;
-  box-shadow: 0 0 0 2px #34c759;
+  background: #ffffff;
+  border-color: #007aff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
 
-.time-icon {
+.time-icon-wrapper {
   width: 36px;
   height: 36px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-.time-icon.apertura {
-  background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+.time-icon-wrapper.apertura {
+  background: linear-gradient(135deg, #ff9500 0%, #ffad33 100%);
   color: white;
 }
 
-.time-icon.cierre {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.time-icon-wrapper.cierre {
+  background: linear-gradient(135deg, #5856d6 0%, #af52de 100%);
   color: white;
+}
+
+.time-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #86868b;
+  flex-shrink: 0;
+  padding: 0 2px;
 }
 
 .time-content {
@@ -821,15 +933,17 @@ onMounted(() => {
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  justify-content: center;
 }
 
 .time-label {
   font-size: 10px;
-  color: #999;
-  font-weight: 500;
+  color: #86868b;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  white-space: nowrap;
+  margin-bottom: 4px;
+  line-height: 1.2;
 }
 
 .time-input {
@@ -837,68 +951,55 @@ onMounted(() => {
   background: transparent;
   font-size: 16px;
   font-weight: 700;
-  color: #333;
+  color: #1d1d1f;
   padding: 0;
   width: 100%;
   outline: none;
   min-width: 0;
-}
-
-.time-divider {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 2px;
-  flex-shrink: 0;
-}
-
-.divider-line {
-  width: 6px;
-  height: 2px;
-  background: #e0e0e0;
-  border-radius: 1px;
-}
-
-.divider-text {
-  font-size: 10px;
-  color: #999;
-  font-weight: 500;
-  white-space: nowrap;
+  font-family: inherit;
+  letter-spacing: -0.2px;
+  line-height: 1.2;
 }
 
 /* Días Section */
 .dias-section {
-  background: #f8f9fa;
-  border-radius: 16px;
-  padding: 16px;
+  background: #f5f5f7;
+  border-radius: 14px;
+  padding: 14px;
+  border: 1px solid #e5e5ea;
 }
 
-.dias-title {
+.dias-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
-.dias-title span:first-child {
-  font-size: 14px;
+.dias-label {
+  font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .dias-badge {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
   color: white;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 20px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.3);
 }
 
-.dias-grid-new {
+.dias-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .dia-btn {
@@ -906,47 +1007,49 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px 4px;
-  background: white;
-  border: 2px solid #e8e8e8;
+  padding: 12px 4px;
+  background: #ffffff;
+  border: 2px solid #e5e5ea;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
-  min-height: 60px;
+  min-height: 50px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.dia-btn:active {
+  transform: scale(0.95);
 }
 
 .dia-btn .dia-abbr {
   font-size: 11px;
   font-weight: 700;
-  color: #999;
+  color: #86868b;
   text-transform: uppercase;
-}
-
-.dia-btn .dia-full {
-  display: none;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .dia-btn .dia-check {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 8px;
+  top: 6px;
+  right: 6px;
   color: white;
-  background: #34c759;
+  display: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
   width: 14px;
   height: 14px;
-  border-radius: 50%;
-  display: none;
-  align-items: center;
-  justify-content: center;
+  z-index: 1;
 }
 
 .dia-btn.active {
-  background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
   border-color: transparent;
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
 }
 
 .dia-btn.active .dia-abbr {
@@ -955,19 +1058,12 @@ onMounted(() => {
 }
 
 .dia-btn.active .dia-check {
-  display: flex;
-  background: white;
-  color: #34c759;
-}
-
-.dia-btn:not(.active):hover {
-  border-color: #34c759;
-  background: rgba(52, 199, 89, 0.05);
+  display: block;
 }
 
 /* Citas Section */
 .citas-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .citas-section:last-child {
@@ -979,22 +1075,24 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: #666;
+  color: #86868b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.section-title i {
-  font-size: 14px;
-  color: #999;
+.section-title svg {
+  color: #007aff;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
 }
 
 .citas-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 10px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -1002,31 +1100,32 @@ onMounted(() => {
 .cita-setting {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: #f8f9fa;
-  border-radius: 14px;
+  gap: 10px;
+  background: #f5f5f7;
+  border-radius: 12px;
   padding: 12px;
   transition: all 0.2s;
   min-width: 0;
   box-sizing: border-box;
-  overflow: hidden;
+  border: 1px solid transparent;
 }
 
 .cita-setting:focus-within {
-  background: #fff;
-  box-shadow: 0 0 0 2px rgba(118, 75, 162, 0.2);
+  background: #ffffff;
+  border-color: #007aff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
 
 .setting-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
   flex-shrink: 0;
   transition: transform 0.2s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .cita-setting:focus-within .setting-icon {
@@ -1034,22 +1133,22 @@ onMounted(() => {
 }
 
 .setting-icon.min {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
   color: white;
 }
 
 .setting-icon.max {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #ff9500 0%, #ffad33 100%);
   color: white;
 }
 
 .setting-icon.buffer {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
   color: white;
 }
 
 .setting-icon.cancel {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: linear-gradient(135deg, #ff3b30 0%, #ff6b6b 100%);
   color: white;
 }
 
@@ -1062,12 +1161,13 @@ onMounted(() => {
 
 .setting-content label {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  color: #999;
+  color: #86868b;
   margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  line-height: 1.2;
 }
 
 .setting-input-wrapper {
@@ -1083,21 +1183,23 @@ onMounted(() => {
   flex: 1;
   border: none;
   background: transparent;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  color: #333;
+  color: #1d1d1f;
   outline: none;
   padding: 0;
   min-width: 0;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  font-family: inherit;
+  letter-spacing: -0.2px;
 }
 
 .setting-unit {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: #999;
+  color: #86868b;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -1108,160 +1210,50 @@ onMounted(() => {
   height: auto;
 }
 
-
-/* Input Suffix */
-.input-suffix {
-  display: flex;
-  align-items: center;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.input-suffix input {
-  border: none;
-  border-radius: 0;
-  flex: 1;
-  text-align: center;
-}
-
-.input-suffix span {
-  padding: 12px;
-  background: #f8f9fa;
-  color: #666;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* Horarios Container Legacy */
-.horarios-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
-  animation: slideDown 0.3s ease;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.horario-day {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 12px 16px;
-}
-
-.day-header {
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.toggle-day {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  width: 100%;
-}
-
-.toggle-day input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.day-name {
-  font-weight: 600;
-  color: #333;
-  font-size: 15px;
-}
-
-.toggle-switch {
-  width: 51px;
-  height: 31px;
-  background: #e9e9eb;
-  border-radius: 31px;
-  position: relative;
-  transition: background-color 0.3s ease;
-  flex-shrink: 0;
-}
-
-.toggle-switch::after {
-  content: '';
-  position: absolute;
-  width: 27px;
-  height: 27px;
-  background: white;
-  border-radius: 50%;
-  top: 2px;
-  left: 2px;
-  transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16), 0 3px 1px rgba(0, 0, 0, 0.1);
-}
-
-.toggle-day input:checked ~ .toggle-switch {
-  background: #34c759;
-}
-
-.toggle-day input:checked ~ .toggle-switch::after {
-  transform: translateX(20px);
-}
-
-/* Notificaciones - Nuevo diseño */
+/* Notificaciones */
 .notif-item {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px;
-  background: #f8f9fa;
-  border-radius: 14px;
-  margin-bottom: 12px;
+  background: #f5f5f7;
+  border-radius: 12px;
+  margin-bottom: 10px;
   transition: all 0.2s;
+  border: 1px solid transparent;
 }
 
 .notif-item:last-child {
   margin-bottom: 0;
 }
 
-.notif-item:hover {
-  background: #f0f0f0;
+.notif-item:active {
+  transform: scale(0.98);
 }
 
 .notif-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .notif-icon.confirm {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
   color: white;
 }
 
 .notif-icon.reminder {
-  background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+  background: linear-gradient(135deg, #ff9500 0%, #ffad33 100%);
   color: white;
 }
 
 .notif-icon.cancel {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: linear-gradient(135deg, #ff3b30 0%, #ff6b6b 100%);
   color: white;
 }
 
@@ -1271,16 +1263,18 @@ onMounted(() => {
 }
 
 .notif-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 4px;
+  color: #1d1d1f;
+  margin-bottom: 3px;
+  letter-spacing: -0.1px;
+  line-height: 1.2;
 }
 
 .notif-desc {
   font-size: 12px;
-  color: #999;
-  line-height: 1.4;
+  color: #86868b;
+  line-height: 1.3;
 }
 
 .notif-toggle {
@@ -1291,24 +1285,24 @@ onMounted(() => {
 .notif-switch {
   position: relative;
   display: block;
-  width: 51px;
-  height: 31px;
-  background: #e9e9eb;
-  border-radius: 31px;
+  width: 48px;
+  height: 28px;
+  background: #e5e5ea;
+  border-radius: 14px;
   transition: background-color 0.3s ease;
 }
 
 .notif-switch::after {
   content: '';
   position: absolute;
-  width: 27px;
-  height: 27px;
+  width: 24px;
+  height: 24px;
   background: white;
   border-radius: 50%;
   top: 2px;
   left: 2px;
   transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16), 0 3px 1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .notif-toggle input {
@@ -1319,89 +1313,18 @@ onMounted(() => {
 }
 
 .notif-toggle input:checked + .notif-switch {
-  background: #34c759;
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
 }
 
 .notif-toggle input:checked + .notif-switch::after {
   transform: translateX(20px);
 }
 
-/* Toggle Items Legacy */
-.toggle-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.toggle-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.toggle-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.toggle-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
-.toggle-desc {
-  font-size: 12px;
-  color: #999;
-}
-
-.toggle-switch {
-  position: relative;
-  width: 50px;
-  height: 28px;
-  cursor: pointer;
-}
-
-.toggle-switch input {
-  display: none;
-}
-
-.toggle-slider {
-  position: absolute;
-  inset: 0;
-  background: #e0e0e0;
-  border-radius: 14px;
-  transition: background 0.2s;
-}
-
-.toggle-slider::after {
-  content: '';
-  position: absolute;
-  width: 24px;
-  height: 24px;
-  background: white;
-  border-radius: 50%;
-  top: 2px;
-  left: 2px;
-  transition: transform 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.toggle-switch input:checked + .toggle-slider {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.toggle-switch input:checked + .toggle-slider::after {
-  transform: translateX(22px);
-}
-
 /* Mobile Save Button */
 .btn-save-mobile {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #536976 0%, #292e49 100%);
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
   color: white;
   border: none;
   border-radius: 14px;
@@ -1413,6 +1336,13 @@ onMounted(() => {
   justify-content: center;
   gap: 10px;
   margin-top: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+
+.btn-save-mobile:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
 }
 
 .btn-save-mobile:disabled {
@@ -1420,7 +1350,19 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-.btn-save-mobile i {
-  font-size: 18px;
+.btn-save-mobile svg {
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .btn-save-mobile {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .btn-save-header {
+    display: none;
+  }
 }
 </style>
