@@ -1,38 +1,83 @@
 <template>
-  <div class="admin-view">
+  <div class="empleados-view">
     <!-- Header -->
-    <div class="view-header">
-      <div class="header-info">
+    <div class="empleados-header">
+      <div class="header-left">
         <div class="header-icon">
-          <i class="fa fa-user-tie"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
         </div>
         <div class="header-text">
           <h1>Empleados</h1>
           <p class="header-subtitle">{{ empleados.length }} registrados</p>
         </div>
       </div>
-      <button class="btn-action" @click="nuevoEmpleado">
-        <i class="fa fa-plus"></i>
+      <button class="btn-new-empleado" @click="nuevoEmpleado" title="Nuevo Empleado">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span class="btn-text">Nuevo</span>
       </button>
     </div>
 
     <!-- Stats -->
     <div class="stats-mini">
       <div class="stat-mini">
-        <i class="fa fa-user-check"></i>
-        <span>{{ empleadosActivos }} activos</span>
+        <div class="stat-icon activo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ empleadosActivos }}</span>
+          <span class="stat-label">Activos</span>
+        </div>
       </div>
       <div class="stat-mini">
-        <i class="fa fa-user-clock"></i>
-        <span>{{ empleadosInactivos }} inactivos</span>
+        <div class="stat-icon inactivo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ empleadosInactivos }}</span>
+          <span class="stat-label">Inactivos</span>
+        </div>
       </div>
     </div>
 
     <!-- Empleados List -->
     <div class="empleados-container">
-      <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
+      <div v-if="loading" class="loading-container">
+        <div class="loader"></div>
         <p>Cargando empleados...</p>
+      </div>
+      
+      <div v-else-if="empleados.length === 0" class="empty-state">
+        <div class="empty-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+        <p>No hay empleados registrados</p>
+        <button class="btn-create" @click="nuevoEmpleado">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Agregar empleado
+        </button>
       </div>
       
       <div v-else class="empleados-grid">
@@ -42,73 +87,91 @@
           class="empleado-card"
           :class="{ inactivo: !empleado.active }"
         >
-          <div class="empleado-header">
+          <div class="empleado-main">
             <div class="empleado-avatar">
               {{ getInitial(empleado.nombre) }}
-            </div>
-            <span :class="['status-indicator', empleado.active ? 'activo' : 'inactivo']"></span>
-          </div>
-          
-          <div class="empleado-body">
-            <h3 class="empleado-nombre">{{ empleado.nombre }}</h3>
-            
-            <div class="empleado-contacto">
-              <span><i class="fa fa-envelope"></i> {{ empleado.email }}</span>
-              <span v-if="empleado.telefono"><i class="fa fa-phone"></i> {{ empleado.telefono }}</span>
+              <span :class="['status-indicator', empleado.active ? 'activo' : 'inactivo']"></span>
             </div>
             
-            <div class="empleado-servicios">
-              <span 
-                v-for="servicio in (empleado.servicios || []).slice(0, 3)" 
-                :key="servicio.id" 
-                class="servicio-tag"
-              >
-                {{ servicio.nombre }}
-              </span>
-              <span v-if="(empleado.servicios || []).length > 3" class="servicio-more">
-                +{{ empleado.servicios.length - 3 }}
-              </span>
-              <span v-if="(empleado.servicios || []).length === 0" class="no-servicios">
-                Sin servicios asignados
-              </span>
+            <div class="empleado-info">
+              <div class="empleado-header-info">
+                <h3 class="empleado-nombre">{{ empleado.nombre }}</h3>
+                <span :class="['status-badge', empleado.active ? 'activo' : 'inactivo']">
+                  {{ empleado.active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+              
+              <div class="empleado-contacto">
+                <span class="contacto-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                  {{ empleado.email }}
+                </span>
+                <span v-if="empleado.telefono" class="contacto-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                  </svg>
+                  {{ empleado.telefono }}
+                </span>
+              </div>
+              
+              <div class="empleado-servicios">
+                <span 
+                  v-for="servicio in (empleado.servicios || []).slice(0, 2)" 
+                  :key="servicio.id" 
+                  class="servicio-tag"
+                >
+                  {{ servicio.nombre }}
+                </span>
+                <span v-if="(empleado.servicios || []).length > 2" class="servicio-more">
+                  +{{ empleado.servicios.length - 2 }}
+                </span>
+                <span v-if="(empleado.servicios || []).length === 0" class="no-servicios">
+                  Sin servicios
+                </span>
+              </div>
             </div>
           </div>
           
-          <div class="empleado-footer">
-            <span :class="['status-badge', empleado.active ? 'activo' : 'inactivo']">
-              {{ empleado.active ? 'Activo' : 'Inactivo' }}
-            </span>
-            <div class="empleado-actions">
-              <button class="btn-icon-sm" @click="editarEmpleado(empleado)" title="Editar">
-                <i class="fa fa-edit"></i>
-              </button>
-              <button class="btn-icon-sm servicios" @click="gestionarServicios(empleado)" title="Servicios">
-                <i class="fa fa-cut"></i>
-              </button>
-              <button class="btn-icon-sm" @click="verHorarios(empleado)" title="Horarios">
-                <i class="fa fa-calendar-alt"></i>
-              </button>
-              <button 
-                class="btn-icon-sm" 
-                :class="empleado.active ? 'danger' : 'success'"
-                @click="toggleEmpleado(empleado)"
-                :title="empleado.active ? 'Desactivar' : 'Activar'"
-              >
-                <i :class="empleado.active ? 'fa fa-ban' : 'fa fa-check'"></i>
-              </button>
-            </div>
+          <div class="empleado-actions">
+            <button class="action-btn" @click="editarEmpleado(empleado)" title="Editar">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button class="action-btn servicios" @click="gestionarServicios(empleado)" title="Servicios">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+              </svg>
+            </button>
+            <button class="action-btn" @click="verHorarios(empleado)" title="Horarios">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </button>
+            <button 
+              class="action-btn" 
+              :class="empleado.active ? 'danger' : 'success'"
+              @click="toggleEmpleado(empleado)"
+              :title="empleado.active ? 'Desactivar' : 'Activar'"
+            >
+              <svg v-if="empleado.active" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </button>
           </div>
         </div>
-      </div>
-
-      <!-- Empty state -->
-      <div v-if="!loading && empleados.length === 0" class="empty-state">
-        <i class="fa fa-user-tie"></i>
-        <p>No hay empleados registrados</p>
-        <button class="btn-create" @click="nuevoEmpleado">
-          <i class="fa fa-plus"></i>
-          Agregar empleado
-        </button>
       </div>
     </div>
 
@@ -119,28 +182,52 @@
           <div class="modal-header">
             <h3>{{ modalTitle }}</h3>
             <button class="modal-close" @click="closeModal">
-              <i class="fa fa-times"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </button>
           </div>
           <div class="modal-body">
             <!-- Formulario de empleado -->
             <div v-if="modalType === 'form'" class="form-container">
-              <div class="form-group">
-                <label>Nombre completo <span class="required">*</span></label>
-                <input v-model="formData.nombre" type="text" placeholder="Ej: Ana López" />
+              <div class="form-section">
+                <label class="form-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  Nombre completo <span class="required">*</span>
+                </label>
+                <input v-model="formData.nombre" type="text" placeholder="Ej: Ana López" class="form-input" />
               </div>
-              <div class="form-group">
-                <label>Email <span class="required">*</span></label>
-                <input v-model="formData.email" type="email" placeholder="ana@beautyspa.com" />
+              <div class="form-section">
+                <label class="form-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                  Email <span class="required">*</span>
+                </label>
+                <input v-model="formData.email" type="email" placeholder="ana@beautyspa.com" class="form-input" />
               </div>
-              <div class="form-group">
-                <label>Teléfono</label>
-                <input v-model="formData.telefono" type="tel" placeholder="5511111111" />
+              <div class="form-section">
+                <label class="form-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                  </svg>
+                  Teléfono
+                </label>
+                <input v-model="formData.telefono" type="tel" placeholder="5511111111" class="form-input" />
               </div>
               
               <!-- Campo de contraseña -->
-              <div class="form-group">
-                <label>
+              <div class="form-section">
+                <label class="form-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
                   {{ selectedEmpleado ? 'Nueva contraseña' : 'Contraseña' }}
                   <span v-if="!selectedEmpleado" class="required">*</span>
                   <span v-else class="optional">(dejar vacío para no cambiar)</span>
@@ -150,27 +237,53 @@
                     :type="showPassword ? 'text' : 'password'" 
                     v-model="formData.password" 
                     :placeholder="selectedEmpleado ? '••••••••' : 'Mínimo 6 caracteres'"
-                    class="password-field"
+                    class="form-input password-field"
                   />
-                  <span class="toggle-password-btn" @click.prevent.stop="togglePasswordVisibility">
-                    <i :class="showPassword ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
-                  </span>
+                  <button type="button" class="toggle-password-btn" @click.prevent.stop="togglePasswordVisibility">
+                    <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
                 </div>
               </div>
 
-              <div class="form-group">
-                <label>Biografía / Descripción</label>
-                <textarea v-model="formData.bio" placeholder="Experiencia, especialidades..." rows="3"></textarea>
+              <div class="form-section">
+                <label class="form-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  Biografía / Descripción
+                </label>
+                <textarea v-model="formData.bio" placeholder="Experiencia, especialidades..." rows="3" class="form-textarea"></textarea>
               </div>
 
-              <div class="form-group">
-                <label>Especialidades</label>
-                <input v-model="formData.especialidades" type="text" placeholder="Cortes, Coloración, Peinados..." />
+              <div class="form-section">
+                <label class="form-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                  </svg>
+                  Especialidades
+                </label>
+                <input v-model="formData.especialidades" type="text" placeholder="Cortes, Coloración, Peinados..." class="form-input" />
               </div>
 
               <!-- Servicios (solo para nuevo empleado) -->
-              <div v-if="!selectedEmpleado" class="form-group">
-                <label>Servicios que puede realizar</label>
+              <div v-if="!selectedEmpleado" class="form-section">
+                <label class="form-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                  </svg>
+                  Servicios que puede realizar
+                </label>
                 <div class="servicios-selector">
                   <div 
                     v-for="servicio in todosServicios" 
@@ -179,7 +292,12 @@
                     :class="{ selected: serviciosSeleccionados.includes(servicio.id) }"
                     @click="toggleServicioSeleccion(servicio.id)"
                   >
-                    <i :class="serviciosSeleccionados.includes(servicio.id) ? 'fa fa-check-square' : 'fa fa-square'"></i>
+                    <svg v-if="serviciosSeleccionados.includes(servicio.id)" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    </svg>
                     <span>{{ servicio.nombre }}</span>
                     <small>${{ servicio.precio }}</small>
                   </div>
@@ -190,15 +308,37 @@
               </div>
 
               <div v-if="formError" class="form-error">
-                <i class="fa fa-exclamation-circle"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
                 {{ formError }}
               </div>
 
-              <button class="btn-submit" @click="guardarEmpleado" :disabled="guardando">
-                <i v-if="guardando" class="fa fa-spinner fa-spin"></i>
-                <i v-else class="fa fa-save"></i>
-                {{ guardando ? 'Guardando...' : 'Guardar' }}
-              </button>
+              <div class="form-actions">
+                <button type="button" class="btn-cancel" @click="closeModal">
+                  Cancelar
+                </button>
+                <button type="button" class="btn-submit" @click="guardarEmpleado" :disabled="guardando">
+                  <svg v-if="guardando" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinning">
+                    <line x1="12" y1="2" x2="12" y2="6"></line>
+                    <line x1="12" y1="18" x2="12" y2="22"></line>
+                    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                    <line x1="2" y1="12" x2="6" y2="12"></line>
+                    <line x1="18" y1="12" x2="22" y2="12"></line>
+                    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                  </svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  {{ guardando ? 'Guardando...' : 'Guardar' }}
+                </button>
+              </div>
             </div>
             
             <!-- Gestión de Servicios -->
@@ -209,15 +349,21 @@
               
               <!-- Buscador de servicios -->
               <div class="servicios-search">
-                <i class="fa fa-search"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="m21 21-4.35-4.35"></path>
+                </svg>
                 <input 
                   type="text" 
                   v-model="busquedaServicio" 
                   placeholder="Buscar servicio..."
                 />
-                <span v-if="busquedaServicio" class="clear-search" @click="busquedaServicio = ''">
-                  <i class="fa fa-times"></i>
-                </span>
+                <button v-if="busquedaServicio" type="button" class="clear-search" @click="busquedaServicio = ''">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
               </div>
               
               <div class="servicios-list">
@@ -229,7 +375,13 @@
                   @click="toggleServicioEmpleado(servicio)"
                 >
                   <div class="servicio-check">
-                    <i :class="serviciosDelEmpleado.some(s => s.id === servicio.id) ? 'fa fa-check-circle' : 'fa fa-circle'"></i>
+                    <svg v-if="serviciosDelEmpleado.some(s => s.id === servicio.id)" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
                   </div>
                   <div class="servicio-info">
                     <span class="servicio-nombre">{{ servicio.nombre }}</span>
@@ -241,13 +393,16 @@
                   </div>
                   <div class="servicio-duracion">
                     <span class="duracion-label">Duración</span>
-                    <span class="duracion-valor">{{ servicio.duracion }} min</span>
+                    <span class="duracion-valor">{{ servicio.duracion || servicio.duracion_minutos }} min</span>
                   </div>
                 </div>
                 
                 <!-- Sin resultados -->
                 <div v-if="serviciosFiltrados.length === 0 && busquedaServicio" class="no-results">
-                  <i class="fa fa-search"></i>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                  </svg>
                   <p>No se encontraron servicios con "{{ busquedaServicio }}"</p>
                 </div>
               </div>
@@ -256,11 +411,29 @@
                 <span>{{ serviciosDelEmpleado.length }} servicio(s) seleccionado(s)</span>
               </div>
 
-              <button class="btn-submit" @click="guardarServicios" :disabled="guardando">
-                <i v-if="guardando" class="fa fa-spinner fa-spin"></i>
-                <i v-else class="fa fa-save"></i>
-                {{ guardando ? 'Guardando...' : 'Guardar Servicios' }}
-              </button>
+              <div class="form-actions">
+                <button type="button" class="btn-cancel" @click="closeModal">
+                  Cancelar
+                </button>
+                <button type="button" class="btn-submit" @click="guardarServicios" :disabled="guardando">
+                  <svg v-if="guardando" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinning">
+                    <line x1="12" y1="2" x2="12" y2="6"></line>
+                    <line x1="12" y1="18" x2="12" y2="22"></line>
+                    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                    <line x1="2" y1="12" x2="6" y2="12"></line>
+                    <line x1="18" y1="12" x2="22" y2="12"></line>
+                    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                  </svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  {{ guardando ? 'Guardando...' : 'Guardar Servicios' }}
+                </button>
+              </div>
             </div>
 
             <!-- Horarios -->
@@ -285,11 +458,29 @@
                   </div>
                 </div>
               </div>
-              <button class="btn-submit" @click="guardarHorarios" :disabled="guardando">
-                <i v-if="guardando" class="fa fa-spinner fa-spin"></i>
-                <i v-else class="fa fa-save"></i>
-                {{ guardando ? 'Guardando...' : 'Guardar Horarios' }}
-              </button>
+              <div class="form-actions">
+                <button type="button" class="btn-cancel" @click="closeModal">
+                  Cancelar
+                </button>
+                <button type="button" class="btn-submit" @click="guardarHorarios" :disabled="guardando">
+                  <svg v-if="guardando" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinning">
+                    <line x1="12" y1="2" x2="12" y2="6"></line>
+                    <line x1="12" y1="18" x2="12" y2="22"></line>
+                    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                    <line x1="2" y1="12" x2="6" y2="12"></line>
+                    <line x1="18" y1="12" x2="22" y2="12"></line>
+                    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                  </svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  {{ guardando ? 'Guardando...' : 'Guardar Horarios' }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -310,12 +501,14 @@ import {
   updateEmpleadoServicios,
   getServicios
 } from '@/services/adminService';
+import Swal from 'sweetalert2';
 
 interface Servicio {
   id: number;
   nombre: string;
   precio: number;
-  duracion: number;
+  duracion?: number;
+  duracion_minutos?: number;
   categoria?: { id: number; nombre: string };
 }
 
@@ -483,11 +676,24 @@ async function guardarServicios() {
   guardando.value = true;
   try {
     await updateEmpleadoServicios(selectedEmpleado.value.id, serviciosDelEmpleado.value);
+    Swal.fire({
+      icon: 'success',
+      title: '¡Éxito!',
+      text: 'Servicios actualizados correctamente',
+      confirmButtonColor: '#34c759',
+      timer: 1500,
+      showConfirmButton: false
+    });
     closeModal();
     await cargarEmpleados();
   } catch (error: any) {
     console.error('Error guardando servicios:', error);
-    alert(error.response?.data?.message || 'Error al guardar servicios');
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: error.response?.data?.message || 'Error al guardar servicios',
+      confirmButtonColor: '#ff3b30'
+    });
   } finally {
     guardando.value = false;
   }
@@ -526,9 +732,14 @@ async function toggleEmpleado(e: any) {
     await updateEmpleado(e.id, { active: nuevoEstado });
     e.active = nuevoEstado;
     await cargarEmpleados();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error actualizando empleado:', error);
-    alert('Error al actualizar empleado');
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: error.response?.data?.message || 'Error al actualizar empleado',
+      confirmButtonColor: '#ff3b30'
+    });
   }
 }
 
@@ -558,28 +769,44 @@ async function guardarEmpleado() {
     if (selectedEmpleado.value) {
       // Actualizar empleado existente
       const datos: any = {
-        nombre: formData.nombre,
-        email: formData.email,
-        telefono: formData.telefono || null,
-        bio: formData.bio || null,
-        especialidades: formData.especialidades || null,
+        nombre: formData.nombre.trim(),
+        email: formData.email.trim(),
+        telefono: formData.telefono?.trim() || null,
+        bio: formData.bio?.trim() || null,
+        especialidades: formData.especialidades?.trim() || null,
       };
       if (formData.password) {
         datos.password = formData.password;
       }
       await updateEmpleado(selectedEmpleado.value.id, datos);
+      Swal.fire({
+        icon: 'success',
+        title: '¡Éxito!',
+        text: 'Empleado actualizado correctamente',
+        confirmButtonColor: '#34c759',
+        timer: 1500,
+        showConfirmButton: false
+      });
     } else {
       // Crear nuevo empleado
       const datos = {
-        nombre: formData.nombre,
-        email: formData.email,
-        telefono: formData.telefono || null,
+        nombre: formData.nombre.trim(),
+        email: formData.email.trim(),
+        telefono: formData.telefono?.trim() || null,
         password: formData.password,
-        bio: formData.bio || null,
-        especialidades: formData.especialidades || null,
+        bio: formData.bio?.trim() || null,
+        especialidades: formData.especialidades?.trim() || null,
         servicios: serviciosSeleccionados.value,
       };
       await createEmpleado(datos);
+      Swal.fire({
+        icon: 'success',
+        title: '¡Éxito!',
+        text: 'Empleado creado correctamente',
+        confirmButtonColor: '#34c759',
+        timer: 1500,
+        showConfirmButton: false
+      });
     }
     closeModal();
     await cargarEmpleados();
@@ -621,12 +848,25 @@ async function guardarHorarios() {
     });
     
     await updateEmpleadoHorarios(selectedEmpleado.value.id, { horarios });
+    Swal.fire({
+      icon: 'success',
+      title: '¡Éxito!',
+      text: 'Horarios actualizados correctamente',
+      confirmButtonColor: '#34c759',
+      timer: 1500,
+      showConfirmButton: false
+    });
     closeModal();
     await cargarEmpleados();
   } catch (error: any) {
     console.error('Error guardando horarios:', error);
     const mensaje = error.response?.data?.message || 'Error al guardar horarios';
-    alert(mensaje);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: mensaje,
+      confirmButtonColor: '#ff3b30'
+    });
   } finally {
     guardando.value = false;
   }
@@ -646,299 +886,188 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.admin-view {
-  padding: 16px;
-  padding-bottom: 100px;
+/* ===== Apple-inspired Empleados View Design ===== */
+
+.empleados-view {
+  min-height: 100vh;
+  background: #f5f5f7;
+  padding: 24px;
+  padding-bottom: 120px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Header */
-.view-header {
+.empleados-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
   padding: 16px;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
   border-radius: 16px;
   color: white;
 }
 
-.header-info {
+.header-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .header-icon {
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.2);
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  backdrop-filter: blur(10px);
+  flex-shrink: 0;
+}
+
+.header-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .header-text h1 {
+  font-size: 18px;
+  font-weight: 600;
   margin: 0;
-  font-size: 20px;
-  font-weight: 700;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-subtitle {
-  margin: 2px 0 0;
   font-size: 12px;
-  opacity: 0.9;
+  opacity: 0.7;
+  margin: 2px 0 0;
 }
 
-.btn-action {
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
+@media (min-width: 480px) {
+  .empleados-header {
+    padding: 20px;
+    margin-bottom: 24px;
+    border-radius: 20px;
+  }
+  
+  .header-icon {
+    width: 46px;
+    height: 46px;
+  }
+  
+  .header-text h1 {
+    font-size: 22px;
+  }
+  
+  .header-subtitle {
+    font-size: 13px;
+    margin: 4px 0 0;
+  }
+}
+
+.btn-new-empleado {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   color: white;
-  font-size: 18px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
+  backdrop-filter: blur(10px);
+}
+
+.btn-new-empleado .btn-text {
+  display: none;
+}
+
+.btn-new-empleado:active {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(0.98);
+}
+
+@media (min-width: 480px) {
+  .btn-new-empleado {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+  
+  .btn-new-empleado .btn-text {
+    display: inline;
+  }
 }
 
 /* Stats Mini */
 .stats-mini {
   display: flex;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .stat-mini {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: white;
-  padding: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  gap: 12px;
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e5ea;
 }
 
-.stat-mini i {
-  color: #f093fb;
-}
-
-.stat-mini span {
-  font-size: 13px;
-  color: #333;
-  font-weight: 500;
-}
-
-/* Loading */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  color: #999;
-}
-
-.spinner {
+.stat-icon {
   width: 40px;
   height: 40px;
-  border: 3px solid #f0f0f0;
-  border-top-color: #f093fb;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 12px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Empleados Grid */
-.empleados-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.empleado-card {
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s, opacity 0.2s;
-}
-
-.empleado-card.inactivo {
-  opacity: 0.7;
-}
-
-.empleado-header {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  padding: 20px 16px 10px;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.empleado-avatar {
-  width: 60px;
-  height: 60px;
-  background: white;
-  border-radius: 50%;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #f093fb;
-  font-weight: 700;
-  font-size: 24px;
-  border: 3px solid white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
 }
 
-.status-indicator {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid white;
-}
-
-.status-indicator.activo {
-  background: #38ef7d;
-}
-
-.status-indicator.inactivo {
-  background: #ff6b6b;
-}
-
-.empleado-body {
-  padding: 16px;
-  text-align: center;
-}
-
-.empleado-nombre {
-  margin: 0 0 8px;
-  font-size: 17px;
-  font-weight: 600;
-  color: #333;
-}
-
-.empleado-contacto {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.empleado-contacto span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #666;
-}
-
-.empleado-contacto i {
-  color: #f093fb;
-  width: 14px;
-}
-
-.empleado-servicios {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: center;
-}
-
-.servicio-tag {
-  background: #fce4ec;
-  color: #f5576c;
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.servicio-more {
-  background: #f0f0f0;
-  color: #666;
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-size: 11px;
-}
-
-.no-servicios {
-  font-size: 11px;
-  color: #999;
-  font-style: italic;
-}
-
-.empleado-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: #f8f9fa;
-  border-top: 1px solid #f0f0f0;
-}
-
-.status-badge {
-  padding: 4px 12px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.status-badge.activo {
+.stat-icon.activo {
   background: #e8f5e9;
-  color: #2e7d32;
+  color: #34c759;
 }
 
-.status-badge.inactivo {
-  background: #ffebee;
-  color: #c62828;
-}
-
-.empleado-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.btn-icon-sm {
-  width: 34px;
-  height: 34px;
-  border: none;
-  border-radius: 10px;
-  background: #f0f0f0;
-  color: #666;
-  font-size: 14px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-icon-sm.danger {
-  background: #ffebee;
-  color: #c62828;
-}
-
-.btn-icon-sm.success {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.btn-icon-sm.servicios {
+.stat-icon.inactivo {
   background: #fff3e0;
-  color: #ef6c00;
+  color: #ff9500;
 }
 
-/* Empty State */
+.stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1d1d1f;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #86868b;
+}
+
+/* Loading & Empty */
+.loading-container,
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -948,15 +1077,30 @@ onMounted(async () => {
   text-align: center;
 }
 
-.empty-state i {
-  font-size: 48px;
-  color: #ddd;
+.loader {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f5f5f7;
+  border-top-color: #007aff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
   margin-bottom: 16px;
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-container p,
 .empty-state p {
-  color: #999;
-  margin-bottom: 20px;
+  color: #86868b;
+  font-size: 15px;
+  margin: 0 0 20px;
+}
+
+.empty-icon {
+  color: #d1d1d6;
+  margin-bottom: 16px;
 }
 
 .btn-create {
@@ -964,33 +1108,246 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+
+.btn-create:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
+}
+
+/* Empleados Grid */
+.empleados-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empleado-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e5ea;
+  transition: all 0.2s;
+  padding: 14px;
+}
+
+.empleado-card.inactivo {
+  opacity: 0.7;
+}
+
+.empleado-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.empleado-avatar {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.status-indicator.activo {
+  background: #34c759;
+}
+
+.status-indicator.inactivo {
+  background: #ff3b30;
+}
+
+.empleado-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.empleado-header-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.empleado-nombre {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.status-badge.activo {
+  background: #e8f5e9;
+  color: #34c759;
+}
+
+.status-badge.inactivo {
+  background: #ffebee;
+  color: #ff3b30;
+}
+
+.empleado-contacto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.contacto-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #86868b;
+}
+
+.contacto-item svg {
+  color: #007aff;
+  flex-shrink: 0;
+}
+
+.empleado-servicios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.servicio-tag {
+  background: #e8f4fd;
+  color: #007aff;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.servicio-more {
+  background: #f5f5f7;
+  color: #86868b;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.no-servicios {
+  font-size: 11px;
+  color: #86868b;
+  font-style: italic;
+}
+
+.empleado-actions {
+  display: flex;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e5ea;
+}
+
+.action-btn {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.action-btn.danger {
+  background: #ffebee;
+  color: #ff3b30;
+}
+
+.action-btn.success {
+  background: #e8f5e9;
+  color: #34c759;
+}
+
+.action-btn.servicios {
+  background: #fff3e0;
+  color: #ff9500;
 }
 
 /* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-content {
-  background: white;
+  background: #ffffff;
   width: 100%;
   max-height: 90vh;
   border-radius: 24px 24px 0 0;
   overflow: hidden;
-  animation: slideUp 0.3s ease;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
 }
 
 @keyframes slideUp {
@@ -1002,33 +1359,39 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e5ea;
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
-  color: #1a1a2e;
+  color: #1d1d1f;
+  letter-spacing: -0.3px;
 }
 
 .modal-close {
   width: 36px;
   height: 36px;
   border: none;
-  border-radius: 50%;
-  background: #f0f0f0;
-  color: #666;
-  font-size: 16px;
+  border-radius: 10px;
+  background: #f5f5f7;
+  color: #1d1d1f;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
+}
+
+.modal-close:active {
+  background: #e5e5ea;
+  transform: scale(0.95);
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 24px;
   overflow-y: auto;
   max-height: calc(90vh - 80px);
 }
@@ -1037,49 +1400,70 @@ onMounted(async () => {
 .form-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
-.form-group {
+.form-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
-.form-group label {
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
+  letter-spacing: -0.1px;
 }
 
-.form-group label .required {
-  color: #f5576c;
+.form-label svg {
+  color: #007aff;
+  flex-shrink: 0;
 }
 
-.form-group label .optional {
+.required {
+  color: #ff3b30;
+}
+
+.optional {
   font-weight: 400;
   font-size: 11px;
-  color: #999;
+  color: #86868b;
 }
 
-.form-group input,
-.form-group textarea {
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 14px;
-  transition: border-color 0.2s;
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e5e5ea;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #1d1d1f;
+  background: #f5f5f7;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
-.form-group input:focus,
-.form-group textarea:focus {
+.form-input:focus,
+.form-textarea:focus {
   outline: none;
-  border-color: #f093fb;
+  border-color: #007aff;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
-.form-group textarea {
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #86868b;
+}
+
+.form-textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 100px;
 }
 
 /* Password Input */
@@ -1090,105 +1474,86 @@ onMounted(async () => {
 }
 
 .password-field {
-  flex: 1;
-  padding: 12px;
-  padding-right: 48px !important;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 14px;
-  transition: border-color 0.2s;
-  width: 100%;
-}
-
-.password-field:focus {
-  outline: none;
-  border-color: #f093fb;
+  padding-right: 50px !important;
 }
 
 .toggle-password-btn {
   position: absolute;
-  right: 4px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: #86868b;
+  cursor: pointer;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
-  cursor: pointer;
-  border-radius: 8px;
   transition: all 0.2s;
   z-index: 10;
-  user-select: none;
-}
-
-.toggle-password-btn:hover {
-  color: #f093fb;
-  background: rgba(240, 147, 251, 0.1);
 }
 
 .toggle-password-btn:active {
+  background: #e5e5ea;
   transform: translateY(-50%) scale(0.95);
 }
 
-.toggle-password-btn i {
-  font-size: 16px;
-  pointer-events: none;
-}
-
-/* Servicios Selector (para nuevo empleado) */
+/* Servicios Selector */
 .servicios-selector {
   max-height: 200px;
   overflow-y: auto;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
+  border: 1px solid #e5e5ea;
+  border-radius: 12px;
   padding: 8px;
+  background: #f5f5f7;
 }
 
 .servicio-checkbox {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border-radius: 8px;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .servicio-checkbox:hover {
-  background: #f8f9fa;
+  background: #ffffff;
 }
 
 .servicio-checkbox.selected {
-  background: #fce4ec;
+  background: #e8f4fd;
 }
 
-.servicio-checkbox i {
-  color: #999;
-  font-size: 16px;
+.servicio-checkbox svg {
+  color: #86868b;
+  flex-shrink: 0;
 }
 
-.servicio-checkbox.selected i {
-  color: #f5576c;
+.servicio-checkbox.selected svg {
+  color: #007aff;
 }
 
 .servicio-checkbox span {
   flex: 1;
-  font-size: 13px;
-  color: #333;
+  font-size: 14px;
+  color: #1d1d1f;
 }
 
 .servicio-checkbox small {
-  font-size: 12px;
-  color: #666;
+  font-size: 13px;
+  color: #007aff;
   font-weight: 600;
 }
 
 .no-servicios-msg {
   text-align: center;
-  color: #999;
-  font-size: 13px;
+  color: #86868b;
+  font-size: 14px;
   padding: 20px;
 }
 
@@ -1196,19 +1561,28 @@ onMounted(async () => {
 .form-error {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
+  gap: 10px;
+  padding: 14px 16px;
   background: #ffebee;
-  color: #c62828;
-  border-radius: 10px;
-  font-size: 13px;
+  color: #ff3b30;
+  border-radius: 12px;
+  font-size: 14px;
 }
 
+.form-error svg {
+  flex-shrink: 0;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.btn-cancel,
 .btn-submit {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
+  flex: 1;
+  padding: 14px 20px;
   border: none;
   border-radius: 12px;
   font-size: 15px;
@@ -1218,25 +1592,55 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 8px;
+  transition: all 0.2s;
+}
+
+.btn-cancel {
+  background: #f5f5f7;
+  color: #1d1d1f;
+  border: 1px solid #e5e5ea;
+}
+
+.btn-cancel:active {
+  background: #e5e5ea;
+  transform: scale(0.98);
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+
+.btn-submit:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
 }
 
 .btn-submit:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
+}
+
+.spinning {
+  animation: spin 0.8s linear infinite;
 }
 
 /* Servicios Container */
 .servicios-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .servicios-description {
   font-size: 14px;
-  color: #666;
+  color: #86868b;
   margin: 0;
+}
+
+.servicios-description strong {
+  color: #1d1d1f;
 }
 
 /* Buscador de servicios */
@@ -1244,54 +1648,56 @@ onMounted(async () => {
   position: relative;
   display: flex;
   align-items: center;
-  background: #f8f9fa;
-  border: 2px solid #e0e0e0;
+  gap: 12px;
+  background: #f5f5f7;
+  border: 1px solid #e5e5ea;
   border-radius: 12px;
-  padding: 0 12px;
+  padding: 0 16px;
   transition: all 0.2s;
 }
 
 .servicios-search:focus-within {
-  border-color: #f093fb;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(240, 147, 251, 0.1);
+  border-color: #007aff;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
-.servicios-search i.fa-search {
-  color: #999;
-  font-size: 14px;
-  margin-right: 10px;
+.servicios-search svg {
+  color: #86868b;
+  flex-shrink: 0;
 }
 
 .servicios-search input {
   flex: 1;
   border: none;
   background: transparent;
-  padding: 12px 0;
-  font-size: 14px;
-  color: #333;
+  padding: 14px 0;
+  font-size: 15px;
+  color: #1d1d1f;
   outline: none;
 }
 
 .servicios-search input::placeholder {
-  color: #999;
+  color: #86868b;
 }
 
 .clear-search {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #86868b;
+  cursor: pointer;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
-  cursor: pointer;
-  border-radius: 50%;
   transition: all 0.2s;
 }
 
-.clear-search:hover {
-  background: #e0e0e0;
-  color: #666;
+.clear-search:active {
+  background: #e5e5ea;
+  transform: scale(0.95);
 }
 
 .no-results {
@@ -1300,12 +1706,11 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
-  color: #999;
+  color: #86868b;
   text-align: center;
 }
 
-.no-results i {
-  font-size: 32px;
+.no-results svg {
   margin-bottom: 12px;
   opacity: 0.5;
 }
@@ -1318,7 +1723,7 @@ onMounted(async () => {
 .servicios-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   max-height: 400px;
   overflow-y: auto;
 }
@@ -1326,30 +1731,32 @@ onMounted(async () => {
 .servicio-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 2px solid #e0e0e0;
+  gap: 14px;
+  padding: 14px;
+  border: 2px solid #e5e5ea;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  background: #ffffff;
 }
 
 .servicio-item:hover {
-  border-color: #f093fb;
+  border-color: #007aff;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.1);
 }
 
 .servicio-item.selected {
-  border-color: #f5576c;
-  background: #fce4ec;
+  border-color: #007aff;
+  background: #e8f4fd;
 }
 
 .servicio-check {
-  font-size: 20px;
-  color: #ccc;
+  color: #d1d1d6;
+  flex-shrink: 0;
 }
 
 .servicio-item.selected .servicio-check {
-  color: #f5576c;
+  color: #007aff;
 }
 
 .servicio-info {
@@ -1360,83 +1767,87 @@ onMounted(async () => {
 .servicio-nombre {
   display: block;
   font-weight: 600;
-  color: #333;
-  font-size: 14px;
+  color: #1d1d1f;
+  font-size: 15px;
+  margin-bottom: 4px;
 }
 
 .servicio-categoria {
   display: block;
-  font-size: 11px;
-  color: #999;
+  font-size: 12px;
+  color: #86868b;
 }
 
 .servicio-precio,
 .servicio-duracion {
   text-align: center;
+  flex-shrink: 0;
 }
 
 .precio-label,
 .duracion-label {
   display: block;
   font-size: 10px;
-  color: #999;
+  color: #86868b;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
 }
 
 .precio-valor {
   display: block;
   font-weight: 700;
-  color: #f5576c;
-  font-size: 14px;
+  color: #007aff;
+  font-size: 15px;
 }
 
 .duracion-valor {
   display: block;
   font-weight: 600;
-  color: #666;
-  font-size: 13px;
+  color: #1d1d1f;
+  font-size: 14px;
 }
 
 .servicios-resumen {
   text-align: center;
-  padding: 10px;
-  background: #f8f9fa;
-  border-radius: 10px;
-  font-size: 13px;
-  color: #666;
+  padding: 12px;
+  background: #f5f5f7;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #86868b;
 }
 
 /* Horarios */
 .horarios-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .horario-day {
-  background: white;
-  border: 2px solid #f0f0f0;
+  background: #ffffff;
+  border: 2px solid #e5e5ea;
   border-radius: 14px;
-  padding: 16px;
+  padding: 18px;
   transition: all 0.2s;
 }
 
 .horario-day:hover {
-  border-color: #f093fb;
-  box-shadow: 0 2px 8px rgba(240, 147, 251, 0.1);
+  border-color: #007aff;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.1);
 }
 
 .day-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .day-name {
   font-weight: 600;
-  font-size: 15px;
-  color: #333;
+  font-size: 16px;
+  color: #1d1d1f;
   flex: 1;
 }
 
@@ -1452,10 +1863,10 @@ onMounted(async () => {
 }
 
 .toggle-switch {
-  width: 48px;
-  height: 28px;
-  background: #e0e0e0;
-  border-radius: 14px;
+  width: 50px;
+  height: 30px;
+  background: #e5e5ea;
+  border-radius: 15px;
   position: relative;
   transition: background 0.3s;
 }
@@ -1463,8 +1874,8 @@ onMounted(async () => {
 .toggle-switch::after {
   content: '';
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   background: white;
   border-radius: 50%;
   top: 2px;
@@ -1474,7 +1885,7 @@ onMounted(async () => {
 }
 
 .toggle-day input:checked + .toggle-switch {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
 }
 
 .toggle-day input:checked + .toggle-switch::after {
@@ -1484,50 +1895,52 @@ onMounted(async () => {
 .day-hours {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e5ea;
 }
 
 .time-input-group {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .time-label {
   font-size: 11px;
   font-weight: 600;
-  color: #666;
+  color: #86868b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .time-input {
   width: 100%;
-  padding: 10px 12px;
-  border: 2px solid #e0e0e0;
+  padding: 12px 14px;
+  border: 2px solid #e5e5ea;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
   transition: all 0.2s;
-  background: white;
+  background: #f5f5f7;
+  font-family: inherit;
 }
 
 .time-input:focus {
   outline: none;
-  border-color: #f093fb;
-  box-shadow: 0 0 0 3px rgba(240, 147, 251, 0.1);
+  border-color: #007aff;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
 .time-separator {
-  color: #999;
+  color: #86868b;
   font-weight: 500;
-  font-size: 14px;
-  padding-bottom: 8px;
+  font-size: 15px;
+  padding-bottom: 10px;
   flex-shrink: 0;
 }
 </style>
