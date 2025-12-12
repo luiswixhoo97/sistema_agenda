@@ -1,10 +1,14 @@
 <template>
-  <div class="admin-view">
+  <div class="mensajes-view">
     <!-- Header -->
-    <div class="view-header">
-      <div class="header-info">
+    <div class="mensajes-header">
+      <div class="header-left">
         <div class="header-icon">
-          <i class="fa fa-comment-dots"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <line x1="8" y1="10" x2="16" y2="10"></line>
+            <line x1="8" y1="14" x2="14" y2="14"></line>
+          </svg>
         </div>
         <div class="header-text">
           <h1>Mensajes y Comunicaciones</h1>
@@ -19,28 +23,41 @@
         :class="['tab-btn', { active: activeTab === 'plantillas' }]"
         @click="activeTab = 'plantillas'"
       >
-        <i class="fa fa-file-alt"></i>
-        Plantillas de Mensajes
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        <span class="tab-text">Plantillas</span>
       </button>
       <button 
         :class="['tab-btn', { active: activeTab === 'comunicacion' }]"
         @click="activeTab = 'comunicacion'"
       >
-        <i class="fa fa-bullhorn"></i>
-        Enviar Comunicado
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 2L11 13"></path>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+        <span class="tab-text">Enviar</span>
       </button>
       <button 
         :class="['tab-btn', { active: activeTab === 'estadisticas' }]"
         @click="activeTab = 'estadisticas'; cargarEstadisticas()"
       >
-        <i class="fa fa-chart-bar"></i>
-        Estadísticas
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        <span class="tab-text">Estadísticas</span>
       </button>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
+    <div v-if="loading" class="loading-container">
+      <div class="loader"></div>
       <p>Cargando...</p>
     </div>
 
@@ -54,14 +71,16 @@
           @click="editarPlantilla(grupo)"
         >
           <div class="plantilla-icon" :class="getIconClass(grupo.tipo)">
-            <i :class="getIcon(grupo.tipo)"></i>
+            <component :is="getIconSvg(grupo.tipo)" />
           </div>
           <div class="plantilla-info">
             <h3>{{ grupo.nombre }}</h3>
             <p>{{ grupo.descripcion }}</p>
           </div>
           <div class="plantilla-action">
-            <i class="fa fa-chevron-right"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
           </div>
         </div>
       </div>
@@ -72,7 +91,15 @@
       <div class="comunicacion-container">
         <!-- Tipo de destinatarios -->
         <div class="form-section">
-          <h3><i class="fa fa-users"></i> Destinatarios</h3>
+          <label class="section-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            Destinatarios
+          </label>
           <div class="tipo-selector">
             <label 
               v-for="tipo in tiposDestinatarios" 
@@ -84,7 +111,7 @@
                 v-model="comunicacion.tipo" 
                 :value="tipo.value"
               />
-              <i :class="tipo.icon"></i>
+              <component :is="tipo.iconSvg" />
               <span>{{ tipo.label }}</span>
             </label>
           </div>
@@ -92,15 +119,24 @@
 
         <!-- Selección de clientes -->
         <div v-if="comunicacion.tipo === 'seleccion'" class="form-section">
-          <h3><i class="fa fa-search"></i> Seleccionar Clientes</h3>
+          <label class="section-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="M21 21l-4.35-4.35"></path>
+            </svg>
+            Seleccionar Clientes
+          </label>
           <div class="buscar-cliente">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="M21 21l-4.35-4.35"></path>
+            </svg>
             <input 
               v-model="busquedaCliente"
               type="text"
               placeholder="Buscar por nombre o teléfono..."
               @input="buscarClientes"
             />
-            <i class="fa fa-search"></i>
           </div>
           <div class="clientes-lista" v-if="clientesEncontrados.length">
             <div 
@@ -117,44 +153,60 @@
                 <span class="telefono">{{ cliente.telefono }}</span>
               </div>
               <div class="cliente-check">
-                <i :class="clientesSeleccionados.includes(cliente.telefono) ? 'fa fa-check-circle' : 'fa fa-circle'"></i>
+                <svg v-if="clientesSeleccionados.includes(cliente.telefono)" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                </svg>
               </div>
             </div>
           </div>
           <div v-if="clientesSeleccionados.length" class="seleccionados-count">
             <span>{{ clientesSeleccionados.length }} cliente(s) seleccionado(s)</span>
             <button class="btn-limpiar" @click="clientesSeleccionados = []">
-              Limpiar selección
+              Limpiar
             </button>
           </div>
         </div>
 
         <!-- Teléfono individual -->
         <div v-if="comunicacion.tipo === 'individual'" class="form-section">
-          <h3><i class="fa fa-phone"></i> Número de teléfono</h3>
+          <label class="section-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            Número de teléfono
+          </label>
           <input 
             v-model="telefonoIndividual"
             type="tel"
             placeholder="Ej: 3312345678"
             maxlength="10"
-            class="input-telefono"
+            class="form-input"
           />
         </div>
 
         <!-- Mensaje -->
         <div class="form-section">
-          <h3><i class="fa fa-comment"></i> Mensaje</h3>
+          <label class="section-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Mensaje
+          </label>
           <input 
             v-model="comunicacion.titulo"
             type="text"
             placeholder="Título del comunicado (opcional)"
-            class="input-titulo"
+            class="form-input"
           />
           <textarea
             v-model="comunicacion.mensaje"
             rows="6"
             placeholder="Escribe tu mensaje aquí...&#10;&#10;Puedes usar emojis y formato:&#10;*texto en negritas*&#10;_texto en cursiva_"
-            class="textarea-mensaje"
+            class="form-textarea"
           ></textarea>
           <div class="char-count">
             {{ comunicacion.mensaje.length }} / 2000 caracteres
@@ -163,11 +215,20 @@
 
         <!-- Vista previa -->
         <div class="form-section preview-section">
-          <h3><i class="fa fa-eye"></i> Vista previa</h3>
+          <label class="section-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            Vista previa
+          </label>
           <div class="whatsapp-preview">
             <div class="preview-header">
               <div class="preview-avatar">
-                <i class="fa fa-store"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
               </div>
               <span>Tu Negocio</span>
             </div>
@@ -186,7 +247,11 @@
             @click="enviarComunicacion"
             :disabled="enviando || !puedeEnviar"
           >
-            <i :class="enviando ? 'fa fa-spinner fa-spin' : 'fa fa-paper-plane'"></i>
+            <svg v-if="!enviando" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            <div v-else class="spinner-small"></div>
             {{ enviando ? 'Enviando...' : 'Enviar Comunicado' }}
           </button>
         </div>
@@ -198,7 +263,10 @@
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-icon blue">
-            <i class="fa fa-paper-plane"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
           </div>
           <div class="stat-info">
             <span class="stat-value">{{ estadisticas.hoy }}</span>
@@ -207,7 +275,12 @@
         </div>
         <div class="stat-card">
           <div class="stat-icon green">
-            <i class="fa fa-calendar-week"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
           </div>
           <div class="stat-info">
             <span class="stat-value">{{ estadisticas.semana }}</span>
@@ -216,7 +289,12 @@
         </div>
         <div class="stat-card">
           <div class="stat-icon purple">
-            <i class="fa fa-calendar-alt"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
           </div>
           <div class="stat-info">
             <span class="stat-value">{{ estadisticas.mes }}</span>
@@ -225,7 +303,12 @@
         </div>
         <div class="stat-card">
           <div class="stat-icon orange">
-            <i class="fa fa-users"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
           </div>
           <div class="stat-info">
             <span class="stat-value">{{ estadisticas.clientes_whatsapp }} / {{ estadisticas.clientes_total }}</span>
@@ -235,85 +318,113 @@
       </div>
     </div>
 
-    <!-- Modal Editar Plantilla (Bottom Sheet) -->
-    <Transition name="bottom-sheet">
-      <div v-if="modalPlantilla" class="bottom-sheet-overlay" @click.self="cerrarModal">
-        <div class="bottom-sheet-content">
-          <div class="bottom-sheet-handle"></div>
-          <div class="bottom-sheet-header">
-            <h2>
-              <i :class="getIcon(plantillaEditando?.tipo || '')"></i>
-              {{ plantillaEditando?.nombre }}
-            </h2>
-            <button class="btn-close" @click="cerrarModal">
-              <i class="fa fa-times"></i>
-            </button>
-          </div>
-        <div class="bottom-sheet-body">
-          <p class="modal-descripcion">{{ plantillaEditando?.descripcion }}</p>
-          
-          <!-- Variables disponibles -->
-          <div class="variables-section">
-            <h4><i class="fa fa-code"></i> Variables disponibles</h4>
-            <div class="variables-list">
-              <div 
-                v-for="(desc, variable) in plantillaEditando?.variables" 
-                :key="variable"
-                class="variable-chip"
-                @click="insertarVariable(String(variable))"
-              >
-                <code v-text="formatVariable(String(variable))"></code>
-                <span>{{ desc }}</span>
-              </div>
+    <!-- Modal Editar Plantilla -->
+    <Teleport to="body">
+      <Transition name="bottom-sheet">
+        <div v-if="modalPlantilla" class="bottom-sheet-overlay" @click.self="cerrarModal">
+          <div class="bottom-sheet-content">
+            <div class="bottom-sheet-handle"></div>
+            <div class="bottom-sheet-header">
+              <h2>
+                <component :is="getIconSvg(plantillaEditando?.tipo || '')" />
+                {{ plantillaEditando?.nombre }}
+              </h2>
+              <button class="btn-close" @click="cerrarModal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
-          </div>
-
-          <!-- Editor de contenido -->
-          <div class="editor-section">
-            <label>Contenido del mensaje</label>
-            <textarea
-              v-model="contenidoEditando"
-              ref="textareaRef"
-              rows="8"
-              class="editor-textarea"
-            ></textarea>
-          </div>
-
-          <!-- Vista previa -->
-          <div class="preview-section-modal">
-            <h4><i class="fa fa-eye"></i> Vista previa</h4>
-            <div class="whatsapp-preview">
-              <div class="preview-header">
-                <div class="preview-avatar">
-                  <i class="fa fa-store"></i>
+            <div class="bottom-sheet-body">
+              <p class="modal-descripcion">{{ plantillaEditando?.descripcion }}</p>
+              
+              <!-- Variables disponibles -->
+              <div class="variables-section">
+                <label class="section-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                  </svg>
+                  Variables disponibles
+                </label>
+                <div class="variables-list">
+                  <div 
+                    v-for="(desc, variable) in plantillaEditando?.variables" 
+                    :key="variable"
+                    class="variable-chip"
+                    @click="insertarVariable(String(variable))"
+                  >
+                    <code v-text="formatVariable(String(variable))"></code>
+                    <span>{{ desc }}</span>
+                  </div>
                 </div>
-                <span>Tu Negocio</span>
               </div>
-              <div class="preview-bubble">
-                <p class="preview-mensaje" v-html="formatearMensaje(previewContenido)"></p>
-                <span class="preview-time">{{ horaActual }}</span>
+
+              <!-- Editor de contenido -->
+              <div class="editor-section">
+                <label class="section-label">Contenido del mensaje</label>
+                <textarea
+                  v-model="contenidoEditando"
+                  ref="textareaRef"
+                  rows="8"
+                  class="editor-textarea"
+                ></textarea>
               </div>
+
+              <!-- Vista previa -->
+              <div class="preview-section-modal">
+                <label class="section-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  Vista previa
+                </label>
+                <div class="whatsapp-preview">
+                  <div class="preview-header">
+                    <div class="preview-avatar">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                      </svg>
+                    </div>
+                    <span>Tu Negocio</span>
+                  </div>
+                  <div class="preview-bubble">
+                    <p class="preview-mensaje" v-html="formatearMensaje(previewContenido)"></p>
+                    <span class="preview-time">{{ horaActual }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-sheet-footer">
+              <button class="btn-secondary" @click="restablecerPlantilla">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="1 4 1 10 7 10"></polyline>
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                Restablecer
+              </button>
+              <button class="btn-primary" @click="guardarPlantilla" :disabled="guardando">
+                <div v-if="guardando" class="spinner-small"></div>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                {{ guardando ? 'Guardando...' : 'Guardar cambios' }}
+              </button>
             </div>
           </div>
         </div>
-        <div class="bottom-sheet-footer">
-          <button class="btn-secondary" @click="restablecerPlantilla">
-            <i class="fa fa-undo"></i>
-            Restablecer
-          </button>
-          <button class="btn-primary" @click="guardarPlantilla" :disabled="guardando">
-            <i :class="guardando ? 'fa fa-spinner fa-spin' : 'fa fa-save'"></i>
-            {{ guardando ? 'Guardando...' : 'Guardar cambios' }}
-          </button>
-        </div>
-        </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import Swal from 'sweetalert2'
 
@@ -353,10 +464,29 @@ const estadisticas = ref({
   clientes_total: 0
 })
 
+// SVG Components
+const UserIcon = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+  h('path', { d: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' }),
+  h('circle', { cx: '12', cy: '7', r: '4' })
+])
+
+const UserCheckIcon = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+  h('path', { d: 'M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' }),
+  h('circle', { cx: '8.5', cy: '7', r: '4' }),
+  h('polyline', { points: '17 11 19 13 23 9' })
+])
+
+const UsersIcon = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+  h('path', { d: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' }),
+  h('circle', { cx: '9', cy: '7', r: '4' }),
+  h('path', { d: 'M23 21v-2a4 4 0 0 0-3-3.87' }),
+  h('path', { d: 'M16 3.13a4 4 0 0 1 0 7.75' })
+])
+
 const tiposDestinatarios = [
-  { value: 'individual', label: 'Un número', icon: 'fa fa-user' },
-  { value: 'seleccion', label: 'Seleccionar clientes', icon: 'fa fa-user-check' },
-  { value: 'todos', label: 'Todos los clientes', icon: 'fa fa-users' }
+  { value: 'individual', label: 'Un número', iconSvg: UserIcon },
+  { value: 'seleccion', label: 'Seleccionar clientes', iconSvg: UserCheckIcon },
+  { value: 'todos', label: 'Todos los clientes', iconSvg: UsersIcon }
 ]
 
 // Computed
@@ -437,7 +567,6 @@ const cargarEstadisticas = async () => {
 
 const editarPlantilla = (grupo: any) => {
   plantillaEditando.value = grupo
-  // Obtener el contenido de la primera plantilla (WhatsApp)
   const plantillaWa = grupo.plantillas?.find((p: any) => p.medio === 'whatsapp') || grupo.plantillas?.[0]
   contenidoEditando.value = plantillaWa?.contenido || ''
   modalPlantilla.value = true
@@ -460,7 +589,6 @@ const insertarVariable = (variable: string) => {
   
   contenidoEditando.value = text.substring(0, start) + variableText + text.substring(end)
   
-  // Posicionar cursor después de la variable
   setTimeout(() => {
     textarea.focus()
     textarea.setSelectionRange(start + variableText.length, start + variableText.length)
@@ -490,13 +618,15 @@ const guardarPlantilla = async () => {
         title: '¡Guardado!',
         text: 'Plantilla guardada correctamente',
         timer: 2000,
-        showConfirmButton: false
+        showConfirmButton: false,
+        confirmButtonColor: '#34c759'
       })
     } else {
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: data.message || 'No se pudo guardar la plantilla'
+        text: data.message || 'No se pudo guardar la plantilla',
+        confirmButtonColor: '#ff3b30'
       })
     }
   } catch (error) {
@@ -504,7 +634,8 @@ const guardarPlantilla = async () => {
     Swal.fire({
       icon: 'error',
       title: 'Error',
-      text: 'Error al guardar la plantilla'
+      text: 'Error al guardar la plantilla',
+      confirmButtonColor: '#ff3b30'
     })
   } finally {
     guardando.value = false
@@ -519,8 +650,8 @@ const restablecerPlantilla = async () => {
     text: 'Se perderán todos los cambios y volverá al mensaje por defecto',
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#667eea',
-    cancelButtonColor: '#6b7280',
+    confirmButtonColor: '#007aff',
+    cancelButtonColor: '#86868b',
     confirmButtonText: 'Sí, restablecer',
     cancelButtonText: 'Cancelar'
   })
@@ -544,7 +675,8 @@ const restablecerPlantilla = async () => {
         title: '¡Restablecido!',
         text: 'Plantilla restablecida a valores por defecto',
         timer: 2000,
-        showConfirmButton: false
+        showConfirmButton: false,
+        confirmButtonColor: '#34c759'
       })
     }
   } catch (error) {
@@ -552,7 +684,8 @@ const restablecerPlantilla = async () => {
     Swal.fire({
       icon: 'error',
       title: 'Error',
-      text: 'No se pudo restablecer la plantilla'
+      text: 'No se pudo restablecer la plantilla',
+      confirmButtonColor: '#ff3b30'
     })
   } finally {
     guardando.value = false
@@ -615,9 +748,9 @@ const enviarComunicacion = async () => {
     `,
     icon: 'question',
     showCancelButton: true,
-    confirmButtonColor: '#10b981',
-    cancelButtonColor: '#6b7280',
-    confirmButtonText: '<i class="fa fa-paper-plane"></i> Enviar',
+    confirmButtonColor: '#34c759',
+    cancelButtonColor: '#86868b',
+    confirmButtonText: 'Enviar',
     cancelButtonText: 'Cancelar'
   })
   
@@ -641,9 +774,9 @@ const enviarComunicacion = async () => {
         title: '¡Enviado!',
         text: data.message || `Comunicado enviado a ${totalDestinatarios} destinatario(s)`,
         timer: 3000,
-        showConfirmButton: false
+        showConfirmButton: false,
+        confirmButtonColor: '#34c759'
       })
-      // Limpiar formulario
       comunicacion.value = { tipo: 'seleccion', titulo: '', mensaje: '' }
       clientesSeleccionados.value = []
       telefonoIndividual.value = ''
@@ -651,7 +784,8 @@ const enviarComunicacion = async () => {
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: data.message || 'No se pudo enviar el comunicado'
+        text: data.message || 'No se pudo enviar el comunicado',
+        confirmButtonColor: '#ff3b30'
       })
     }
   } catch (error) {
@@ -659,7 +793,8 @@ const enviarComunicacion = async () => {
     Swal.fire({
       icon: 'error',
       title: 'Error',
-      text: 'Error al enviar la comunicación'
+      text: 'Error al enviar la comunicación',
+      confirmButtonColor: '#ff3b30'
     })
   } finally {
     enviando.value = false
@@ -668,22 +803,47 @@ const enviarComunicacion = async () => {
 
 const formatearMensaje = (mensaje: string) => {
   if (!mensaje) return ''
-  // Convertir *texto* a negritas y _texto_ a cursiva
   return mensaje
     .replace(/\*([^*]+)\*/g, '<strong>$1</strong>')
     .replace(/_([^_]+)_/g, '<em>$1</em>')
     .replace(/\n/g, '<br>')
 }
 
-const getIcon = (tipo: string) => {
-  const icons: Record<string, string> = {
-    otp: 'fa fa-key',
-    confirmacion_cita: 'fa fa-calendar-check',
-    modificacion_cita: 'fa fa-calendar-alt',
-    cancelacion_cita: 'fa fa-calendar-times',
-    recordatorio_cita: 'fa fa-bell'
+const getIconSvg = (tipo: string) => {
+  const icons: Record<string, any> = {
+    otp: () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '20', height: '20', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      h('path', { d: 'M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4' })
+    ]),
+    confirmacion_cita: () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '20', height: '20', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      h('rect', { x: '3', y: '4', width: '18', height: '18', rx: '2', ry: '2' }),
+      h('line', { x1: '16', y1: '2', x2: '16', y2: '6' }),
+      h('line', { x1: '8', y1: '2', x2: '8', y2: '6' }),
+      h('line', { x1: '3', y1: '10', x2: '21', y2: '10' }),
+      h('path', { d: 'M9 16l2 2 4-4' })
+    ]),
+    modificacion_cita: () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '20', height: '20', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      h('rect', { x: '3', y: '4', width: '18', height: '18', rx: '2', ry: '2' }),
+      h('line', { x1: '16', y1: '2', x2: '16', y2: '6' }),
+      h('line', { x1: '8', y1: '2', x2: '8', y2: '6' }),
+      h('line', { x1: '3', y1: '10', x2: '21', y2: '10' }),
+      h('path', { d: 'M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01' })
+    ]),
+    cancelacion_cita: () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '20', height: '20', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      h('rect', { x: '3', y: '4', width: '18', height: '18', rx: '2', ry: '2' }),
+      h('line', { x1: '16', y1: '2', x2: '16', y2: '6' }),
+      h('line', { x1: '8', y1: '2', x2: '8', y2: '6' }),
+      h('line', { x1: '3', y1: '10', x2: '21', y2: '10' }),
+      h('line', { x1: '10', y1: '14', x2: '14', y2: '18' }),
+      h('line', { x1: '14', y1: '14', x2: '10', y2: '18' })
+    ]),
+    recordatorio_cita: () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '20', height: '20', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      h('circle', { cx: '12', cy: '12', r: '10' }),
+      h('polyline', { points: '12 6 12 12 16 14' })
+    ])
   }
-  return icons[tipo] || 'fa fa-comment'
+  return icons[tipo] || (() => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '20', height: '20', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+    h('path', { d: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' })
+  ]))
 }
 
 const getIconClass = (tipo: string) => {
@@ -708,443 +868,554 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.admin-view {
-  padding: 1.5rem;
-  max-width: 1200px;
-  margin: 0 auto;
+/* ===== Apple-inspired Mensajes View Design ===== */
+
+.mensajes-view {
+  min-height: 100vh;
+  background: #f5f5f7;
+  padding: 24px;
+  padding-bottom: 120px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.view-header {
+/* Header */
+.mensajes-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 1.5rem;
-  border-radius: 16px;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
+  border-radius: 20px;
   color: white;
 }
 
-.header-info {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
 }
 
 .header-icon {
-  width: 56px;
-  height: 56px;
-  background: rgba(255, 255, 255, 0.2);
+  width: 46px;
+  height: 46px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  backdrop-filter: blur(10px);
+  flex-shrink: 0;
+}
+
+.header-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .header-text h1 {
+  font-size: 22px;
+  font-weight: 600;
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
+  letter-spacing: -0.3px;
 }
 
 .header-subtitle {
-  margin: 0.25rem 0 0;
-  opacity: 0.9;
-  font-size: 0.9rem;
+  font-size: 13px;
+  opacity: 0.7;
+  margin: 4px 0 0;
 }
 
 /* Tabs */
 .tabs-container {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  background: white;
-  padding: 0.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  gap: 8px;
+  margin-bottom: 20px;
+  background: #ffffff;
+  padding: 6px;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e5ea;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabs-container::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-btn {
   flex: 1;
-  padding: 0.75rem 1rem;
+  min-width: 0;
+  padding: 10px 14px;
   border: none;
   background: transparent;
-  border-radius: 8px;
-  font-size: 0.9rem;
+  border-radius: 10px;
+  font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: #86868b;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 6px;
+  white-space: nowrap;
 }
 
-.tab-btn:hover {
-  background: #f5f5f5;
+.tab-btn:active {
+  background: #f5f5f7;
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.tab-btn svg {
+  flex-shrink: 0;
+}
+
+.tab-text {
+  display: none;
+}
+
+@media (min-width: 480px) {
+  .tab-text {
+    display: inline;
+  }
 }
 
 /* Loading */
-.loading-state {
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
   text-align: center;
-  padding: 4rem 2rem;
-  color: #888;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f0f0f0;
-  border-top-color: #667eea;
+.loader {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f5f5f7;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin: 0 auto 1rem;
+  margin-bottom: 16px;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
+.loading-container p {
+  color: #86868b;
+  font-size: 15px;
+  margin: 0;
+}
+
+/* Tab Content */
+.tab-content {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Plantillas Grid */
 .plantillas-grid {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 12px;
 }
 
 .plantilla-card {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  background: white;
-  padding: 1.25rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  gap: 14px;
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e5ea;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.plantilla-card:hover {
-  transform: translateX(4px);
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+.plantilla-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
 }
 
 .plantilla-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
   color: white;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.plantilla-icon.purple { background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%); }
-.plantilla-icon.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-.plantilla-icon.blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
-.plantilla-icon.red { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
-.plantilla-icon.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.plantilla-icon.purple { background: linear-gradient(135deg, #5856d6 0%, #af52de 100%); }
+.plantilla-icon.green { background: linear-gradient(135deg, #34c759 0%, #30d158 100%); }
+.plantilla-icon.blue { background: linear-gradient(135deg, #007aff 0%, #5ac8fa 100%); }
+.plantilla-icon.red { background: linear-gradient(135deg, #ff3b30 0%, #ff453a 100%); }
+.plantilla-icon.orange { background: linear-gradient(135deg, #ff9500 0%, #ffad33 100%); }
 
 .plantilla-info {
   flex: 1;
+  min-width: 0;
 }
 
 .plantilla-info h3 {
-  margin: 0 0 0.25rem;
-  font-size: 1rem;
+  margin: 0 0 4px;
+  font-size: 16px;
   font-weight: 600;
-  color: #1a1a2e;
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
 }
 
 .plantilla-info p {
   margin: 0;
-  font-size: 0.85rem;
-  color: #666;
+  font-size: 13px;
+  color: #86868b;
+  line-height: 1.4;
 }
 
 .plantilla-action {
-  color: #ccc;
-  font-size: 1rem;
+  color: #c7c7cc;
+  flex-shrink: 0;
 }
 
-/* Comunicación */
+/* Comunicación Container */
 .comunicacion-container {
-  background: white;
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e5ea;
 }
 
 .form-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 24px;
 }
 
-.form-section h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1a1a2e;
-  margin: 0 0 1rem;
+.form-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin-bottom: 12px;
+  letter-spacing: -0.1px;
 }
 
-.form-section h3 i {
-  color: #667eea;
+.section-label svg {
+  color: #007aff;
+  flex-shrink: 0;
 }
 
+/* Tipo Selector */
 .tipo-selector {
   display: flex;
-  gap: 0.75rem;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .tipo-option {
+  flex: 1;
+  min-width: 120px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 10px;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 2px solid #e5e5ea;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 0.9rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: #86868b;
+  background: #ffffff;
 }
 
 .tipo-option input {
   display: none;
 }
 
-.tipo-option:hover {
-  border-color: #667eea;
+.tipo-option:active {
+  transform: scale(0.98);
 }
 
 .tipo-option.selected {
-  border-color: #667eea;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-  color: #667eea;
+  border-color: #007aff;
+  background: #e8f4fd;
+  color: #007aff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
-.tipo-option i {
-  font-size: 1rem;
+.tipo-option svg {
+  flex-shrink: 0;
 }
 
-/* Búsqueda y lista de clientes */
+/* Búsqueda Cliente */
 .buscar-cliente {
   position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.buscar-cliente svg {
+  position: absolute;
+  left: 14px;
+  color: #86868b;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .buscar-cliente input {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.5rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  transition: border-color 0.2s;
+  padding: 14px 14px 14px 40px;
+  border: 1px solid #e5e5ea;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #1d1d1f;
+  background: #f5f5f7;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
 .buscar-cliente input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #007aff;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
-.buscar-cliente i {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #999;
+.buscar-cliente input::placeholder {
+  color: #86868b;
 }
 
+/* Clientes Lista */
 .clientes-lista {
-  margin-top: 1rem;
+  margin-top: 12px;
   max-height: 250px;
   overflow-y: auto;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
+  border: 1px solid #e5e5ea;
+  border-radius: 12px;
+  background: #f5f5f7;
 }
 
 .cliente-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  gap: 12px;
+  padding: 12px 14px;
   cursor: pointer;
   transition: background 0.2s;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #e5e5ea;
 }
 
 .cliente-item:last-child {
   border-bottom: none;
 }
 
-.cliente-item:hover {
-  background: #f8f8f8;
+.cliente-item:active {
+  background: #e8f4fd;
 }
 
 .cliente-item.selected {
-  background: rgba(102, 126, 234, 0.1);
+  background: #e8f4fd;
 }
 
 .cliente-avatar {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.2);
 }
 
 .cliente-info {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .cliente-info .nombre {
   font-weight: 500;
-  color: #1a1a2e;
+  color: #1d1d1f;
+  font-size: 15px;
 }
 
 .cliente-info .telefono {
-  font-size: 0.8rem;
-  color: #888;
+  font-size: 13px;
+  color: #86868b;
 }
 
-.cliente-check i {
-  font-size: 1.25rem;
-  color: #ccc;
+.cliente-check {
+  flex-shrink: 0;
+  color: #c7c7cc;
 }
 
-.cliente-item.selected .cliente-check i {
-  color: #667eea;
+.cliente-item.selected .cliente-check {
+  color: #007aff;
 }
 
 .seleccionados-count {
-  margin-top: 0.75rem;
+  margin-top: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 0.75rem;
-  background: rgba(102, 126, 234, 0.1);
-  border-radius: 8px;
-  font-size: 0.85rem;
-  color: #667eea;
+  padding: 10px 14px;
+  background: #e8f4fd;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #007aff;
+  font-weight: 500;
 }
 
 .btn-limpiar {
   background: none;
   border: none;
-  color: #ef4444;
+  color: #ff3b30;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
 }
 
-/* Inputs */
-.input-telefono,
-.input-titulo {
+.btn-limpiar:active {
+  background: rgba(255, 59, 48, 0.1);
+}
+
+/* Form Inputs */
+.form-input,
+.form-textarea {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  transition: border-color 0.2s;
+  padding: 14px 16px;
+  border: 1px solid #e5e5ea;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #1d1d1f;
+  background: #f5f5f7;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
-.input-titulo {
-  margin-bottom: 0.75rem;
-}
-
-.input-telefono:focus,
-.input-titulo:focus,
-.textarea-mensaje:focus {
+.form-input:focus,
+.form-textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #007aff;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
-.textarea-mensaje {
-  width: 100%;
-  padding: 1rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 0.95rem;
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #86868b;
+}
+
+.form-input {
+  margin-bottom: 12px;
+}
+
+.form-textarea {
   resize: vertical;
   min-height: 120px;
-  font-family: inherit;
+  line-height: 1.5;
 }
 
 .char-count {
   text-align: right;
-  font-size: 0.8rem;
-  color: #888;
-  margin-top: 0.25rem;
+  font-size: 12px;
+  color: #86868b;
+  margin-top: 6px;
 }
 
 /* WhatsApp Preview */
 .whatsapp-preview {
   background: #e5ddd5;
   background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0H11.03zm32.284 0L49.8 6.485 48.384 7.9l-7.9-7.9h2.83zM16.686 0L10.2 6.485 11.616 7.9l7.9-7.9h-2.83zm20.97 0l9.315 9.314-1.414 1.414L34.828 0h2.83zM22.344 0L13.03 9.314l1.414 1.414L25.172 0h-2.83zM32 0l12.142 12.142-1.414 1.414L30 .828 17.272 13.556l-1.414-1.414L28 0h4zM.284 0l28 28-1.414 1.414L0 2.544v-2.26zm0 5.373l25.456 25.456-1.414 1.414L0 7.83v-2.46zm0 5.656l22.627 22.627-1.414 1.414L0 13.485v-2.456zm0 5.656l19.8 19.8-1.415 1.413L0 19.14v-2.456zm0 5.657l16.97 16.97-1.414 1.415L0 24.8v-2.456zm0 5.657l14.142 14.142-1.414 1.414L0 30.456v-2.457zM0 33.8l11.314 11.314-1.414 1.414L0 36.657v-2.86zM0 39.8l8.485 8.485-1.414 1.414L0 42.627v-2.83zM0 45.8l5.657 5.657-1.414 1.414L0 48.485v-2.686zM0 51.8l2.828 2.83-1.414 1.413L0 54.63v-2.83zM60 5.373L54.627 0H60v5.373zM60 11.03l-8.485 8.485-1.414-1.414L57.172 0H60v11.03zm0 5.656l-8.485 8.485-1.414-1.414 7.07-7.07L60 13.857v2.83zM60 22.344L47.658 34.686l-1.414-1.414 10.928-10.928L60 19.515v2.83zM60 28l-10.142 10.142-1.414-1.414 8.728-8.728L60 25.172v2.83zM60 33.657L52.343 41.314l-1.414-1.414 6.243-6.243L60 30.83v2.83zm0 5.657l-5.657 5.657-1.414-1.414 4.243-4.243L60 36.485v2.83zm0 5.657l-2.828 2.83-1.414-1.415.585-.585L60 42.14v2.83z' fill='%23d5d0c9' fill-opacity='.4' fill-rule='evenodd'/%3E%3C/svg%3E");
-  padding: 1rem;
-  border-radius: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #d4c5b9;
 }
 
 .preview-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .preview-avatar {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 50%;
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 0.8rem;
+  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.2);
 }
 
 .preview-header span {
   font-weight: 600;
-  font-size: 0.9rem;
-  color: #333;
+  font-size: 14px;
+  color: #1d1d1f;
 }
 
 .preview-bubble {
-  background: white;
-  padding: 0.75rem 1rem;
-  border-radius: 0 10px 10px 10px;
+  background: #ffffff;
+  padding: 12px 14px;
+  border-radius: 0 12px 12px 12px;
   max-width: 85%;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .preview-titulo {
-  margin: 0 0 0.5rem;
-  font-size: 0.95rem;
+  margin: 0 0 8px;
+  font-size: 14px;
 }
 
 .preview-mensaje {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 14px;
   line-height: 1.5;
-  color: #333;
+  color: #1d1d1f;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
@@ -1152,116 +1423,144 @@ onMounted(() => {
 .preview-time {
   display: block;
   text-align: right;
-  font-size: 0.7rem;
-  color: #999;
-  margin-top: 0.5rem;
+  font-size: 11px;
+  color: #86868b;
+  margin-top: 6px;
 }
 
 /* Form Actions */
 .form-actions {
-  margin-top: 1.5rem;
+  margin-top: 24px;
   text-align: center;
 }
 
 .btn-enviar {
-  padding: 1rem 2rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 8px;
   transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
 }
 
-.btn-enviar:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+.btn-enviar:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(52, 199, 89, 0.4);
 }
 
 .btn-enviar:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+}
+
+.spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 
 /* Estadísticas */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
 }
 
 .stat-card {
-  background: white;
-  padding: 1.25rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e5ea;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 12px;
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
   color: white;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.stat-icon.blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
-.stat-icon.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-.stat-icon.purple { background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%); }
-.stat-icon.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.stat-icon.blue { background: linear-gradient(135deg, #007aff 0%, #5ac8fa 100%); }
+.stat-icon.green { background: linear-gradient(135deg, #34c759 0%, #30d158 100%); }
+.stat-icon.purple { background: linear-gradient(135deg, #5856d6 0%, #af52de 100%); }
+.stat-icon.orange { background: linear-gradient(135deg, #ff9500 0%, #ffad33 100%); }
 
 .stat-info {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
 .stat-value {
-  font-size: 1.5rem;
+  font-size: 20px;
   font-weight: 700;
-  color: #1a1a2e;
+  color: #1d1d1f;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 0.85rem;
-  color: #888;
+  font-size: 11px;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
 }
 
 /* Bottom Sheet Modal */
 .bottom-sheet-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
   z-index: 1000;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  animation: fadeIn 0.2s ease;
 }
 
 .bottom-sheet-content {
-  background: white;
+  background: #ffffff;
   border-radius: 24px 24px 0 0;
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
 .bottom-sheet-handle {
   width: 40px;
   height: 4px;
-  background: #ddd;
+  background: #c7c7cc;
   border-radius: 2px;
   margin: 12px auto 8px;
 }
@@ -1270,62 +1569,185 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1.5rem 1rem;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e5ea;
   position: sticky;
   top: 0;
-  background: white;
+  background: #ffffff;
   z-index: 10;
 }
 
 .bottom-sheet-header h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1d1d1f;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 10px;
+  letter-spacing: -0.3px;
 }
 
-.bottom-sheet-header h2 i {
-  color: #667eea;
+.bottom-sheet-header h2 svg {
+  color: #007aff;
+  flex-shrink: 0;
 }
 
 .btn-close {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: 10px;
   border: none;
-  background: #f0f0f0;
+  background: #f5f5f7;
+  color: #1d1d1f;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
-.btn-close:hover {
-  background: #e0e0e0;
+.btn-close:active {
+  background: #e5e5ea;
+  transform: scale(0.95);
 }
 
 .bottom-sheet-body {
-  padding: 1.25rem 1.5rem;
+  padding: 20px;
 }
 
 .modal-descripcion {
-  color: #666;
-  margin: 0 0 1.25rem;
-  font-size: 0.9rem;
+  color: #86868b;
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
+/* Variables Section */
+.variables-section {
+  margin-bottom: 24px;
+}
+
+.variables-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.variable-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: #f5f5f7;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.variable-chip:active {
+  background: #e8f4fd;
+  border-color: #007aff;
+  transform: scale(0.98);
+}
+
+.variable-chip code {
+  font-size: 12px;
+  color: #007aff;
+  font-weight: 600;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.variable-chip span {
+  font-size: 11px;
+  color: #86868b;
+}
+
+/* Editor Section */
+.editor-section {
+  margin-bottom: 24px;
+}
+
+.editor-textarea {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #e5e5ea;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  resize: vertical;
+  min-height: 200px;
+  line-height: 1.6;
+  color: #1d1d1f;
+  background: #f5f5f7;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.editor-textarea:focus {
+  outline: none;
+  border-color: #007aff;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+}
+
+.preview-section-modal {
+  margin-bottom: 24px;
+}
+
+/* Bottom Sheet Footer */
 .bottom-sheet-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #f0f0f0;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e5ea;
   background: #fafafa;
   position: sticky;
   bottom: 0;
+}
+
+.btn-secondary,
+.btn-primary {
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-secondary {
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  color: #1d1d1f;
+}
+
+.btn-secondary:active {
+  background: #f5f5f7;
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Bottom Sheet Transition */
@@ -1334,14 +1756,9 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 
-.bottom-sheet-enter-active .bottom-sheet-content,
-.bottom-sheet-leave-active .bottom-sheet-content {
-  transition: transform 0.3s ease;
-}
-
 .bottom-sheet-enter-from,
 .bottom-sheet-leave-to {
-  background: rgba(0, 0, 0, 0);
+  opacity: 0;
 }
 
 .bottom-sheet-enter-from .bottom-sheet-content,
@@ -1349,149 +1766,49 @@ onMounted(() => {
   transform: translateY(100%);
 }
 
-.variables-section {
-  margin-bottom: 1.5rem;
-}
-
-.variables-section h4 {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #1a1a2e;
-  margin: 0 0 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.variables-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.variable-chip {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.5rem 0.75rem;
-  background: #f8f8f8;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.variable-chip:hover {
-  background: rgba(102, 126, 234, 0.1);
-  border-color: #667eea;
-}
-
-.variable-chip code {
-  font-size: 0.75rem;
-  color: #667eea;
-  font-weight: 600;
-}
-
-.variable-chip span {
-  font-size: 0.7rem;
-  color: #888;
-}
-
-.editor-section {
-  margin-bottom: 1.5rem;
-}
-
-.editor-section label {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #1a1a2e;
-  margin-bottom: 0.5rem;
-}
-
-.editor-textarea {
-  width: 100%;
-  padding: 1rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  font-family: 'Consolas', 'Monaco', monospace;
-  resize: vertical;
-  min-height: 200px;
-  line-height: 1.6;
-}
-
-.editor-textarea:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-.preview-section-modal h4 {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #1a1a2e;
-  margin: 0 0 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-secondary,
-.btn-primary {
-  padding: 0.75rem 1.25rem;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
-}
-
-.btn-secondary {
-  background: white;
-  border: 2px solid #e0e0e0;
-  color: #666;
-}
-
-.btn-secondary:hover {
-  border-color: #ccc;
-  background: #f8f8f8;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 /* Responsive */
 @media (max-width: 640px) {
-  .admin-view {
-    padding: 1rem;
+  .mensajes-view {
+    padding: 16px;
+  }
+  
+  .mensajes-header {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .header-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .header-text h1 {
+    font-size: 20px;
+  }
+  
+  .header-subtitle {
+    font-size: 12px;
   }
   
   .tabs-container {
-    flex-direction: column;
+    margin-bottom: 16px;
   }
   
   .tab-btn {
-    justify-content: flex-start;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .comunicacion-container {
+    padding: 16px;
   }
   
   .tipo-selector {
     flex-direction: column;
+  }
+  
+  .tipo-option {
+    min-width: 0;
   }
   
   .stats-grid {
@@ -1499,4 +1816,3 @@ onMounted(() => {
   }
 }
 </style>
-
