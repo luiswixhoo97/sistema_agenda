@@ -6,6 +6,7 @@ use App\Models\Notificacion;
 use App\Models\Cliente;
 use App\Models\Cita;
 use App\Models\PlantillaNotificacion;
+use App\Models\Configuracion;
 use App\Jobs\EnviarEmailJob;
 use App\Jobs\EnviarWhatsAppJob;
 use App\Jobs\EnviarPushNotificationJob;
@@ -189,6 +190,12 @@ class NotificacionService
         // Usar precio_final de la cita directamente (ya incluye descuentos)
         $precioTotal = $cita->precio_final ?? 0;
         
+        // Obtener datos del negocio desde la tabla de configuración
+        // Usar las claves que coinciden con el frontend: nombre_negocio, direccion, telefono
+        $negocioNombre = Configuracion::get('nombre_negocio', config('app.name', 'Mi Negocio'));
+        $negocioDireccion = Configuracion::get('direccion', '');
+        $negocioTelefono = Configuracion::get('telefono', '');
+        
         return [
             'cliente_nombre' => $cita->cliente->nombre,
             'empleado_nombre' => $cita->empleado->nombre ?? 'No asignado',
@@ -198,9 +205,9 @@ class NotificacionService
             'precio_total' => number_format($precioTotal, 2),
             'duracion_total' => $cita->duracion_total,
             'notas' => $cita->notas ?? '',
-            'negocio_nombre' => config('app.name'),
-            'negocio_telefono' => config('negocio.telefono', ''),
-            'negocio_direccion' => config('negocio.direccion', ''),
+            'negocio_nombre' => $negocioNombre,
+            'negocio_telefono' => $negocioTelefono,
+            'negocio_direccion' => $negocioDireccion,
         ];
     }
 
