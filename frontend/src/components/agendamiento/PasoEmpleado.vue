@@ -26,7 +26,16 @@ function empleadoSeleccionadoParaServicio(servicioId: number, empleadoId: number
 
 // Seleccionar empleado para un servicio específico
 function seleccionarEmpleadoParaServicio(servicioId: number, empleado: any) {
+  // Si ya está seleccionado este empleado, no hacer nada (no permitir deseleccionar)
+  if (empleadoSeleccionadoParaServicio(servicioId, empleado.id)) {
+    return
+  }
   store.asignarEmpleadoAServicio(servicioId, empleado)
+}
+
+// Quitar empleado seleccionado para permitir cambiar
+function quitarEmpleadoSeleccionado(servicioId: number) {
+  store.quitarEmpleadoDeServicio(servicioId)
 }
 
 // Cargar empleados cuando se activa el modo múltiples
@@ -207,6 +216,7 @@ onMounted(() => {
           <div 
             v-if="store.empleadoAsignadoAServicio(servicio.id)"
             class="empleado-seleccionado"
+            @click="quitarEmpleadoSeleccionado(servicio.id)"
           >
             <div class="empleado-mini-avatar">
               <img 
@@ -221,16 +231,17 @@ onMounted(() => {
             <span class="empleado-nombre">
               {{ store.empleadoAsignadoAServicio(servicio.id)?.empleadoNombre }}
             </span>
-            <i class="fa fa-check-circle check-icon"></i>
+            <button class="btn-quitar-empleado" @click.stop="quitarEmpleadoSeleccionado(servicio.id)">
+              <i class="fa fa-times"></i>
+            </button>
           </div>
 
-          <!-- Lista de empleados disponibles -->
-          <div class="empleados-mini-grid">
+          <!-- Lista de empleados disponibles (solo se muestra si no hay empleado seleccionado) -->
+          <div v-if="!store.empleadoAsignadoAServicio(servicio.id)" class="empleados-mini-grid">
             <div 
               v-for="empleado in empleadosParaServicio(servicio.id)" 
               :key="empleado.id"
               class="empleado-mini-card"
-              :class="{ 'seleccionado': empleadoSeleccionadoParaServicio(servicio.id, empleado.id) }"
               @click="seleccionarEmpleadoParaServicio(servicio.id, empleado)"
             >
               <div class="empleado-mini-avatar">
@@ -286,43 +297,57 @@ onMounted(() => {
 
 <style scoped>
 .paso-empleado {
-  padding: 16px;
+  padding: 20px 16px;
   padding-bottom: 100px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Header */
 .paso-header {
   text-align: center;
-  padding: 16px 0 24px;
+  padding: 24px 0 32px;
 }
 
 .header-icon {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(236,64,122,0.1), rgba(236,64,122,0.2));
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 16px;
+  margin: 0 auto 20px;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
 }
 
 .header-icon i {
-  font-size: 32px;
-  color: #ec407a;
+  font-size: 28px;
+  color: white;
 }
 
 .paso-header h2 {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--color-text);
+  font-size: 28px;
+  font-weight: 600;
+  color: #1d1d1f;
   margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.theme-dark .paso-header h2 {
+  color: #f5f5f7;
 }
 
 .paso-header p {
-  font-size: 14px;
-  color: var(--color-text-secondary);
+  font-size: 17px;
+  color: #86868b;
   margin: 0;
+  font-weight: 400;
+}
+
+.theme-dark .paso-header p {
+  color: #a1a1a6;
 }
 
 /* Aviso auto-múltiples */
@@ -356,34 +381,47 @@ onMounted(() => {
 /* Toggle modo */
 .modo-toggle {
   display: flex;
-  gap: 8px;
-  padding: 8px;
-  background: var(--color-card);
-  border-radius: 16px;
-  margin-bottom: 20px;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-radius: 14px;
+  margin-bottom: 24px;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.theme-dark .modo-toggle {
+  background: rgba(44, 44, 46, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .modo-btn {
   flex: 1;
-  padding: 12px 16px;
+  padding: 10px 16px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 13px;
+  color: #86868b;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-dark .modo-btn {
+  color: #a1a1a6;
 }
 
 .modo-btn.activo {
-  background: linear-gradient(135deg, #ec407a, #d81b60);
+  background: #007aff;
   color: white;
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 .modo-btn:not(.activo):hover {
@@ -403,8 +441,8 @@ onMounted(() => {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(236,64,122,0.2);
-  border-top-color: #ec407a;
+  border: 3px solid rgba(0, 122, 255, 0.2);
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 16px;
@@ -439,16 +477,26 @@ onMounted(() => {
 
 .btn-volver {
   padding: 12px 24px;
-  background: linear-gradient(135deg, #ec407a, #d81b60);
+  background: #007aff;
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  transition: all 0.2s;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+}
+
+.btn-volver:hover {
+  background: #0051d5;
+}
+
+.btn-volver:active {
+  transform: scale(0.98);
 }
 
 /* Empleados grid */
@@ -463,17 +511,32 @@ onMounted(() => {
   align-items: flex-start;
   gap: 14px;
   padding: 16px;
-  background: var(--color-card);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-radius: 16px;
   cursor: pointer;
-  transition: all 0.2s;
-  border: 2px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.06);
+}
+
+.theme-dark .empleado-card {
+  background: rgba(28, 28, 30, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 0.5px rgba(255, 255, 255, 0.05);
 }
 
 .empleado-card:hover {
-  transform: translateX(4px);
-  border-color: rgba(236,64,122,0.3);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  transform: translateX(2px);
+  border-color: rgba(0, 122, 255, 0.3);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 0 0 0.5px rgba(0, 122, 255, 0.2);
 }
 
 .empleado-card:active {
@@ -498,13 +561,13 @@ onMounted(() => {
 .avatar-placeholder {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #ec407a, #d81b60);
+  background: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* Info */
@@ -554,18 +617,20 @@ onMounted(() => {
   margin: 0 0 6px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
 /* Especialidad */
 .empleado-especialidad {
-  font-size: 11px;
-  color: #ec407a;
+  font-size: 12px;
+  color: #007aff;
   margin: 0 0 8px;
   display: flex;
   align-items: center;
   gap: 4px;
+  font-weight: 500;
 }
 
 .empleado-especialidad i {
@@ -601,9 +666,13 @@ onMounted(() => {
 .empleado-arrow {
   display: flex;
   align-items: center;
-  color: #ccc;
-  font-size: 14px;
+  color: #86868b;
+  font-size: 16px;
   align-self: center;
+}
+
+.theme-dark .empleado-arrow {
+  color: #6e6e73;
 }
 
 /* ===================================== */
@@ -617,30 +686,49 @@ onMounted(() => {
 }
 
 .servicio-empleado-item {
-  background: var(--color-card);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-radius: 16px;
-  padding: 16px;
+  padding: 18px;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.06);
+}
+
+.theme-dark .servicio-empleado-item {
+  background: rgba(28, 28, 30, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 0.5px rgba(255, 255, 255, 0.05);
 }
 
 .servicio-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border);
-  margin-bottom: 12px;
+  padding-bottom: 14px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+  margin-bottom: 14px;
+}
+
+.theme-dark .servicio-header {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 .servicio-icon {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(236,64,122,0.1), rgba(236,64,122,0.2));
+  background: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ec407a;
+  color: white;
   font-size: 18px;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
 }
 
 .servicio-info {
@@ -665,9 +753,10 @@ onMounted(() => {
 }
 
 .servicio-precio {
-  font-size: 16px;
-  font-weight: 700;
-  color: #ec407a;
+  font-size: 17px;
+  font-weight: 600;
+  color: #007aff;
+  letter-spacing: -0.2px;
 }
 
 /* Empleado seleccionado */
@@ -675,22 +764,63 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
-  background: rgba(76, 175, 80, 0.1);
-  border-radius: 10px;
-  margin-bottom: 12px;
+  padding: 12px 14px;
+  background: rgba(52, 199, 89, 0.1);
+  border-radius: 12px;
+  margin-bottom: 14px;
+  border: 0.5px solid rgba(52, 199, 89, 0.2);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.theme-dark .empleado-seleccionado {
+  background: rgba(52, 199, 89, 0.15);
+  border-color: rgba(52, 199, 89, 0.25);
+}
+
+.empleado-seleccionado:hover {
+  background: rgba(52, 199, 89, 0.15);
+  border-color: rgba(52, 199, 89, 0.3);
+}
+
+.theme-dark .empleado-seleccionado:hover {
+  background: rgba(52, 199, 89, 0.2);
 }
 
 .empleado-seleccionado .empleado-nombre {
   flex: 1;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  color: #2e7d32;
+  color: #34c759;
+}
+
+.btn-quitar-empleado {
+  background: rgba(255, 59, 48, 0.1);
+  border: none;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ff3b30;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-quitar-empleado:hover {
+  background: rgba(255, 59, 48, 0.2);
+  transform: scale(1.1);
+}
+
+.btn-quitar-empleado i {
+  font-size: 12px;
 }
 
 .check-icon {
-  color: #4caf50;
-  font-size: 16px;
+  color: #34c759;
+  font-size: 18px;
 }
 
 /* Mini grid de empleados */
@@ -705,25 +835,47 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 12px 8px;
-  background: rgba(0,0,0,0.03);
+  background: rgba(0, 122, 255, 0.05);
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s;
-  border: 2px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 0.5px solid rgba(0, 122, 255, 0.1);
 }
 
 .theme-dark .empleado-mini-card {
-  background: rgba(255,255,255,0.05);
+  background: rgba(0, 122, 255, 0.1);
+  border-color: rgba(0, 122, 255, 0.15);
 }
 
 .empleado-mini-card:hover {
-  background: rgba(236,64,122,0.08);
-  border-color: rgba(236,64,122,0.3);
+  background: rgba(0, 122, 255, 0.1);
+  border-color: rgba(0, 122, 255, 0.3);
+}
+
+.theme-dark .empleado-mini-card:hover {
+  background: rgba(0, 122, 255, 0.15);
 }
 
 .empleado-mini-card.seleccionado {
-  background: linear-gradient(135deg, rgba(236,64,122,0.1), rgba(236,64,122,0.15));
-  border-color: #ec407a;
+  background: rgba(0, 122, 255, 0.15);
+  border-color: #007aff;
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+  cursor: default;
+  opacity: 0.9;
+}
+
+.theme-dark .empleado-mini-card.seleccionado {
+  background: rgba(0, 122, 255, 0.2);
+}
+
+.empleado-mini-card.seleccionado:hover {
+  transform: none;
+  background: rgba(0, 122, 255, 0.15);
+  border-color: #007aff;
+}
+
+.theme-dark .empleado-mini-card.seleccionado:hover {
+  background: rgba(0, 122, 255, 0.2);
 }
 
 .empleado-mini-avatar {
@@ -743,13 +895,13 @@ onMounted(() => {
 .avatar-placeholder-mini {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #ec407a, #d81b60);
+  background: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .empleado-mini-nombre {
@@ -795,13 +947,22 @@ onMounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 12px 16px;
-  background: var(--color-card);
-  border-top: 1px solid var(--color-border);
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top: 0.5px solid rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   gap: 12px;
   z-index: 50;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.theme-dark .footer-multiples {
+  background: rgba(28, 28, 30, 0.8);
+  border-top-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .resumen-asignaciones {
@@ -816,26 +977,31 @@ onMounted(() => {
 }
 
 .resumen-asignaciones .completo {
-  color: #4caf50;
+  color: #34c759;
+  font-weight: 600;
 }
 
 .resumen-asignaciones .pendiente {
-  color: #ff9800;
+  color: #ff9500;
+  font-weight: 600;
 }
 
 .btn-continuar-multiples {
   padding: 12px 24px;
-  background: linear-gradient(135deg, #ec407a, #d81b60);
+  background: #007aff;
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  letter-spacing: -0.2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .btn-continuar-multiples:disabled {
@@ -844,7 +1010,12 @@ onMounted(() => {
 }
 
 .btn-continuar-multiples:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.4);
+  background: #0051d5;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.btn-continuar-multiples:not(:disabled):active {
+  transform: scale(0.98);
+  background: #0040b3;
 }
 </style>

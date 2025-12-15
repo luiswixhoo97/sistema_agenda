@@ -37,12 +37,7 @@ const pasos = [
   <div class="agendar-view">
     <!-- Indicador de pasos -->
     <div class="pasos-container">
-      <div class="pasos-progress">
-        <div 
-          class="pasos-progress-bar" 
-          :style="{ width: `${((store.paso - 1) / (pasos.length - 1)) * 100}%` }"
-        ></div>
-      </div>
+  
       <div class="pasos-items">
         <div 
           v-for="paso in pasos" 
@@ -124,47 +119,64 @@ const pasos = [
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f5f5f5;
+  background: #f5f5f7;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .theme-dark .agendar-view {
-  background: #0f0f0f;
+  background: #000000;
 }
 
 /* Pasos */
 .pasos-container {
-  background: white;
-  padding: 16px;
-  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  padding: 16px 12px;
+  margin: 25px 16px 0;
+  border-radius: 16px;
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.06);
 }
 
 .theme-dark .pasos-container {
-  background: #1e1e1e;
-  border-color: rgba(255,255,255,0.08);
+  background: rgba(28, 28, 30, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 0.5px rgba(255, 255, 255, 0.05);
 }
 
 .pasos-progress {
-  height: 3px;
-  background: rgba(0,0,0,0.1);
-  border-radius: 2px;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 1px;
   margin-bottom: 16px;
   overflow: hidden;
+  position: relative;
 }
 
 .theme-dark .pasos-progress {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .pasos-progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #ec407a, #d81b60);
-  border-radius: 2px;
-  transition: width 0.3s ease;
+  background: linear-gradient(90deg, #007aff, #0051d5);
+  border-radius: 1px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 6px rgba(0, 122, 255, 0.3);
 }
 
 .pasos-items {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .paso-item {
@@ -172,11 +184,17 @@ const pasos = [
   flex-direction: column;
   align-items: center;
   flex: 1;
-  opacity: 0.4;
-  transition: opacity 0.3s;
+  min-width: 0;
+  opacity: 0.5;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 
-.paso-item.activo,
+.paso-item.activo {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
 .paso-item.completado {
   opacity: 1;
 }
@@ -184,47 +202,99 @@ const pasos = [
 .paso-circulo {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  background: rgba(0,0,0,0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 4px;
-  transition: all 0.3s;
+  font-size: 15px;
+  color: #86868b;
+  margin-bottom: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  border: 2px solid transparent;
 }
 
 .theme-dark .paso-circulo {
-  background: rgba(255,255,255,0.1);
-  color: #999;
+  background: rgba(255, 255, 255, 0.1);
+  color: #6e6e73;
 }
 
 .paso-item.activo .paso-circulo {
-  background: linear-gradient(135deg, #ec407a, #d81b60);
+  background: #007aff;
   color: white;
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.4);
-  transform: scale(1.1);
+  box-shadow: 
+    0 3px 10px rgba(0, 122, 255, 0.35),
+    0 0 0 3px rgba(0, 122, 255, 0.1);
+  transform: scale(1.08);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .paso-item.completado .paso-circulo {
-  background: #4caf50;
+  background: #34c759;
   color: white;
+  box-shadow: 0 2px 6px rgba(52, 199, 89, 0.3);
+}
+
+.paso-item.completado .paso-circulo i {
+  font-size: 14px;
 }
 
 .paso-titulo {
   font-size: 11px;
   font-weight: 500;
-  color: #666;
+  color: #86868b;
+  letter-spacing: -0.1px;
+  text-align: center;
+  line-height: 1.3;
+  transition: all 0.3s;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .theme-dark .paso-titulo {
-  color: #aaa;
+  color: #a1a1a6;
 }
 
 .paso-item.activo .paso-titulo {
-  color: #ec407a;
+  color: #007aff;
+  font-weight: 700;
+  font-size: 12px;
+  transform: scale(1.03);
+}
+
+.paso-item.completado .paso-titulo {
+  color: #34c759;
   font-weight: 600;
+}
+
+/* Línea conectora entre pasos */
+.paso-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 18px;
+  left: calc(50% + 18px);
+  width: calc(100% - 36px);
+  height: 2px;
+  background: rgba(0, 0, 0, 0.08);
+  z-index: 0;
+  transition: all 0.3s;
+}
+
+.theme-dark .paso-item:not(:last-child)::after {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.paso-item.completado:not(:last-child)::after {
+  background: #34c759;
+  height: 2px;
+}
+
+.paso-item.activo:not(:last-child)::after {
+  background: linear-gradient(90deg, #34c759, #007aff);
+  height: 2px;
 }
 
 /* Contenido */
@@ -240,15 +310,19 @@ const pasos = [
   bottom: 100px;
   left: 16px;
   right: 16px;
-  background: #ef4444;
+  background: #ff3b30;
   color: white;
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: 14px 18px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  gap: 12px;
+  box-shadow: 
+    0 8px 24px rgba(255, 59, 48, 0.3),
+    0 0 0 0.5px rgba(255, 59, 48, 0.2);
   z-index: 100;
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
 .error-toast i:first-child {
@@ -275,18 +349,22 @@ const pasos = [
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
-  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  padding: 16px;
   display: flex;
   align-items: center;
   gap: 12px;
-  border-top: 1px solid rgba(0,0,0,0.08);
+  border-top: 0.5px solid rgba(0, 0, 0, 0.1);
   z-index: 50;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
 }
 
 .theme-dark .agendar-footer {
-  background: #1e1e1e;
-  border-color: rgba(255,255,255,0.08);
+  background: rgba(28, 28, 30, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .footer-resumen {
@@ -296,37 +374,57 @@ const pasos = [
 
 .footer-resumen .precio {
   display: block;
-  font-size: 18px;
-  font-weight: 700;
-  color: #ec407a;
+  font-size: 20px;
+  font-weight: 600;
+  color: #007aff;
+  letter-spacing: -0.3px;
 }
 
 .footer-resumen .duracion {
-  font-size: 11px;
-  color: #888;
+  font-size: 13px;
+  color: #86868b;
+  font-weight: 400;
+}
+
+.theme-dark .footer-resumen .duracion {
+  color: #a1a1a6;
 }
 
 .btn-nav {
   padding: 12px 20px;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   gap: 6px;
   border: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  letter-spacing: -0.2px;
 }
 
 .btn-anterior {
-  background: rgba(0,0,0,0.05);
-  color: #666;
+  background: rgba(0, 0, 0, 0.05);
+  color: #1d1d1f;
 }
 
 .theme-dark .btn-anterior {
-  background: rgba(255,255,255,0.1);
-  color: #aaa;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f5f5f7;
+}
+
+.btn-anterior:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.theme-dark .btn-anterior:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-anterior:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .btn-anterior:disabled {
@@ -335,10 +433,11 @@ const pasos = [
 }
 
 .btn-siguiente {
-  background: linear-gradient(135deg, #ec407a, #d81b60);
+  background: #007aff;
   color: white;
   flex: 1;
   justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .btn-siguiente:disabled {
@@ -347,8 +446,13 @@ const pasos = [
 }
 
 .btn-siguiente:not(:disabled):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.4);
+  background: #0051d5;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.btn-siguiente:not(:disabled):active {
+  transform: scale(0.98);
+  background: #0040b3;
 }
 
 /* Transiciones */

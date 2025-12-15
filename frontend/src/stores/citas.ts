@@ -389,6 +389,18 @@ export const useCitasStore = defineStore('citas', () => {
     return empleadosPorServicio.value.find(ep => ep.servicioId === servicioId)
   }
 
+  // Actions - Quitar empleado de un servicio
+  function quitarEmpleadoDeServicio(servicioId: number) {
+    empleadosPorServicio.value = empleadosPorServicio.value.filter(
+      ep => ep.servicioId !== servicioId
+    )
+    
+    // Limpiar slots al quitar empleado
+    slotsCoordinados.value = null
+    slotCoordinadoSeleccionado.value = null
+    fechaSeleccionada.value = null
+  }
+
   // Actions - Cargar slots coordinados
   async function cargarSlotsCoordinados(fecha: string) {
     console.log('🕐 cargarSlotsCoordinados:', {
@@ -1145,6 +1157,7 @@ export const useCitasStore = defineStore('citas', () => {
     toggleModoMultiplesEmpleados,
     asignarEmpleadoAServicio,
     empleadoAsignadoAServicio,
+    quitarEmpleadoDeServicio,
     cargarSlotsCoordinados,
     seleccionarSlotCoordinado,
     agendarCitasMultiples,

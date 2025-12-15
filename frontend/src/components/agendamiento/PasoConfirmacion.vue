@@ -125,29 +125,47 @@ function formatHora(hora: string): string {
         <!-- Detalles para cita única -->
         <template v-if="!esModoMultiples">
           <div class="detalles-grid">
-            <div class="detalle">
-              <span class="label">Cliente</span>
-              <span class="value">{{ store.datosCliente.nombre }} {{ store.datosCliente.apellido }}</span>
+            <div class="detalle-card">
+              <i class="fa fa-user"></i>
+              <div class="detalle-content">
+                <span class="label">Cliente</span>
+                <span class="value">{{ store.datosCliente.nombre }} {{ store.datosCliente.apellido }}</span>
+              </div>
             </div>
-            <div class="detalle">
-              <span class="label">Teléfono</span>
-              <span class="value">+52 {{ store.datosCliente.telefono }}</span>
+            <div class="detalle-card">
+              <i class="fa fa-phone"></i>
+              <div class="detalle-content">
+                <span class="label">Teléfono</span>
+                <span class="value">+52 {{ store.datosCliente.telefono }}</span>
+              </div>
             </div>
-            <div class="detalle">
-              <span class="label">Fecha</span>
-              <span class="value">{{ store.fechaSeleccionada }}</span>
+            <div class="detalle-card">
+              <i class="fa fa-calendar"></i>
+              <div class="detalle-content">
+                <span class="label">Fecha</span>
+                <span class="value">{{ store.fechaSeleccionada }}</span>
+              </div>
             </div>
-            <div class="detalle">
-              <span class="label">Hora</span>
-              <span class="value">{{ store.horaSeleccionada }}</span>
+            <div class="detalle-card">
+              <i class="fa fa-clock"></i>
+              <div class="detalle-content">
+                <span class="label">Hora</span>
+                <span class="value">{{ formatHora(store.horaSeleccionada || '') }}</span>
+              </div>
             </div>
-            <div class="detalle">
-              <span class="label">Profesional</span>
-              <span class="value">{{ store.empleadoSeleccionado?.nombre }}</span>
+            <div class="detalle-card">
+              <i class="fa fa-user-tie"></i>
+              <div class="detalle-content">
+                <span class="label">Profesional</span>
+                <span class="value">{{ store.empleadoSeleccionado?.nombre }}</span>
+              </div>
             </div>
-            <div class="detalle">
-              <span class="label">Total</span>
-              <span class="value precio">${{ Number(store.totalPrecio || 0).toFixed(2) }}</span>
+            <div class="detalle-card detalle-precio">
+              <i class="fa fa-dollar-sign"></i>
+              <div class="detalle-content">
+                <span class="label">Total</span>
+                <span class="value precio">${{ Number(store.totalPrecio || 0).toFixed(2) }}</span>
+              </div>
             </div>
           </div>
         </template>
@@ -155,22 +173,24 @@ function formatHora(hora: string): string {
         <!-- Detalles para múltiples citas -->
         <template v-else>
           <div class="cliente-info-exito">
-            <div class="detalle">
-              <span class="label">Cliente</span>
-              <span class="value">{{ store.datosCliente.nombre }} {{ store.datosCliente.apellido }}</span>
+            <div class="detalle-exito">
+              <span class="label-exito">Cliente</span>
+              <span class="value-exito">{{ store.datosCliente.nombre }} {{ store.datosCliente.apellido }}</span>
             </div>
-            <div class="detalle">
-              <span class="label">Teléfono</span>
-              <span class="value">+52 {{ store.datosCliente.telefono }}</span>
+            <div class="detalle-exito">
+              <span class="label-exito">Teléfono</span>
+              <span class="value-exito">+52 {{ store.datosCliente.telefono }}</span>
             </div>
           </div>
 
           <div class="divider"></div>
 
-          <h4 class="citas-titulo">
+          <div class="citas-header-exito">
             <i class="fa fa-calendar-check"></i>
-            Tus {{ store.citasMultiples.length }} citas coordinadas
-          </h4>
+            <h4 class="citas-titulo">
+              Tus {{ store.citasMultiples.length }} citas coordinadas
+            </h4>
+          </div>
 
           <div class="citas-multiples-lista">
             <div 
@@ -182,8 +202,16 @@ function formatHora(hora: string): string {
               <div class="cita-contenido">
                 <div class="cita-servicio">{{ cita.servicios[0]?.nombre }}</div>
                 <div class="cita-detalles">
-                  <span><i class="fa fa-user"></i> {{ cita.empleado.nombre }}</span>
-                  <span><i class="fa fa-clock"></i> {{ cita.hora_texto }}</span>
+                  <span class="cita-detalle-item">
+                    <i class="fa fa-user"></i>
+                    {{ cita.empleado.nombre }}
+                  </span>
+                  <span class="cita-detalle-item">
+                    <i class="fa fa-clock"></i>
+                    {{ cita.hora_texto }}
+                  </span>
+                </div>
+                <div class="cita-precio-wrapper">
                   <span class="cita-precio">${{ cita.precio_final }}</span>
                 </div>
               </div>
@@ -191,7 +219,7 @@ function formatHora(hora: string): string {
           </div>
 
           <div class="total-multiples">
-            <span>Total</span>
+            <span class="total-label">Total</span>
             <span class="total">${{ Number(store.totalPrecio || 0).toFixed(2) }}</span>
           </div>
         </template>
@@ -379,101 +407,151 @@ function formatHora(hora: string): string {
 
 <style scoped>
 .paso-confirmacion {
-  padding: 16px;
+  padding: 20px 16px;
   padding-bottom: 100px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Header */
 .paso-header {
   text-align: center;
-  padding: 16px 0 20px;
+  padding: 24px 0 32px;
 }
 
 .header-icon {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(236,64,122,0.1), rgba(236,64,122,0.2));
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 16px;
+  margin: 0 auto 24px;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
 }
 
 .header-icon i {
   font-size: 32px;
-  color: #ec407a;
+  color: white;
 }
 
 .paso-header h2 {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin: 0 0 10px;
+  letter-spacing: -0.5px;
+}
+
+.theme-dark .paso-header h2 {
+  color: #f5f5f7;
 }
 
 .paso-header p {
-  font-size: 14px;
-  color: var(--color-text-secondary);
+  font-size: 18px;
+  color: #86868b;
   margin: 0;
+  font-weight: 400;
+}
+
+.theme-dark .paso-header p {
+  color: #a1a1a6;
 }
 
 /* Cards */
 .card {
-  background: var(--color-card);
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+}
+
+.theme-dark .card {
+  background: rgba(28, 28, 30, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 0 0 0.5px rgba(255, 255, 255, 0.05);
 }
 
 .card h4 {
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 600;
-  color: var(--color-text);
-  margin: 0 0 12px;
+  color: #1d1d1f;
+  margin: 0 0 18px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  letter-spacing: -0.2px;
+}
+
+.theme-dark .card h4 {
+  color: #f5f5f7;
 }
 
 .card h4 i {
-  color: #ec407a;
-  font-size: 14px;
+  color: #007aff;
+  font-size: 18px;
 }
 
 /* Cliente info */
 .cliente-nombre {
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 600;
-  color: var(--color-text);
-  margin: 0 0 4px;
+  color: #1d1d1f;
+  margin: 0 0 10px;
+  letter-spacing: -0.2px;
+}
+
+.theme-dark .cliente-nombre {
+  color: #f5f5f7;
 }
 
 .cliente-contacto {
-  font-size: 12px;
-  color: var(--color-text-secondary);
+  font-size: 16px;
+  color: #86868b;
   margin: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 18px;
+  font-weight: 400;
+}
+
+.theme-dark .cliente-contacto {
+  color: #a1a1a6;
 }
 
 .cliente-contacto i {
-  margin-right: 4px;
+  margin-right: 6px;
+  color: #007aff;
 }
 
 /* Servicios */
 .servicios-lista {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .servicio-row {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
-  font-size: 13px;
-  color: var(--color-text);
-  border-bottom: 1px solid var(--color-border);
+  padding: 14px 0;
+  font-size: 16px;
+  color: #1d1d1f;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+  font-weight: 400;
+}
+
+.theme-dark .servicio-row {
+  color: #f5f5f7;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 .servicio-row:last-child {
@@ -481,22 +559,27 @@ function formatHora(hora: string): string {
 }
 
 .servicio-row .precio {
-  color: #ec407a;
+  color: #007aff;
   font-weight: 600;
 }
 
 .total-row {
   display: flex;
   justify-content: space-between;
-  padding-top: 12px;
-  border-top: 2px solid var(--color-border);
-  font-size: 15px;
+  padding-top: 18px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+  font-size: 19px;
   font-weight: 600;
 }
 
+.theme-dark .total-row {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
 .total-row .total {
-  color: #ec407a;
-  font-size: 18px;
+  color: #007aff;
+  font-size: 22px;
+  letter-spacing: -0.3px;
 }
 
 /* Cita info */
@@ -509,21 +592,23 @@ function formatHora(hora: string): string {
 .info-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: rgba(0,0,0,0.03);
-  border-radius: 10px;
-  font-size: 13px;
-  color: var(--color-text);
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(0, 122, 255, 0.08);
+  border-radius: 12px;
+  font-size: 16px;
+  color: #1d1d1f;
+  font-weight: 400;
 }
 
 .theme-dark .info-item {
-  background: rgba(255,255,255,0.05);
+  background: rgba(0, 122, 255, 0.12);
+  color: #f5f5f7;
 }
 
 .info-item i {
-  color: #ec407a;
-  font-size: 12px;
+  color: #007aff;
+  font-size: 16px;
 }
 
 /* ===================================== */
@@ -533,14 +618,14 @@ function formatHora(hora: string): string {
 .fecha-coordinada {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  background: linear-gradient(135deg, rgba(236,64,122,0.08), rgba(236,64,122,0.12));
-  border-radius: 10px;
-  color: #ec407a;
+  gap: 10px;
+  padding: 14px 18px;
+  background: rgba(0, 122, 255, 0.1);
+  border-radius: 12px;
+  color: #007aff;
   font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 16px;
+  font-size: 17px;
+  margin-bottom: 24px;
 }
 
 .timeline-confirmacion {
@@ -578,13 +663,18 @@ function formatHora(hora: string): string {
 }
 
 .timeline-dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: #ec407a;
+  background: #007aff;
   flex-shrink: 0;
   margin-top: 4px;
   z-index: 1;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+.theme-dark .timeline-dot {
+  border-color: rgba(28, 28, 30, 0.8);
 }
 
 .timeline-content-conf {
@@ -608,7 +698,7 @@ function formatHora(hora: string): string {
 
 .timeline-empleado-nombre i {
   font-size: 10px;
-  color: #ec407a;
+  color: #007aff;
 }
 
 .timeline-duracion {
@@ -625,9 +715,9 @@ function formatHora(hora: string): string {
 }
 
 .timeline-precio {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: #ec407a;
+  color: #007aff;
   flex-shrink: 0;
 }
 
@@ -637,20 +727,26 @@ function formatHora(hora: string): string {
 }
 
 .otp-header i {
-  font-size: 28px;
-  color: #ec407a;
-  margin-bottom: 8px;
+  font-size: 40px;
+  color: #007aff;
+  margin-bottom: 16px;
 }
 
 .otp-header h4 {
   justify-content: center;
-  font-size: 16px;
+  font-size: 19px;
 }
 
 .otp-header p {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  margin: 0 0 16px;
+  font-size: 17px;
+  color: #86868b;
+  margin: 0 0 28px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.theme-dark .otp-header p {
+  color: #a1a1a6;
 }
 
 /* Debug code */
@@ -674,71 +770,99 @@ function formatHora(hora: string): string {
 .otp-inputs {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .otp-input {
-  width: 45px;
-  height: 55px;
+  width: 56px;
+  height: 68px;
   text-align: center;
-  font-size: 22px;
-  font-weight: 700;
-  border: 2px solid var(--color-border);
-  border-radius: 12px;
-  background: var(--color-card);
-  color: var(--color-text);
-  transition: all 0.2s;
+  font-size: 28px;
+  font-weight: 600;
+  border: 1px solid #d1d1d6;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 1);
+  color: #1d1d1f;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+}
+
+.theme-dark .otp-input {
+  background: rgba(44, 44, 46, 1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #f5f5f7;
 }
 
 .otp-input:focus {
   outline: none;
-  border-color: #ec407a;
-  box-shadow: 0 0 0 3px rgba(236, 64, 122, 0.2);
+  border-color: #007aff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+  background: rgba(255, 255, 255, 1);
+}
+
+.theme-dark .otp-input:focus {
+  background: rgba(58, 58, 60, 1);
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
 }
 
 /* Link button */
 .link-btn {
   background: none;
   border: none;
-  color: #ec407a;
-  font-size: 13px;
+  color: #007aff;
+  font-size: 15px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.link-btn:hover {
+  opacity: 0.7;
 }
 
 /* Error box */
 .error-box {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  padding: 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  margin-bottom: 16px;
+  background: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  border: 0.5px solid rgba(255, 59, 48, 0.2);
+}
+
+.theme-dark .error-box {
+  background: rgba(255, 59, 48, 0.15);
+  border-color: rgba(255, 59, 48, 0.25);
 }
 
 /* Buttons */
 .btn-primary {
   width: 100%;
-  padding: 14px 24px;
-  background: linear-gradient(135deg, #ec407a, #d81b60);
+  padding: 16px 24px;
+  background: #007aff;
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 15px;
+  border-radius: 14px;
+  font-size: 18px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: all 0.2s;
+  gap: 10px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  letter-spacing: -0.2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary:disabled {
@@ -747,24 +871,50 @@ function formatHora(hora: string): string {
 }
 
 .btn-primary:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(236, 64, 122, 0.4);
+  background: #0051d5;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.btn-primary:not(:disabled):active {
+  transform: scale(0.98);
+  background: #0040b3;
 }
 
 .btn-secondary {
   width: 100%;
-  padding: 14px 24px;
-  background: var(--color-card);
-  color: var(--color-text);
-  border: 2px solid var(--color-border);
-  border-radius: 12px;
-  font-size: 15px;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  color: #1d1d1f;
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  border-radius: 14px;
+  font-size: 18px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
+  margin-top: 16px;
+  transition: all 0.2s;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  letter-spacing: -0.2px;
+}
+
+.theme-dark .btn-secondary {
+  background: rgba(44, 44, 46, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #f5f5f7;
+}
+
+.btn-secondary:active {
+  transform: scale(0.98);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.theme-dark .btn-secondary:active {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* ÉXITO */
@@ -774,19 +924,20 @@ function formatHora(hora: string): string {
 }
 
 .exito-icon {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #4caf50, #388e3c);
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  background: #34c759;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
+  margin: 0 auto 28px;
   animation: bounceIn 0.5s ease;
+  box-shadow: 0 4px 16px rgba(52, 199, 89, 0.3);
 }
 
 .exito-icon i {
-  font-size: 40px;
+  font-size: 44px;
   color: white;
 }
 
@@ -797,16 +948,26 @@ function formatHora(hora: string): string {
 }
 
 .exito-container h2 {
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0 0 8px;
+  font-size: 36px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin: 0 0 10px;
+  letter-spacing: -0.5px;
+}
+
+.theme-dark .exito-container h2 {
+  color: #f5f5f7;
 }
 
 .exito-container p {
-  font-size: 14px;
-  color: var(--color-text-secondary);
+  font-size: 19px;
+  color: #86868b;
   margin: 0;
+  font-weight: 400;
+}
+
+.theme-dark .exito-container p {
+  color: #a1a1a6;
 }
 
 .whatsapp-notice {
@@ -814,143 +975,331 @@ function formatHora(hora: string): string {
   align-items: center;
   gap: 10px;
   color: #25d366;
-  font-size: 13px;
+  font-size: 20px;
   margin-bottom: 12px;
 }
 
 .whatsapp-notice i {
-  font-size: 20px;
+  font-size: 30px;
 }
 
 .divider {
-  height: 1px;
-  background: var(--color-border);
-  margin: 12px 0;
+  height: 0.5px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 16px 0;
+}
+
+.theme-dark .divider {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .detalles-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 
-.detalle {
+.detalle-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(0, 122, 255, 0.06);
+  border-radius: 14px;
+  border: 0.5px solid rgba(0, 122, 255, 0.12);
+  transition: all 0.2s;
+}
+
+.theme-dark .detalle-card {
+  background: rgba(0, 122, 255, 0.1);
+  border-color: rgba(0, 122, 255, 0.15);
+}
+
+.detalle-card:hover {
+  background: rgba(0, 122, 255, 0.1);
+  border-color: rgba(0, 122, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.theme-dark .detalle-card:hover {
+  background: rgba(0, 122, 255, 0.15);
+}
+
+.detalle-card i {
+  font-size: 20px;
+  color: #007aff;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.detalle-content {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
 
 .detalle .label {
-  font-size: 10px;
-  color: var(--color-text-secondary);
+  font-size: 11px;
+  color: #86868b;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 2px;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.theme-dark .detalle .label {
+  color: #a1a1a6;
 }
 
 .detalle .value {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--color-text);
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.theme-dark .detalle .value {
+  color: #f5f5f7;
+}
+
+.detalle-precio {
+  background: rgba(0, 122, 255, 0.12) !important;
+  border-color: rgba(0, 122, 255, 0.2) !important;
+  grid-column: 1 / -1;
+}
+
+.theme-dark .detalle-precio {
+  background: rgba(0, 122, 255, 0.18) !important;
+  border-color: rgba(0, 122, 255, 0.25) !important;
+}
+
+.detalle-precio:hover {
+  background: rgba(0, 122, 255, 0.15) !important;
+  border-color: rgba(0, 122, 255, 0.3) !important;
+}
+
+.theme-dark .detalle-precio:hover {
+  background: rgba(0, 122, 255, 0.22) !important;
 }
 
 .detalle .value.precio {
-  color: #ec407a;
+  font-size: 24px;
+  font-weight: 700;
+  color: #007aff;
+  letter-spacing: -0.4px;
 }
 
 /* Éxito múltiples citas */
 .cliente-info-exito {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.detalle-exito {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label-exito {
+  font-size: 12px;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.theme-dark .label-exito {
+  color: #a1a1a6;
+}
+
+.value-exito {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
+}
+
+.theme-dark .value-exito {
+  color: #f5f5f7;
+}
+
+.citas-header-exito {
+  display: flex;
+  align-items: center;
   gap: 12px;
+  margin: 20px 0 24px;
+  padding: 16px 20px;
+  background: rgba(0, 122, 255, 0.1);
+  border-radius: 16px;
+  border: 0.5px solid rgba(0, 122, 255, 0.2);
+}
+
+.theme-dark .citas-header-exito {
+  background: rgba(0, 122, 255, 0.15);
+  border-color: rgba(0, 122, 255, 0.25);
+}
+
+.citas-header-exito i {
+  font-size: 24px;
+  color: #007aff;
+  flex-shrink: 0;
 }
 
 .citas-titulo {
-  font-size: 14px;
+  font-size: 19px;
   font-weight: 600;
-  color: var(--color-text);
-  margin: 12px 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  color: #1d1d1f;
+  margin: 0;
+  letter-spacing: -0.3px;
 }
 
-.citas-titulo i {
-  color: #ec407a;
+.theme-dark .citas-titulo {
+  color: #f5f5f7;
 }
 
 .citas-multiples-lista {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 14px;
+  margin-bottom: 24px;
 }
 
 .cita-multiple-item {
   display: flex;
-  gap: 12px;
-  padding: 12px;
-  background: rgba(0,0,0,0.03);
-  border-radius: 12px;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(0, 122, 255, 0.08);
+  border-radius: 18px;
+  border: 1px solid rgba(0, 122, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.08);
+  transition: all 0.2s;
 }
 
 .theme-dark .cita-multiple-item {
-  background: rgba(255,255,255,0.05);
+  background: rgba(0, 122, 255, 0.12);
+  border-color: rgba(0, 122, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.15);
+}
+
+.cita-multiple-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.12);
 }
 
 .cita-numero {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ec407a, #d81b60);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #007aff;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 700;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 .cita-contenido {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .cita-servicio {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 4px;
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
+  line-height: 1.3;
+}
+
+.theme-dark .cita-servicio {
+  color: #f5f5f7;
 }
 
 .cita-detalles {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  font-size: 12px;
-  color: var(--color-text-secondary);
+  gap: 16px;
+  align-items: center;
 }
 
-.cita-detalles i {
-  margin-right: 4px;
-  font-size: 10px;
+.cita-detalle-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  color: #86868b;
+  font-weight: 400;
+}
+
+.theme-dark .cita-detalle-item {
+  color: #a1a1a6;
+}
+
+.cita-detalle-item i {
+  font-size: 14px;
+  color: #007aff;
+}
+
+.cita-precio-wrapper {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 0.5px solid rgba(0, 122, 255, 0.15);
+}
+
+.theme-dark .cita-precio-wrapper {
+  border-top-color: rgba(0, 122, 255, 0.2);
 }
 
 .cita-precio {
-  color: #ec407a !important;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
+  color: #007aff;
+  letter-spacing: -0.3px;
 }
 
 .total-multiples {
   display: flex;
   justify-content: space-between;
-  padding-top: 12px;
-  border-top: 2px solid var(--color-border);
-  font-size: 15px;
+  align-items: center;
+  padding: 20px 24px;
+  background: rgba(0, 122, 255, 0.1);
+  border-radius: 16px;
+  border: 1px solid rgba(0, 122, 255, 0.2);
+  margin-top: 8px;
+}
+
+.theme-dark .total-multiples {
+  background: rgba(0, 122, 255, 0.15);
+  border-color: rgba(0, 122, 255, 0.25);
+}
+
+.total-label {
+  font-size: 19px;
   font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
+}
+
+.theme-dark .total-label {
+  color: #f5f5f7;
 }
 
 .total-multiples .total {
-  color: #ec407a;
-  font-size: 18px;
+  color: #007aff;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
 }
 </style>

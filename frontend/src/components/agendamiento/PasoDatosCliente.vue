@@ -342,7 +342,10 @@ function onlyNumbers(e: Event) {
 
 <style scoped>
 .paso-datos {
-  padding: 16px;
+  padding: 20px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Banner de Promociones - Carrusel */
@@ -381,10 +384,10 @@ function onlyNumbers(e: Event) {
 }
 
 .promo-banner.selected {
-  outline: 3px solid #ec407a;
+  outline: 2px solid #007aff;
   outline-offset: 4px;
   border-radius: 28px;
-  box-shadow: 0 0 0 4px rgba(236, 64, 122, 0.2);
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
 }
 
 .promo-selected-indicator {
@@ -426,10 +429,10 @@ function onlyNumbers(e: Event) {
   height: 100%; /* Altura fija igual al contenedor */
   border-radius: 24px;
   overflow: hidden;
-  background: linear-gradient(135deg, #ec407a 0%, #c2185b 100%);
+  background: linear-gradient(135deg, #007aff 0%, #0051d5 100%);
   background-size: cover;
   background-position: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .promo-overlay {
@@ -479,18 +482,21 @@ function onlyNumbers(e: Event) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: white;
-  padding: 10px 15px;
-  border-radius: 24px;
-  font-size: 16px;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   text-transform: uppercase;
   grid-column: 3;
   align-self: center;
   white-space: nowrap;
+  border: 0.5px solid rgba(255, 255, 255, 0.3);
 }
 
 .promo-description {
@@ -555,7 +561,7 @@ function onlyNumbers(e: Event) {
 
 /* Fallback si no hay imagen */
 .promo-image:not([style*="background-image"]) {
-  background: linear-gradient(135deg, #ec407a 0%, #c2185b 50%, #7b1fa2 100%);
+  background: linear-gradient(135deg, #007aff 0%, #0051d5 50%, #003d9e 100%);
 }
 
 .theme-dark .promo-image {
@@ -589,7 +595,7 @@ function onlyNumbers(e: Event) {
 }
 
 .indicator-dot:hover {
-  background: rgba(236, 64, 122, 0.5);
+  background: rgba(0, 122, 255, 0.5);
   transform: scale(1.2);
 }
 
@@ -597,8 +603,8 @@ function onlyNumbers(e: Event) {
   width: 24px;
   height: 8px;
   border-radius: 4px;
-  background: linear-gradient(90deg, #ec407a, #c2185b);
-  box-shadow: 0 2px 8px rgba(236, 64, 122, 0.4);
+  background: #007aff;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 /* Transiciones del carrusel */
@@ -626,77 +632,77 @@ function onlyNumbers(e: Event) {
 
 /* Form Card */
 .form-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  border: 1px solid rgba(0,0,0,0.04);
+  padding: 28px;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
 }
 
 .theme-dark .form-card {
-  background: #1e1e1e;
-  border-color: rgba(255,255,255,0.08);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  background: rgba(28, 28, 30, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 0 0 0.5px rgba(255, 255, 255, 0.05);
 }
 
 /* Form Title Wrapper */
 .form-title-wrapper {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 24px;
-  padding-bottom: 18px;
-  border-bottom: 2px solid #f0f0f0;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
 }
 
 .theme-dark .form-title-wrapper {
-  border-bottom-color: rgba(255,255,255,0.08);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 .title-icon {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(236, 64, 122, 0.1), rgba(236, 64, 122, 0.15));
+  background: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
 }
 
 .title-icon i {
   font-size: 20px;
-  color: #ec407a;
+  color: white;
 }
 
 /* Form Title */
 .form-title {
-  font-size: 24px;
-  font-weight: 800;
-  color: #1a1a1a;
+  font-size: 25px;
+  font-weight: 600;
+  color: #1d1d1f;
   margin: 0;
   padding: 0;
-  letter-spacing: -0.4px;
-  line-height: 1.3;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
   flex: 1;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .theme-dark .form-title {
-  background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #f5f5f7;
 }
 
 .title-divider {
-  height: 3px;
+  height: 2px;
   width: 50px;
-  background: linear-gradient(90deg, #ec407a, #c2185b);
+  background: #007aff;
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -704,12 +710,12 @@ function onlyNumbers(e: Event) {
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .form-group:last-child {
@@ -718,20 +724,20 @@ function onlyNumbers(e: Event) {
 
 .form-group label {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: #2d2d2d;
+  color: #1d1d1f;
   margin-bottom: 10px;
-  letter-spacing: -0.1px;
+  letter-spacing: -0.2px;
 }
 
 .theme-dark .form-group label {
-  color: #e0e0e0;
+  color: #f5f5f7;
 }
 
 .form-group label .required {
-  color: #ec407a;
-  font-weight: 700;
+  color: #ff3b30;
+  font-weight: 600;
   margin-left: 2px;
 }
 
@@ -748,54 +754,54 @@ function onlyNumbers(e: Event) {
 
 .form-group input {
   width: 100%;
-  padding: 16px 18px;
-  border: 2px solid #e5e5e5;
-  border-radius: 14px;
-  font-size: 16px;
-  background: #f8f8f8;
-  color: #1a1a1a;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  font-weight: 500;
+  padding: 14px 16px;
+  border: 1px solid #d1d1d6;
+  border-radius: 12px;
+  font-size: 17px;
+  background: rgba(255, 255, 255, 1);
+  color: #1d1d1f;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 400;
   box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
 }
 
 .theme-dark .form-group input {
-  background: #2a2a2a;
-  border-color: #3a3a3a;
-  color: #fff;
+  background: rgba(44, 44, 46, 1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #f5f5f7;
 }
 
 .form-group input:hover {
-  border-color: #d0d0d0;
-  background: #f5f5f5;
+  border-color: #a1a1a6;
+  background: rgba(255, 255, 255, 1);
 }
 
 .theme-dark .form-group input:hover {
-  border-color: #4a4a4a;
-  background: #2f2f2f;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(58, 58, 60, 1);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #ec407a;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(236, 64, 122, 0.12);
-  transform: translateY(-1px);
+  border-color: #007aff;
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
 .theme-dark .form-group input:focus {
-  background: #333;
-  border-color: #ec407a;
-  box-shadow: 0 0 0 4px rgba(236, 64, 122, 0.2);
+  background: rgba(58, 58, 60, 1);
+  border-color: #007aff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
 }
 
 .form-group input::placeholder {
-  color: #aaa;
+  color: #86868b;
   font-weight: 400;
 }
 
 .theme-dark .form-group input::placeholder {
-  color: #666;
+  color: #6e6e73;
 }
 
 /* Input with icon */
@@ -805,21 +811,21 @@ function onlyNumbers(e: Event) {
 
 .input-with-icon i {
   position: absolute;
-  left: 18px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: #999;
-  font-size: 16px;
+  color: #86868b;
+  font-size: 18px;
   z-index: 1;
   transition: color 0.2s;
 }
 
 .theme-dark .input-with-icon i {
-  color: #777;
+  color: #a1a1a6;
 }
 
 .input-with-icon:focus-within i {
-  color: #ec407a;
+  color: #007aff;
 }
 
 .input-with-icon input {
@@ -832,18 +838,19 @@ function onlyNumbers(e: Event) {
   align-items: flex-start;
   gap: 8px;
   margin-top: 10px;
-  font-size: 13px;
-  color: #666;
+  font-size: 15px;
+  color: #86868b;
   line-height: 1.5;
   padding-left: 2px;
+  font-weight: 400;
 }
 
 .theme-dark .input-hint {
-  color: #999;
+  color: #a1a1a6;
 }
 
 .input-hint i {
-  font-size: 14px;
+  font-size: 16px;
   margin-top: 2px;
   flex-shrink: 0;
 }
@@ -853,7 +860,7 @@ function onlyNumbers(e: Event) {
 }
 
 .input-hint i.fa-info-circle {
-  color: #6366f1;
+  color: #007aff;
 }
 
 /* Responsive */
@@ -865,8 +872,8 @@ function onlyNumbers(e: Event) {
 
   .form-title-wrapper {
     margin-bottom: 15px;
-    padding-bottom: 12px;
-    gap: 12px;
+    padding-bottom: 10px;
+    gap: 10px;
   }
 
   .title-icon {
