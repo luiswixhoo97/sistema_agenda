@@ -192,9 +192,28 @@ class NotificacionService
         
         // Obtener datos del negocio desde la tabla de configuración
         // Usar las claves que coinciden con el frontend: nombre_negocio, direccion, telefono
-        $negocioNombre = Configuracion::get('nombre_negocio', config('app.name', 'Mi Negocio'));
-        $negocioDireccion = Configuracion::get('direccion', '');
-        $negocioTelefono = Configuracion::get('telefono', '');
+        $negocioNombre = Configuracion::get('nombre_negocio');
+        $negocioDireccion = Configuracion::get('direccion');
+        $negocioTelefono = Configuracion::get('telefono');
+        
+        // Limpiar valores vacíos o null
+        $negocioNombre = $negocioNombre ? trim((string)$negocioNombre) : '';
+        $negocioDireccion = $negocioDireccion ? trim((string)$negocioDireccion) : '';
+        $negocioTelefono = $negocioTelefono ? trim((string)$negocioTelefono) : '';
+        
+        // Si no hay nombre configurado, usar un valor por defecto más apropiado
+        if (empty($negocioNombre)) {
+            $negocioNombre = 'Mi Negocio';
+            Log::warning('⚠️ nombre_negocio no configurado en la tabla de configuración');
+        }
+        
+        // Log para debugging - siempre loguear para ver qué está pasando
+        Log::info('📋 Datos del negocio para notificación', [
+            'nombre' => $negocioNombre ?: '(vacío)',
+            'direccion' => $negocioDireccion ?: '(vacío)',
+            'telefono' => $negocioTelefono ?: '(vacío)',
+            'direccion_length' => strlen($negocioDireccion),
+        ]);
         
         return [
             'cliente_nombre' => $cita->cliente->nombre,
@@ -338,11 +357,44 @@ class NotificacionService
 
         $contenido = $plantilla->contenido;
         
-        foreach ($datos as $key => $valor) {
-            if (is_string($valor) || is_numeric($valor)) {
-                $contenido = str_replace('{{' . $key . '}}', $valor, $contenido);
-            }
+        // Si la dirección está vacía, eliminar la línea completa de la dirección del mensaje
+        // para evitar mostrar una línea vacía
+        if (empty($datos['negocio_direccion'])) {
+            // Eliminar la línea que contiene {{negocio_direccion}} (incluyendo el salto de línea anterior si existe)
+            $contenido = preg_replace('/\n?.*\{\{negocio_direccion\}\}.*\n?/', '', $contenido);
+            // También eliminar el emoji de ubicación si está solo en esa línea
+            $contenido = preg_replace('/\n?📍\s*\{\{negocio_nombre\}\}\s*\n?/', "\n📍 {{negocio_nombre}}\n", $contenido);
         }
+        
+        // Log de datos antes del reemplazo
+        Log::info('🔄 Renderizando plantilla', [
+            'tipo' => $tipo,
+            'datos_keys' => array_keys($datos),
+            'negocio_direccion' => $datos['negocio_direccion'] ?? '(no existe)',
+            'negocio_nombre' => $datos['negocio_nombre'] ?? '(no existe)',
+            'direccion_vacia' => empty($datos['negocio_direccion']),
+        ]);
+        
+        foreach ($datos as $key => $valor) {
+            // Convertir a string si es numérico o null
+            if (is_null($valor)) {
+                $valor = '';
+            } elseif (!is_string($valor) && !is_numeric($valor)) {
+                continue; // Saltar valores que no son string ni numérico
+            }
+            
+            $valor = (string)$valor;
+            $contenido = str_replace('{{' . $key . '}}', $valor, $contenido);
+        }
+        
+        // Limpiar líneas vacías múltiples que puedan quedar
+        $contenido = preg_replace('/\n{3,}/', "\n\n", $contenido);
+        
+        // Log del contenido después del reemplazo (solo primeros 200 caracteres)
+        Log::info('✅ Plantilla renderizada', [
+            'preview' => substr($contenido, 0, 200),
+            'tiene_direccion' => str_contains($contenido, '📍') && !str_contains($contenido, '{{negocio_direccion}}'),
+        ]);
 
         return $contenido;
     }
