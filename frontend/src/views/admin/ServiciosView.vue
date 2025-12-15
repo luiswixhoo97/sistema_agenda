@@ -499,17 +499,21 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   margin-bottom: 24px;
   padding: 20px;
   background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
   border-radius: 20px;
   color: white;
+  flex-wrap: wrap;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 14px;
+  flex: 1;
+  min-width: 0;
 }
 
 .header-icon {
@@ -523,11 +527,19 @@ onMounted(() => {
   backdrop-filter: blur(10px);
 }
 
+.header-text {
+  min-width: 0;
+  flex: 1;
+}
+
 .header-text h1 {
   font-size: 22px;
   font-weight: 600;
   margin: 0;
   letter-spacing: -0.3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-subtitle {
@@ -550,11 +562,34 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.2s;
   backdrop-filter: blur(10px);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .btn-new-servicio:active {
   background: rgba(255, 255, 255, 0.25);
   transform: scale(0.98);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .servicios-header {
+    padding: 16px;
+  }
+  
+  .header-text h1 {
+    font-size: 20px;
+  }
+  
+  .btn-new-servicio {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  
+  .btn-new-servicio svg {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 /* Categories */

@@ -455,6 +455,9 @@ const isActive = (ruta: string) => {
     0 0 0 1px rgba(0, 0, 0, 0.05);
   z-index: 200;
   overflow: hidden;
+  max-height: calc(100vh - 140px);
+  display: flex;
+  flex-direction: column;
   padding-bottom: env(safe-area-inset-bottom, 12px);
 }
 
@@ -519,6 +522,36 @@ const isActive = (ruta: string) => {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.menu-mas-items::-webkit-scrollbar {
+  width: 6px;
+}
+
+.menu-mas-items::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.menu-mas-items::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.menu-mas-items::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .menu-mas-items::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.theme-dark .menu-mas-items::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .menu-mas-item {

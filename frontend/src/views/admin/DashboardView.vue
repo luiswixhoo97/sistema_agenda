@@ -154,7 +154,7 @@
         </div>
         
         <ul v-else class="schedule-list">
-          <li v-for="cita in citasHoy" :key="cita.id" class="schedule-item">
+          <li v-for="cita in citasHoy" :key="cita.id" class="schedule-item" @click="abrirDetallesCita(cita)">
             <div class="schedule-time">
               <span class="time-hour">{{ formatHora(cita.fecha_hora) }}</span>
             </div>
@@ -311,6 +311,150 @@
     </section>
   </div>
 
+  <!-- Modal de Detalles de Cita -->
+  <div v-if="mostrarDetallesCita" class="modal-overlay" @click="cerrarDetallesCita">
+    <div class="modal-content cita-modal" @click.stop>
+      <div class="modal-header">
+        <div>
+          <h3>Detalles de la cita</h3>
+          <p class="modal-subtitle">{{ formatFechaCompleta(citaSeleccionada?.fecha_hora) }}</p>
+        </div>
+        <button class="modal-close" @click="cerrarDetallesCita">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      
+      <div v-if="citaSeleccionada" class="cita-details-content">
+        <!-- Estado -->
+        <div class="cita-detail-section">
+          <div class="cita-status-badge" :class="citaSeleccionada.estado">
+            {{ estadoLabel(citaSeleccionada.estado) }}
+          </div>
+        </div>
+
+        <!-- Cliente -->
+        <div class="cita-detail-item">
+          <div class="cita-detail-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <div class="cita-detail-info">
+            <span class="cita-detail-label">Cliente</span>
+            <span class="cita-detail-value">{{ citaSeleccionada.cliente?.nombre || 'Sin cliente' }}</span>
+          </div>
+        </div>
+
+        <!-- Teléfono -->
+        <div v-if="citaSeleccionada.cliente?.telefono" class="cita-detail-item">
+          <div class="cita-detail-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+          </div>
+          <div class="cita-detail-info">
+            <span class="cita-detail-label">Teléfono</span>
+            <span class="cita-detail-value">{{ citaSeleccionada.cliente.telefono }}</span>
+          </div>
+        </div>
+
+        <!-- Fecha y Hora -->
+        <div class="cita-detail-item">
+          <div class="cita-detail-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <div class="cita-detail-info">
+            <span class="cita-detail-label">Fecha y Hora</span>
+            <span class="cita-detail-value">{{ formatFechaCompleta(citaSeleccionada.fecha_hora) }} - {{ formatHora(citaSeleccionada.fecha_hora) }}</span>
+          </div>
+        </div>
+
+        <!-- Empleado -->
+        <div v-if="citaSeleccionada.empleado" class="cita-detail-item">
+          <div class="cita-detail-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <div class="cita-detail-info">
+            <span class="cita-detail-label">Profesional</span>
+            <span class="cita-detail-value">{{ citaSeleccionada.empleado?.nombre || citaSeleccionada.empleado_nombre || 'Sin asignar' }}</span>
+          </div>
+        </div>
+
+        <!-- Servicios -->
+        <div class="cita-detail-item">
+          <div class="cita-detail-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+          </div>
+          <div class="cita-detail-info">
+            <span class="cita-detail-label">Servicios</span>
+            <span class="cita-detail-value">{{ getServiciosNombres(citaSeleccionada) }}</span>
+          </div>
+        </div>
+
+        <!-- Duración -->
+        <div v-if="citaSeleccionada.duracion_total" class="cita-detail-item">
+          <div class="cita-detail-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <div class="cita-detail-info">
+            <span class="cita-detail-label">Duración</span>
+            <span class="cita-detail-value">{{ citaSeleccionada.duracion_total }} minutos</span>
+          </div>
+        </div>
+
+        <!-- Total -->
+        <div v-if="citaSeleccionada.total || citaSeleccionada.precio_final" class="cita-detail-item total">
+          <div class="cita-detail-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+          <div class="cita-detail-info">
+            <span class="cita-detail-label">Total</span>
+            <span class="cita-detail-value total-price">${{ formatMonto(citaSeleccionada.total || citaSeleccionada.precio_final || 0) }}</span>
+          </div>
+        </div>
+
+        <!-- Notas -->
+        <div v-if="citaSeleccionada.notas" class="cita-detail-item notes">
+          <div class="cita-detail-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <div class="cita-detail-info">
+            <span class="cita-detail-label">Notas</span>
+            <span class="cita-detail-value">{{ citaSeleccionada.notas }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal de Estadísticas del Empleado -->
   <div v-if="mostrarEstadisticas" class="modal-overlay" @click="mostrarEstadisticas = false">
     <div class="modal-content" @click.stop>
@@ -403,6 +547,8 @@ const loading = ref(true);
 const mostrarEstadisticas = ref(false);
 const cargandoEstadisticas = ref(false);
 const empleadoSeleccionado = ref<any>(null);
+const mostrarDetallesCita = ref(false);
+const citaSeleccionada = ref<any>(null);
 const estadisticasEmpleado = ref({
   ingresosMes: 0,
   ingresosHoy: 0,
@@ -666,6 +812,27 @@ function getRankClass(index: number): string {
   if (index === 1) return 'rank-silver';
   if (index === 2) return 'rank-bronze';
   return 'rank-default';
+}
+
+function abrirDetallesCita(cita: any) {
+  citaSeleccionada.value = cita;
+  mostrarDetallesCita.value = true;
+}
+
+function cerrarDetallesCita() {
+  mostrarDetallesCita.value = false;
+  citaSeleccionada.value = null;
+}
+
+function formatFechaCompleta(fecha: string): string {
+  if (!fecha) return '--/--/----';
+  const date = new Date(fecha.replace(' ', 'T'));
+  return date.toLocaleDateString('es-MX', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
 }
 
 onMounted(() => {
@@ -1696,5 +1863,154 @@ onMounted(() => {
   color: #86868b;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+}
+
+/* Modal de Detalles de Cita */
+.cita-modal {
+  max-width: 480px;
+}
+
+.cita-details-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(90vh - 100px);
+  overflow-y: auto;
+}
+
+.cita-details-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cita-details-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.cita-details-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.cita-details-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.cita-detail-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.cita-status-badge {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 20px;
+  text-transform: capitalize;
+  letter-spacing: 0.2px;
+}
+
+.cita-status-badge.pendiente {
+  background: rgba(255, 149, 0, 0.12);
+  color: #ff9500;
+}
+
+.cita-status-badge.confirmada {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34c759;
+}
+
+.cita-status-badge.en_proceso {
+  background: rgba(0, 122, 255, 0.12);
+  color: #007aff;
+}
+
+.cita-status-badge.completada {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34c759;
+}
+
+.cita-status-badge.cancelada {
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
+}
+
+.cita-status-badge.no_show {
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
+}
+
+.cita-detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 14px;
+  border: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+}
+
+.cita-detail-item.total {
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.08) 0%, rgba(88, 86, 214, 0.08) 100%);
+  border-color: rgba(0, 122, 255, 0.2);
+}
+
+.cita-detail-item.notes {
+  background: #fff9e6;
+  border-color: #ffe066;
+}
+
+.cita-detail-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(0, 122, 255, 0.1);
+  color: #007aff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cita-detail-item.total .cita-detail-icon {
+  background: rgba(0, 122, 255, 0.15);
+}
+
+.cita-detail-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cita-detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #007aff;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.cita-detail-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1d1d1f;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.cita-detail-value.total-price {
+  font-size: 24px;
+  font-weight: 700;
+  color: #007aff;
+  letter-spacing: -0.5px;
+}
+
+.schedule-item {
+  cursor: pointer;
 }
 </style>

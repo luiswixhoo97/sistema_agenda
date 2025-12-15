@@ -27,23 +27,24 @@
       </div>
     </div>
 
-    <!-- Escáner -->
-    <div v-else class="scanner-container">
-      <div v-if="!scanning && !resultado" class="scanner-placeholder">
-        <div class="placeholder-icon">
-          <i class="fa fa-qrcode"></i>
+      <!-- Escáner -->
+      <div v-else class="scanner-container">
+        <!-- Placeholder solo se muestra si no se ha iniciado automáticamente y no hay resultado -->
+        <div v-if="!autoIniciado && !scanning && !resultado && !iniciandoEscaner" class="scanner-placeholder">
+          <div class="placeholder-icon">
+            <i class="fa fa-qrcode"></i>
+          </div>
+          <h2>Escanear código QR</h2>
+          <p>Escanea el código QR del cliente para marcar su cita como completada</p>
+          <button class="btn-scan" @click="iniciarEscaner" :disabled="iniciandoEscaner">
+            <i :class="iniciandoEscaner ? 'fa fa-spinner fa-spin' : 'fa fa-camera'"></i>
+            {{ iniciandoEscaner ? 'Iniciando...' : 'Escanear QR' }}
+          </button>
+          <p v-if="isNative" class="scan-native-hint">
+            <i class="fa fa-info-circle"></i>
+            Se abrirá la cámara en pantalla completa
+          </p>
         </div>
-        <h2>Escanear código QR</h2>
-        <p>Escanea el código QR del cliente para marcar su cita como completada</p>
-        <button class="btn-scan" @click="iniciarEscaner" :disabled="iniciandoEscaner">
-          <i :class="iniciandoEscaner ? 'fa fa-spinner fa-spin' : 'fa fa-camera'"></i>
-          {{ iniciandoEscaner ? 'Iniciando...' : 'Escanear QR' }}
-        </button>
-        <p v-if="isNative" class="scan-native-hint">
-          <i class="fa fa-info-circle"></i>
-          Se abrirá la cámara en pantalla completa
-        </p>
-      </div>
 
       <!-- Scanner activo (web y fallback) -->
       <!-- IMPORTANTE: Usar v-show en lugar de v-if para que el elemento siempre exista en el DOM -->
@@ -122,7 +123,7 @@
     </div>
 
     <!-- Instrucciones -->
-    <div v-if="!scanning && !resultado && !permisoDenegado" class="instrucciones">
+    <div v-if="!scanning && !resultado && !permisoDenegado && !autoIniciado" class="instrucciones">
       <h3><i class="fa fa-info-circle"></i> Instrucciones</h3>
       <ul>
         <li>Pide al cliente que muestre el código QR de su cita</li>
@@ -132,7 +133,7 @@
     </div>
 
     <!-- Entrada manual de token -->
-    <div v-if="!scanning && !resultado" class="manual-entry">
+    <div v-if="!scanning && !resultado && !autoIniciado" class="manual-entry">
       <h3><i class="fa fa-keyboard"></i> Entrada manual</h3>
       <p>Si no puedes escanear, ingresa el código manualmente:</p>
       <div class="input-group">
@@ -155,11 +156,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useQrScanner } from '@/composables/useQrScanner'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
+import { App } from '@capacitor/app'
 import Swal from 'sweetalert2'
 
 const router = useRouter()
@@ -185,10 +187,34 @@ const tokenManual = ref('')
 const permisoDenegado = ref(false)
 const iniciandoEscaner = ref(false)
 const qrReaderRef = ref<HTMLElement | null>(null)
+const autoIniciado = ref(false)
+const errorOcurrido = ref(false)
 
 // Métodos
+const irAlDashboard = async () => {
+  // Detener el escáner si está activo
+  await stopQrScanner()
+  
+  // Marcar que hubo un error para evitar reiniciar automáticamente si se vuelve a esta vista
+  errorOcurrido.value = true
+  
+  // Resetear estados
+  iniciandoEscaner.value = false
+  autoIniciado.value = false
+  
+  // Redirigir al dashboard según el tipo de usuario
+  if (authStore.userType === 'admin') {
+    router.push({ name: 'admin-dashboard' })
+  } else if (authStore.userType === 'empleado') {
+    router.push({ name: 'empleado-citas' })
+  } else {
+    // Si no hay tipo de usuario, ir al home
+    router.push({ name: 'home' })
+  }
+}
+
 const goBack = () => {
-  router.back()
+  irAlDashboard()
 }
 
 const solicitarPermisos = async () => {
@@ -210,18 +236,30 @@ const iniciarEscaner = async () => {
   resultado.value = null
   
   // Timeout de seguridad para evitar estado de carga infinito
-  const safetyTimeout = setTimeout(() => {
+  const safetyTimeout = setTimeout(async () => {
     if (iniciandoEscaner.value) {
       console.warn('⚠️ Safety timeout: La cámara tardó más de 8 segundos')
       iniciandoEscaner.value = false
+      autoIniciado.value = false
+      
+      // Detener el escáner si está activo
+      await stopQrScanner()
+      
+      // Marcar que hubo un error para evitar reiniciar automáticamente
+      errorOcurrido.value = true
       
       if (!scanning.value) {
-        Swal.fire({
+        await Swal.fire({
           icon: 'error',
           title: 'Tiempo de espera agotado',
           html: 'La cámara tardó demasiado en responder.<br><br><strong>Intenta:</strong><br>• Cerrar otras apps que usen la cámara<br>• Reiniciar la aplicación<br>• Reiniciar tu dispositivo',
-          confirmButtonColor: '#667eea'
+          confirmButtonColor: '#667eea',
+          allowOutsideClick: true,
+          allowEscapeKey: true
         })
+        
+        // Después de cerrar el error, volver al dashboard
+        irAlDashboard()
       }
     }
   }, 8000)
@@ -276,6 +314,12 @@ const iniciarEscaner = async () => {
     clearTimeout(safetyTimeout)
     
     if (!success) {
+      // Detener el escáner si está activo
+      await stopQrScanner()
+      
+      // Marcar que hubo un error para evitar reiniciar automáticamente
+      errorOcurrido.value = true
+      
       if (scannerError.value?.includes('Permiso') || 
           scannerError.value?.includes('denegado') ||
           scannerError.value?.includes('Permission')) {
@@ -285,35 +329,53 @@ const iniciarEscaner = async () => {
         const errorText = scannerError.value || 'Error al iniciar el escáner de QR'
         const errorLines = errorText.split('\n')
         
-        Swal.fire({
+        const result = await Swal.fire({
           icon: 'error',
           title: 'Error de cámara',
           html: errorLines.join('<br>'),
           confirmButtonColor: '#667eea',
           footer: isNative 
             ? '<small>Si el problema persiste, ve a Configuración > Apps > [Esta app] > Permisos y verifica que la cámara esté habilitada</small>'
-            : undefined
+            : undefined,
+          allowOutsideClick: true,
+          allowEscapeKey: true
         })
+        
+        // Después de cerrar el error (ya sea con OK, X, o Escape), volver al dashboard
+        irAlDashboard()
       }
     }
   } catch (e: any) {
     console.error('Error inesperado:', e)
     clearTimeout(safetyTimeout)
     
-    Swal.fire({
+    // Detener el escáner si está activo
+    await stopQrScanner()
+    
+    // Marcar que hubo un error para evitar reiniciar automáticamente
+    errorOcurrido.value = true
+    
+    await Swal.fire({
       icon: 'error',
       title: 'Error de cámara',
       text: 'Ocurrió un error inesperado al iniciar la cámara',
-      confirmButtonColor: '#667eea'
+      confirmButtonColor: '#667eea',
+      allowOutsideClick: true,
+      allowEscapeKey: true
     })
+    
+    // Después de cerrar el error, volver al dashboard
+    irAlDashboard()
   } finally {
     // Asegurar que el estado se resetee
     iniciandoEscaner.value = false
+    autoIniciado.value = false
   }
 }
 
 const detenerEscaner = async () => {
   await stopQrScanner()
+  irAlDashboard()
 }
 
 const onScanSuccess = async (decodedText: string) => {
@@ -341,8 +403,30 @@ const onScanSuccess = async (decodedText: string) => {
   }
 }
 
-const onScanError = (errorMessage: string) => {
+const onScanError = async (errorMessage: string) => {
   console.warn('Scan error:', errorMessage)
+  
+  // Si hay un error durante el escaneo, detener y mostrar mensaje
+  if (scanning.value) {
+    await stopQrScanner()
+    iniciandoEscaner.value = false
+    autoIniciado.value = false
+    
+    // Marcar que hubo un error para evitar reiniciar automáticamente
+    errorOcurrido.value = true
+    
+    await Swal.fire({
+      icon: 'error',
+      title: 'Error de escaneo',
+      text: errorMessage || 'Error al escanear el código QR',
+      confirmButtonColor: '#667eea',
+      allowOutsideClick: true,
+      allowEscapeKey: true
+    })
+    
+    // Volver al dashboard después del error
+    irAlDashboard()
+  }
 }
 
 const procesarToken = async (token: string) => {
@@ -464,8 +548,47 @@ const resetear = () => {
   tokenManual.value = ''
 }
 
-// Lifecycle
+// Lifecycle - Iniciar automáticamente al montar
+onMounted(async () => {
+  // Listener para el botón de atrás de Android
+  const backButtonListener = await App.addListener('backButton', () => {
+    irAlDashboard()
+  })
+  
+  // Guardar el listener para limpiarlo después
+  ;(window as any).__qrBackButtonListener = backButtonListener
+  
+  // Si ya hubo un error, no intentar iniciar automáticamente
+  if (errorOcurrido.value) {
+    return
+  }
+  
+  // Verificar permisos primero
+  const hasPermission = await checkPermissions()
+  
+  if (hasPermission) {
+    // Iniciar escáner automáticamente
+    autoIniciado.value = true
+    await iniciarEscaner()
+  } else {
+    // Si no hay permisos, intentar solicitarlos
+    const granted = await requestPermissions()
+    if (granted) {
+      autoIniciado.value = true
+      await iniciarEscaner()
+    } else {
+      permisoDenegado.value = true
+    }
+  }
+})
+
 onUnmounted(async () => {
+  // Limpiar el listener del botón de atrás
+  if ((window as any).__qrBackButtonListener) {
+    await (window as any).__qrBackButtonListener.remove()
+    delete (window as any).__qrBackButtonListener
+  }
+  
   await stopQrScanner()
 })
 </script>
