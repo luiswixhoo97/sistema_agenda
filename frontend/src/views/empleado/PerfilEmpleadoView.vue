@@ -1,9 +1,9 @@
 <template>
   <div class="perfil-view">
     <!-- Header -->
-    <div class="section">
-      <div class="profile-header ">
-        <div class="header-top ">
+    <div class="perfil-header-section">
+      <div class="profile-header">
+        <div class="header-top">
           <div class="profile-avatar">
             <img v-if="empleado?.foto" :src="empleado.foto" alt="Foto" />
             <span v-else class="avatar-letter">{{ iniciales }}</span>
@@ -13,11 +13,16 @@
             <p class="profile-bio" v-if="empleado?.bio">{{ empleado.bio }}</p>
             <div class="profile-meta">
               <span v-if="empleado?.especialidades" class="meta-tag">
-                <i class="fa fa-briefcase"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
                 {{ empleado.especialidades }}
               </span>
               <span v-if="empleado?.promedio_calificacion" class="meta-tag rating">
-                <i class="fa fa-star"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
                 {{ empleado.promedio_calificacion.toFixed(1) }}
               </span>
             </div>
@@ -27,8 +32,8 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
+    <div v-if="loading" class="loading-container">
+      <div class="loader"></div>
       <p>Cargando información...</p>
     </div>
 
@@ -36,24 +41,46 @@
       <!-- Información del Empleado -->
       <div class="section">
         <div class="info-card">
-          <h3 class="card-title">
-            <i class="fa fa-user"></i>
-            Mi Información
-          </h3>
+          <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <h3>Mi Información</h3>
+          </div>
           <div class="info-row">
-            <i class="fa fa-envelope"></i>
+            <div class="info-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+            </div>
             <span>{{ empleado?.email || 'No registrado' }}</span>
           </div>
           <div class="info-row">
-            <i class="fa fa-phone"></i>
+            <div class="info-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+            </div>
             <span>{{ empleado?.telefono || 'No registrado' }}</span>
           </div>
           <div class="info-row" v-if="empleado?.bio">
-            <i class="fa fa-quote-left"></i>
+            <div class="info-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path>
+                <path d="M15 21v-8a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"></path>
+              </svg>
+            </div>
             <span>{{ empleado.bio }}</span>
           </div>
           <div class="info-row horario-info">
-            <i class="fa fa-clock"></i>
+            <div class="info-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
             <div class="horario-simple">
               <span class="horario-text">{{ horarioTexto }}</span>
             </div>
@@ -64,10 +91,20 @@
       <!-- Estadísticas HOY -->
       <div class="section">
         <div class="resumen-card hoy">
-          <h3 class="card-title">
-            <i class="fa fa-sun"></i>
-            Hoy
-          </h3>
+          <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <h3>Hoy</h3>
+          </div>
           <div class="resumen-row">
             <div class="resumen-item">
               <span class="resumen-value">{{ estadisticas.hoy?.total || 0 }}</span>
@@ -85,7 +122,10 @@
             </div>
           </div>
           <div class="resumen-ingresos">
-            <i class="fa fa-dollar-sign"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
             <span>${{ estadisticas.hoy?.ingresos?.toFixed(0) || '0' }}</span>
             <small>ganado hoy</small>
           </div>
@@ -95,10 +135,15 @@
       <!-- Estadísticas SEMANA -->
       <div class="section">
         <div class="resumen-card semana">
-          <h3 class="card-title">
-            <i class="fa fa-calendar-week"></i>
-            Esta Semana
-          </h3>
+          <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <h3>Esta Semana</h3>
+          </div>
           <div class="resumen-row">
             <div class="resumen-item">
               <span class="resumen-value">{{ estadisticas.semana?.total || 0 }}</span>
@@ -121,47 +166,68 @@
       <!-- Estadísticas MES -->
       <div class="section">
         <div class="stats-container">
-          <h3 class="card-title">
-            <i class="fa fa-calendar-alt"></i>
-            Este Mes
-          </h3>
+          <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <h3>Este Mes</h3>
+          </div>
           <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon blue">
-              <i class="fa fa-calendar"></i>
+            <div class="stat-card">
+              <div class="stat-icon blue">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <div class="stat-info">
+                <span class="stat-number">{{ estadisticas.mes?.total || 0 }}</span>
+                <span class="stat-label">Citas Total</span>
+              </div>
             </div>
-            <div class="stat-info">
-              <span class="stat-number">{{ estadisticas.mes?.total || 0 }}</span>
-              <span class="stat-label">Citas Total</span>
+            <div class="stat-card">
+              <div class="stat-icon green">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+              </div>
+              <div class="stat-info">
+                <span class="stat-number">{{ estadisticas.mes?.completadas || 0 }}</span>
+                <span class="stat-label">Completadas</span>
+              </div>
             </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon green">
-              <i class="fa fa-check-circle"></i>
+            <div class="stat-card">
+              <div class="stat-icon purple">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+              </div>
+              <div class="stat-info">
+                <span class="stat-number">${{ estadisticas.mes?.ingresos?.toFixed(0) || '0' }}</span>
+                <span class="stat-label">Ingresos</span>
+              </div>
             </div>
-            <div class="stat-info">
-              <span class="stat-number">{{ estadisticas.mes?.completadas || 0 }}</span>
-              <span class="stat-label">Completadas</span>
+            <div class="stat-card">
+              <div class="stat-icon orange">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <line x1="18" y1="8" x2="23" y2="13"></line>
+                  <line x1="23" y1="8" x2="18" y2="13"></line>
+                </svg>
+              </div>
+              <div class="stat-info">
+                <span class="stat-number">{{ estadisticas.mes?.no_shows || 0 }}</span>
+                <span class="stat-label">No Shows</span>
+              </div>
             </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon purple">
-              <i class="fa fa-dollar-sign"></i>
-            </div>
-            <div class="stat-info">
-              <span class="stat-number">${{ estadisticas.mes?.ingresos?.toFixed(0) || '0' }}</span>
-              <span class="stat-label">Ingresos</span>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon orange">
-              <i class="fa fa-user-slash"></i>
-            </div>
-            <div class="stat-info">
-              <span class="stat-number">{{ estadisticas.mes?.no_shows || 0 }}</span>
-              <span class="stat-label">No Shows</span>
-            </div>
-          </div>
           </div>
         </div>
       </div>
@@ -169,13 +235,25 @@
       <!-- Totales históricos -->
       <div class="section">
         <div class="historial-card">
-          <h3 class="card-title">
-            <i class="fa fa-trophy"></i>
-            Mi Historial
-          </h3>
+          <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+              <path d="M4 22h16"></path>
+              <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+              <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+              <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+            </svg>
+            <h3>Mi Historial</h3>
+          </div>
           <div class="historial-item">
             <div class="historial-icon">
-              <i class="fa fa-users"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
             </div>
             <div class="historial-info">
               <span class="historial-value">{{ estadisticas.totales?.clientes_atendidos || 0 }}</span>
@@ -184,7 +262,9 @@
           </div>
           <div class="historial-item">
             <div class="historial-icon">
-              <i class="fa fa-check-double"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
             </div>
             <div class="historial-info">
               <span class="historial-value">{{ estadisticas.totales?.citas_completadas || 0 }}</span>
@@ -197,18 +277,26 @@
       <!-- Servicios -->
       <div class="section">
         <div class="servicios-list">
-          <h3 class="card-title">
-            <i class="fa fa-spa"></i>
-            Servicios que Ofrezco
-          </h3>
+          <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+            <h3>Servicios que Ofrezco</h3>
+          </div>
           <div v-for="servicio in servicios" :key="servicio.id" class="servicio-item">
             <div class="servicio-icon">
-              <i class="fa fa-cut"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+              </svg>
             </div>
             <div class="servicio-info">
               <span class="servicio-nombre">{{ servicio.nombre }}</span>
               <span class="servicio-duracion">
-                <i class="fa fa-clock"></i> {{ servicio.duracion_minutos }} min
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                {{ servicio.duracion_minutos }} min
               </span>
             </div>
             <div class="servicio-precio">
@@ -216,7 +304,11 @@
             </div>
           </div>
           <div v-if="servicios.length === 0" class="empty-servicios">
-            <i class="fa fa-info-circle"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
             <p>No tienes servicios asignados</p>
           </div>
         </div>
@@ -225,7 +317,11 @@
       <!-- Botón cerrar sesión -->
       <div class="section">
         <button class="btn-logout" @click="cerrarSesion">
-          <i class="fa fa-sign-out-alt"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
           Cerrar Sesión
         </button>
       </div>
@@ -351,19 +447,32 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ===== Apple-inspired Perfil Empleado View Design ===== */
+
 .perfil-view {
-  min-height: 100%;
-  background: var(--color-background);
+  min-height: 100vh;
+  background: #f5f5f7;
   padding-bottom: 100px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ===== PROFILE HEADER ===== */
+/* Header Section */
+.perfil-header-section {
+  background: #f5f5f7;
+  padding: 24px 20px 20px;
+  margin-bottom: 0;
+}
+
 .profile-header {
-  background: var(--color-card);
-  border-radius: 14px;
-  padding: 16px;
-  margin-top: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 1;
 }
 
 .header-top {
@@ -373,16 +482,17 @@ onMounted(() => {
 }
 
 .profile-avatar {
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ec407a, #c2185b);
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 2px solid var(--color-border);
+  border: 4px solid rgba(255, 255, 255, 0.2);
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
 }
 
 .profile-avatar img {
@@ -392,9 +502,10 @@ onMounted(() => {
 }
 
 .avatar-letter {
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 700;
   color: white;
+  letter-spacing: -1px;
 }
 
 .header-info {
@@ -403,294 +514,156 @@ onMounted(() => {
 }
 
 .header-info h1 {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 8px;
+  letter-spacing: -0.3px;
 }
 
 .profile-bio {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  margin: 0 0 10px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 12px;
   line-height: 1.5;
 }
 
 .profile-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 .meta-tag {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  padding: 4px 10px;
-  background: var(--color-background);
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 500;
 }
 
-.meta-tag i {
-  font-size: 10px;
-  color: #ec407a;
+.meta-tag svg {
+  flex-shrink: 0;
+  color: white;
 }
 
 .meta-tag.rating {
-  color: #ff9800;
+  color: #ff9500;
 }
 
-.meta-tag.rating i {
-  color: #ffc107;
+.meta-tag.rating svg {
+  color: #ff9500;
 }
 
-/* ===== LOADING ===== */
-.loading-state {
-  text-align: center;
+/* Loading */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 60px 20px;
+  text-align: center;
 }
 
-.spinner {
-  width: 44px;
-  height: 44px;
-  border: 3px solid rgba(236,64,122,0.2);
-  border-top-color: #ec407a;
+.loader {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f5f5f7;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin: 0 auto 16px;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ===== SECTIONS ===== */
-.section {
-  padding: 0 16px;
   margin-bottom: 16px;
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: #86868b;
+  font-size: 15px;
+  margin: 0;
+}
+
+/* Sections */
+.section {
+  padding: 0 20px;
+  margin-bottom: 16px;
+}
+
+.section:first-of-type {
+  margin-top: 0;
+}
+
+/* Card Title */
 .card-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #e5e5ea;
 }
 
-.card-title i {
-  color: #ec407a;
-  font-size: 15px;
+.card-title svg {
+  color: #007aff;
+  flex-shrink: 0;
 }
 
-/* ===== RESUMEN CARDS ===== */
-.resumen-card {
-  background: var(--color-card);
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+.card-title h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.3px;
 }
 
-.resumen-card .card-title {
-  margin-bottom: 12px;
+/* Info Card */
+.info-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e5ea;
 }
 
-.resumen-card.hoy {
-  border-left: 4px solid #ff9800;
-}
-
-.resumen-card.semana {
-  border-left: 4px solid #2196f3;
-}
-
-.resumen-row {
+.info-row {
   display: flex;
-  justify-content: space-around;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #e5e5ea;
 }
 
-.resumen-item {
-  text-align: center;
-  flex: 1;
-}
-
-.resumen-divider {
-  width: 1px;
-  height: 40px;
-  background: var(--color-border);
-}
-
-.resumen-value {
-  display: block;
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--color-text);
-  line-height: 1;
-}
-
-.resumen-value.success { color: #4caf50; }
-.resumen-value.warning { color: #ff9800; }
-.resumen-value.primary { color: #ec407a; }
-
-.resumen-label {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  margin-top: 4px;
-}
-
-.resumen-ingresos {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border);
-}
-
-.resumen-ingresos i {
-  color: #4caf50;
-  font-size: 16px;
-}
-
-.resumen-ingresos span {
-  font-size: 22px;
-  font-weight: 800;
-  color: #4caf50;
-}
-
-.resumen-ingresos small {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-/* ===== STATS CONTAINER ===== */
-.stats-container {
-  background: var(--color-card);
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.stats-container .card-title {
-  margin-bottom: 12px;
-}
-
-/* ===== STATS GRID ===== */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.stat-card {
-  background: var(--color-card);
-  border-radius: 12px;
-  padding: 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-}
-
-.stat-icon.blue { background: rgba(33, 150, 243, 0.15); color: #2196f3; }
-.stat-icon.green { background: rgba(76, 175, 80, 0.15); color: #4caf50; }
-.stat-icon.purple { background: rgba(156, 39, 176, 0.15); color: #9c27b0; }
-.stat-icon.orange { background: rgba(255, 152, 0, 0.15); color: #ff9800; }
-
-.stat-info {
-  flex: 1;
-}
-
-.stat-number {
-  display: block;
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--color-text);
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 10px;
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-/* ===== HISTORIAL ===== */
-.historial-card {
-  background: var(--color-card);
-  border-radius: 14px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.historial-card .card-title {
-  margin-bottom: 12px;
-}
-
-.historial-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.historial-item:first-of-type {
+.info-row:first-of-type {
   padding-top: 0;
 }
 
-.historial-item:last-child {
+.info-row:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
 
-.historial-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ec407a, #c2185b);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 18px;
+.info-icon {
+  width: 20px;
+  height: 20px;
+  color: #007aff;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
-.historial-info {
+.info-row span {
   flex: 1;
+  font-size: 15px;
+  color: #1d1d1f;
+  line-height: 1.5;
 }
 
-.historial-value {
-  display: block;
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--color-text);
-}
-
-.historial-label {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-/* ===== HORARIO SIMPLE ===== */
 .info-row.horario-info {
   align-items: flex-start;
 }
@@ -701,28 +674,238 @@ onMounted(() => {
 
 .horario-text {
   font-size: 14px;
-  color: var(--color-text);
-  line-height: 1.4;
+  color: #1d1d1f;
+  line-height: 1.5;
 }
 
-/* ===== SERVICIOS ===== */
-.servicios-list {
-  background: var(--color-card);
+/* Resumen Cards */
+.resumen-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e5ea;
+}
+
+.resumen-card.hoy {
+  border-left: 4px solid #ff9500;
+}
+
+.resumen-card.semana {
+  border-left: 4px solid #007aff;
+}
+
+.resumen-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.resumen-item {
+  text-align: center;
+  flex: 1;
+}
+
+.resumen-divider {
+  width: 1px;
+  height: 40px;
+  background: #e5e5ea;
+}
+
+.resumen-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1d1d1f;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.resumen-value.success { color: #34c759; }
+.resumen-value.warning { color: #ff9500; }
+.resumen-value.primary { color: #007aff; }
+
+.resumen-label {
+  font-size: 11px;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 6px;
+}
+
+.resumen-ingresos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e5ea;
+}
+
+.resumen-ingresos svg {
+  color: #34c759;
+  flex-shrink: 0;
+}
+
+.resumen-ingresos span {
+  font-size: 24px;
+  font-weight: 700;
+  color: #34c759;
+  letter-spacing: -0.5px;
+}
+
+.resumen-ingresos small {
+  font-size: 13px;
+  color: #86868b;
+  margin-left: 4px;
+}
+
+/* Stats Container */
+.stats-container {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e5ea;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.stat-card {
+  background: #f5f5f7;
   border-radius: 14px;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e5e5ea;
+  transition: all 0.2s;
 }
 
-.servicios-list .card-title {
-  margin-bottom: 12px;
+.stat-card:active {
+  transform: scale(0.98);
+  background: #e5e5ea;
+}
+
+.stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon.blue { background: linear-gradient(135deg, #007aff 0%, #5ac8fa 100%); }
+.stat-icon.green { background: linear-gradient(135deg, #34c759 0%, #30d158 100%); }
+.stat-icon.purple { background: linear-gradient(135deg, #5856d6 0%, #af52de 100%); }
+.stat-icon.orange { background: linear-gradient(135deg, #ff9500 0%, #ffad33 100%); }
+
+.stat-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-number {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1d1d1f;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* Historial Card */
+.historial-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e5ea;
+}
+
+.historial-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid #e5e5ea;
+}
+
+.historial-item:first-of-type {
+  padding-top: 0;
+}
+
+.historial-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.historial-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+
+.historial-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.historial-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+}
+
+.historial-label {
+  font-size: 13px;
+  color: #86868b;
+  margin-top: 2px;
+}
+
+/* Servicios List */
+.servicios-list {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e5ea;
 }
 
 .servicio-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid #e5e5ea;
 }
 
 .servicio-item:first-of-type {
@@ -731,112 +914,82 @@ onMounted(() => {
 
 .servicio-item:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
 
 .servicio-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgba(236,64,122,0.1), rgba(236,64,122,0.2));
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.1) 0%, rgba(88, 86, 214, 0.1) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ec407a;
-  font-size: 16px;
+  color: #007aff;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 122, 255, 0.2);
 }
 
 .servicio-info {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .servicio-nombre {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--color-text);
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
 }
 
 .servicio-duracion {
-  font-size: 11px;
-  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #86868b;
 }
 
-.servicio-duracion i {
-  margin-right: 4px;
+.servicio-duracion svg {
+  flex-shrink: 0;
 }
 
 .servicio-precio {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
-  color: #ec407a;
+  color: #007aff;
+  flex-shrink: 0;
+  letter-spacing: -0.3px;
 }
 
 .empty-servicios {
-  padding: 30px;
+  padding: 40px 20px;
   text-align: center;
-  color: var(--color-text-secondary);
+  color: #86868b;
 }
 
-.empty-servicios i {
-  font-size: 30px;
-  margin-bottom: 10px;
+.empty-servicios svg {
+  margin-bottom: 12px;
   opacity: 0.5;
 }
 
 .empty-servicios p {
   margin: 0;
-  font-size: 13px;
-}
-
-/* ===== INFO CARD ===== */
-.info-card {
-  background: var(--color-card);
-  border-radius: 14px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.info-card .card-title {
-  margin-bottom: 12px;
-}
-
-.info-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.info-row:first-of-type {
-  padding-top: 0;
-}
-
-.info-row:last-child {
-  border-bottom: none;
-}
-
-.info-row i {
-  width: 20px;
-  color: #ec407a;
   font-size: 14px;
-  margin-top: 2px;
 }
 
-.info-row span {
-  flex: 1;
-  font-size: 14px;
-  color: var(--color-text);
-}
-
-/* ===== LOGOUT BTN ===== */
+/* Logout Button */
 .btn-logout {
   width: 100%;
-  padding: 16px;
-  background: rgba(239, 68, 68, 0.1);
-  border: none;
+  padding: 16px 20px;
+  background: #ffebee;
+  border: 1px solid #ffcdd2;
   border-radius: 14px;
-  color: #ef4444;
+  color: #ff3b30;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -847,9 +1000,95 @@ onMounted(() => {
   transition: all 0.2s;
 }
 
-.btn-logout:hover {
-  background: #ef4444;
+.btn-logout:active {
+  background: #ff3b30;
   color: white;
+  transform: scale(0.98);
+}
+
+.btn-logout svg {
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .perfil-header-section {
+    padding: 20px 16px 28px;
+  }
+  
+  .profile-header {
+    padding: 16px;
+    border-radius: 16px;
+  }
+  
+  .profile-avatar {
+    width: 70px;
+    height: 70px;
+    border-width: 3px;
+  }
+  
+  .avatar-letter {
+    font-size: 28px;
+  }
+  
+  .header-info h1 {
+    font-size: 20px;
+  }
+  
+  .section {
+    padding: 0 16px;
+  }
+  
+  .info-card,
+  .resumen-card,
+  .stats-container,
+  .historial-card,
+  .servicios-list {
+    padding: 16px;
+    border-radius: 16px;
+  }
+  
+  .card-title h3 {
+    font-size: 16px;
+  }
+  
+  .resumen-value {
+    font-size: 24px;
+  }
+  
+  .resumen-ingresos span {
+    font-size: 20px;
+  }
+  
+  .stats-grid {
+    gap: 10px;
+  }
+  
+  .stat-card {
+    padding: 14px;
+  }
+  
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .stat-number {
+    font-size: 18px;
+  }
+  
+  .historial-icon {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .historial-value {
+    font-size: 22px;
+  }
+  
+  .servicio-icon {
+    width: 40px;
+    height: 40px;
+  }
 }
 </style>
-

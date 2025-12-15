@@ -5,7 +5,12 @@
       <!-- Info Card -->
       <div class="header-info-card">
         <div class="header-icon">
-          <i class="fa fa-calendar-check"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
         </div>
         <div class="header-text">
           <h2>Mis Citas</h2>
@@ -22,114 +27,138 @@
       </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="filtros-card">
-      <div class="filtro-grupo">
-        <label><i class="fa fa-filter"></i> Estado</label>
-        <select v-model="filtroEstado" @change="cargarCitas">
-          <option value="">Todos</option>
-          <option value="pendiente">Pendientes</option>
-          <option value="confirmada">Confirmadas</option>
+    <!-- Filters -->
+    <section class="filters-section">
+      <div class="filters-row">
+        <select 
+          v-model="filtroEstado" 
+          @change="cargarCitas" 
+          class="filter-select"
+        >
+          <option value="">Todos los estados</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="confirmada">Confirmada</option>
           <option value="en_proceso">En proceso</option>
-          <option value="completada">Completadas</option>
-          <option value="cancelada">Canceladas</option>
-          <option value="reagendada">Reagendadas</option>
+          <option value="completada">Completada</option>
+          <option value="cancelada">Cancelada</option>
+          <option value="reagendada">Reagendada</option>
         </select>
+        <input 
+          type="date" 
+          v-model="filtroFecha" 
+          @change="cargarCitas"
+          class="filter-date"
+        />
       </div>
-      <div class="filtro-grupo">
-        <label><i class="fa fa-calendar"></i> Fecha</label>
-        <input type="date" v-model="filtroFecha" @change="cargarCitas" />
+    </section>
+
+    <!-- Citas List -->
+    <div class="citas-container">
+      <div v-if="loading" class="loading-container">
+        <div class="loader"></div>
+        <p>Cargando citas...</p>
       </div>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Cargando citas...</p>
-    </div>
-
-    <!-- Empty -->
-    <div v-else-if="citasFiltradas.length === 0" class="empty-state">
-      <div class="empty-icon">📭</div>
-      <h3>Sin citas</h3>
-      <p>No tienes citas con estos filtros</p>
-      <button v-if="filtroEstado || filtroFecha" class="clear-btn" @click="limpiarFiltros">
-        <i class="fa fa-times"></i> Limpiar filtros
-      </button>
-    </div>
-
-    <!-- Lista de citas -->
-    <div v-else class="citas-lista">
-      <!-- Próxima cita destacada -->
-      <div v-if="proximaCita" class="proxima-cita-card">
-        <div class="proxima-header">
-          <span class="proxima-label">
-            <i class="fa fa-star"></i> Próxima cita
-          </span>
-          <span class="proxima-tiempo">{{ tiempoRestante(proximaCita) }}</span>
+      
+      <div v-else-if="citasFiltradas.length === 0" class="empty-state">
+        <div class="empty-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
         </div>
-        <div class="proxima-body" @click="verDetalle(proximaCita)">
-          <div class="proxima-fecha">
-            <span class="fecha-dia">{{ formatDia(proximaCita.fecha_hora) }}</span>
-            <span class="fecha-hora">{{ formatHora(proximaCita.fecha_hora) }}</span>
+        <p>No hay citas que mostrar</p>
+        <button v-if="filtroEstado || filtroFecha" class="clear-btn" @click="limpiarFiltros">
+          Limpiar filtros
+        </button>
+      </div>
+      
+      <div v-else class="citas-list">
+        <!-- Próxima cita destacada -->
+        <div v-if="proximaCita" class="cita-card featured" @click="verDetalle(proximaCita)">
+          <div class="featured-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            Próxima cita • {{ tiempoRestante(proximaCita) }}
           </div>
-          <div class="proxima-info">
-            <h4>{{ proximaCita.cliente?.nombre }}</h4>
-            <div class="servicios-info">
-              <span class="servicios-count" v-if="getServiciosList(proximaCita).length > 1">
-                {{ getServiciosList(proximaCita).length }} servicios
+          <div class="cita-card-body">
+            <div class="cita-time-row">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span class="cita-time">{{ formatFecha(proximaCita.fecha_hora) }}</span>
+              <span :class="['cita-status', proximaCita.estado]">
+                {{ estadoTexto(proximaCita.estado) }}
               </span>
-              <p class="servicios-nombres">{{ getServiciosList(proximaCita).map((s: any) => s.nombre).join(', ') }}</p>
+            </div>
+            
+            <div class="cita-info-grid">
+              <div class="cita-info-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span class="cita-info-label">Cliente</span>
+                <span class="cita-info-value">{{ proximaCita.cliente?.nombre || 'Sin cliente' }}</span>
+              </div>
+            </div>
+            
+            <div class="cita-servicios-row">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+              </svg>
+              <span class="cita-servicios-text">{{ getServiciosNombres(proximaCita) }}</span>
             </div>
           </div>
-          <div class="proxima-arrow">
-            <i class="fa fa-chevron-right"></i>
-          </div>
-        </div>
-      </div>
-
-      <!-- Resto de citas -->
-      <div class="lista-titulo" v-if="otrasCitas.length > 0">
-        <span>Todas las citas</span>
-        <span class="contador">{{ otrasCitas.length }}</span>
-      </div>
-
-      <div 
-        v-for="cita in otrasCitas" 
-        :key="cita.id"
-        class="cita-card"
-        @click="verDetalle(cita)"
-      >
-        <div class="cita-estado-bar" :class="cita.estado"></div>
-        
-        <div class="cita-fecha">
-          <span class="dia">{{ formatDiaCorto(cita.fecha_hora) }}</span>
-          <span class="hora">{{ formatHora(cita.fecha_hora) }}</span>
         </div>
 
-        <div class="cita-body">
-          <div class="cita-cliente">{{ cita.cliente?.nombre }}</div>
-          <div class="cita-servicios">
-            <span class="servicios-count-badge" v-if="getServiciosList(cita).length > 1">
-              {{ getServiciosList(cita).length }}
-            </span>
-            <span class="servicios-nombres">
-              {{ getServiciosList(cita).map((s: any) => s.nombre).join(', ') }}
-            </span>
+        <!-- Resto de citas -->
+        <div 
+          v-for="cita in otrasCitas" 
+          :key="cita.id" 
+          class="cita-card"
+          @click="verDetalle(cita)"
+        >
+          <div class="cita-card-body">
+            <div class="cita-time-row">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span class="cita-time">{{ formatFecha(cita.fecha_hora) }}</span>
+              <span :class="['cita-status', cita.estado]">
+                {{ estadoTexto(cita.estado) }}
+              </span>
+            </div>
+            
+            <div class="cita-info-grid">
+              <div class="cita-info-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span class="cita-info-label">Cliente</span>
+                <span class="cita-info-value">{{ cita.cliente?.nombre || 'Sin cliente' }}</span>
+              </div>
+            </div>
+            
+            <div class="cita-servicios-row">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+              </svg>
+              <span class="cita-servicios-text">{{ getServiciosNombres(cita) }}</span>
+            </div>
           </div>
-          <div class="cita-meta">
-            <span class="meta-item">
-              <i class="fa fa-clock"></i>
-              {{ cita.duracion_total }} min
-            </span>
-            <span :class="['badge', cita.estado]">
-              {{ estadoTexto(cita.estado) }}
-            </span>
+          
+          <div class="cita-card-footer">
+            <div class="cita-price">
+              <span class="price-label">Total</span>
+              <span class="price-value">${{ formatPrecio((cita as any).precio_final || (cita as any).precio_total || 0) }}</span>
+            </div>
           </div>
-        </div>
-
-        <div class="cita-arrow">
-          <i class="fa fa-chevron-right"></i>
         </div>
       </div>
     </div>
@@ -137,23 +166,25 @@
     <!-- Modal detalle -->
     <Teleport to="body">
       <Transition name="modal">
-        <div v-if="citaDetalle" class="modal-backdrop" @click="citaDetalle = null">
-          <div class="modal-card" @click.stop>
+        <div v-if="citaDetalle" class="modal-overlay" @click="citaDetalle = null">
+          <div class="modal-content" @click.stop>
             <div class="modal-header">
-              <h3>Detalle de Cita</h3>
+              <div>
+                <h3>Detalle de Cita</h3>
+                <p class="modal-subtitle">Cita #{{ citaDetalle.id }}</p>
+              </div>
               <button class="modal-close" @click="citaDetalle = null">
-                <i class="fa fa-times"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
               </button>
             </div>
             <div class="modal-body">
               <!-- Vista Detalle -->
               <div class="cita-detail">
-                <!-- Header con ID y Estado -->
-                <div class="detail-header">
-                  <div class="detail-id">
-                    <span class="id-label">Cita #</span>
-                    <span class="id-value">{{ citaDetalle.id }}</span>
-                  </div>
+                <!-- Estado Badge -->
+                <div class="detail-status-badge">
                   <span :class="['status-badge-large', citaDetalle.estado]">
                     {{ estadoTexto(citaDetalle.estado) }}
                   </span>
@@ -162,19 +193,30 @@
                 <!-- Información Principal -->
                 <div class="detail-section">
                   <div class="section-title">
-                    <i class="fa fa-calendar-alt"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
                     <span>Fecha y Hora</span>
                   </div>
                   <div class="info-block">
                     <div class="info-item">
-                      <i class="fa fa-clock"></i>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
                       <div class="info-content">
                         <span class="info-label">Fecha</span>
                         <span class="info-value">{{ formatFechaCompleta(citaDetalle.fecha_hora) }}</span>
                       </div>
                     </div>
                     <div class="info-item">
-                      <i class="fa fa-hourglass-half"></i>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
                       <div class="info-content">
                         <span class="info-label">Duración estimada</span>
                         <span class="info-value">{{ getDuracionTotal(citaDetalle) }} minutos</span>
@@ -186,7 +228,10 @@
                 <!-- Cliente -->
                 <div class="detail-section">
                   <div class="section-title">
-                    <i class="fa fa-user"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
                     <span>Cliente</span>
                   </div>
                   <div class="info-block">
@@ -197,7 +242,9 @@
                       </div>
                     </div>
                     <div class="info-item" v-if="citaDetalle.cliente?.telefono">
-                      <i class="fa fa-phone"></i>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                      </svg>
                       <div class="info-content">
                         <span class="info-label">Teléfono</span>
                         <span class="info-value">
@@ -208,7 +255,10 @@
                       </div>
                     </div>
                     <div class="info-item" v-if="citaDetalle.cliente?.email">
-                      <i class="fa fa-envelope"></i>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                      </svg>
                       <div class="info-content">
                         <span class="info-label">Email</span>
                         <span class="info-value">{{ citaDetalle.cliente.email }}</span>
@@ -220,7 +270,9 @@
                 <!-- Servicios -->
                 <div class="detail-section">
                   <div class="section-title">
-                    <i class="fa fa-cut"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                    </svg>
                     <span>Servicios 
                       <span class="servicios-count-title" v-if="getServiciosList(citaDetalle).length > 1">
                         ({{ getServiciosList(citaDetalle).length }})
@@ -253,7 +305,13 @@
                 <!-- Notas -->
                 <div class="detail-section" v-if="citaDetalle.notas">
                   <div class="section-title">
-                    <i class="fa fa-sticky-note"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
                     <span>Notas</span>
                   </div>
                   <div class="notas-content">
@@ -268,7 +326,9 @@
                     class="btn-action-secondary"
                     @click="cambiarEstado('en_proceso')"
                   >
-                    <i class="fa fa-play"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
                     Iniciar Cita
                   </button>
                   <button 
@@ -276,7 +336,9 @@
                     class="btn-action-primary"
                     @click="cambiarEstado('completada')"
                   >
-                    <i class="fa fa-check"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
                     Marcar como Completada
                   </button>
                   <div class="action-buttons-group">
@@ -285,7 +347,12 @@
                       class="btn-action-reagendar"
                       @click="abrirModalReagendar(citaDetalle)"
                     >
-                      <i class="fa fa-calendar-alt"></i>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
                       Reagendar
                     </button>
                     <button 
@@ -293,16 +360,22 @@
                       class="btn-action-cancel"
                       @click="confirmarCancelacion(citaDetalle)"
                     >
-                      <i class="fa fa-times"></i>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
                       Cancelar
                     </button>
                   </div>
                   <a 
-                    :href="`https://wa.me/52${citaDetalle.cliente?.telefono}`"
+                    v-if="citaDetalle.cliente?.telefono"
+                    :href="`https://wa.me/52${citaDetalle.cliente.telefono}`"
                     target="_blank"
                     class="btn-action-whatsapp"
                   >
-                    <i class="fab fa-whatsapp"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    </svg>
                     WhatsApp
                   </a>
                 </div>
@@ -321,7 +394,10 @@
             <div class="modal-header">
               <h3>Nueva Cita</h3>
               <button class="modal-close" @click="cerrarModalNuevaCita">
-                <i class="fa fa-times"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
               </button>
             </div>
 
@@ -621,7 +697,10 @@
 
     <!-- Botón flotante agregar cita -->
     <button class="btn-fab-add-cita" @click="abrirModalNuevaCita" title="Nueva cita">
-      <i class="fa fa-plus"></i>
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
     </button>
 
     <!-- Modal Reagendar Cita -->
@@ -632,7 +711,10 @@
             <div class="modal-header">
               <h3>Reagendar Cita #{{ citaAReagendar?.id }}</h3>
               <button class="modal-close" @click="cerrarModalReagendar">
-                <i class="fa fa-times"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
               </button>
             </div>
             <div class="modal-body">
@@ -1150,19 +1232,32 @@ function tiempoRestante(cita: Cita): string {
   return `En ${minutos} min`
 }
 
-function formatDia(fecha: string): string {
+function formatFecha(fecha: string): string {
+  if (!fecha) return '--:--'
   const fechaISO = fecha.replace(' ', 'T')
-  return new Date(fechaISO).toLocaleDateString('es-MX', {
+  const date = new Date(fechaISO)
+  const hoy = new Date()
+  const manana = new Date(hoy)
+  manana.setDate(manana.getDate() + 1)
+  
+  // Si es hoy, mostrar solo la hora
+  if (date.toDateString() === hoy.toDateString()) {
+    return `Hoy ${date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`
+  }
+  
+  // Si es mañana
+  if (date.toDateString() === manana.toDateString()) {
+    return `Mañana ${date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`
+  }
+  
+  // Otros días
+  return date.toLocaleDateString('es-MX', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
   })
-}
-
-function formatDiaCorto(fecha: string): string {
-  const fechaISO = fecha.replace(' ', 'T')
-  const d = new Date(fechaISO)
-  return `${d.getDate()}/${d.getMonth() + 1}`
 }
 
 function formatHora(fecha: string): string {
@@ -1171,6 +1266,13 @@ function formatHora(fecha: string): string {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function getServiciosNombres(cita: any): string {
+  const servicios = getServiciosList(cita)
+  if (servicios.length === 0) return 'Sin servicio'
+  if (servicios.length === 1) return servicios[0].nombre
+  return `${servicios.length} servicios: ${servicios.map((s: any) => s.nombre).join(', ')}`
 }
 
 function formatFechaCompleta(fecha: string): string {
@@ -1590,10 +1692,15 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ===== Apple-inspired Citas Empleado View Design ===== */
+
 .citas-view {
-  min-height: 100%;
-  background: var(--color-background);
+  min-height: 100vh;
+  background: #f5f5f7;
   padding-bottom: 100px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ===== HEADER ROW ===== */
@@ -1611,25 +1718,24 @@ onMounted(() => {
   align-items: center;
   gap: 14px;
   padding: 16px;
-  background: var(--color-card);
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .header-icon {
   width: 50px;
   height: 50px;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(236,64,122,0.1), rgba(236,64,122,0.2));
+  background: rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.header-icon i {
-  font-size: 22px;
-  color: #ec407a;
+.header-icon svg {
+  color: white;
 }
 
 .header-text {
@@ -1640,13 +1746,13 @@ onMounted(() => {
 .header-text h2 {
   font-size: 20px;
   font-weight: 700;
-  color: var(--color-text);
+  color: white;
   margin: 0;
 }
 
 .header-text p {
   font-size: 13px;
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.7);
   margin: 4px 0 0;
 }
 
@@ -1657,11 +1763,11 @@ onMounted(() => {
 
 .stat-item {
   height: 100%;
-  background: linear-gradient(135deg, #ec407a, #c2185b);
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
   padding: 16px 12px;
   border-radius: 16px;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.3);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1678,390 +1784,322 @@ onMounted(() => {
 
 .stat-label {
   font-size: 11px;
-  color: rgba(255,255,255,0.9);
+  color: rgba(255,255,255,0.7);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 600;
 }
 
-/* ===== FILTROS ===== */
-.filtros-card {
+/* ===== FILTERS ===== */
+.filters-section {
+  padding: 0 20px 20px;
+}
+
+.filters-row {
   display: flex;
   gap: 12px;
-  padding: 16px;
-  margin: 0 16px 16px;
-  background: var(--color-card);
-  border-radius: 16px;
 }
 
-.filtro-grupo {
+.filter-select,
+.filter-date {
   flex: 1;
+  padding: 14px 16px;
+  border: 1px solid #e5e5ea;
+  border-radius: 14px;
+  font-size: 15px;
+  background: white;
+  color: #1d1d1f;
+  transition: all 0.2s;
+  font-family: inherit;
 }
 
-.filtro-grupo label {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  margin-bottom: 6px;
-}
-
-.filtro-grupo label i {
-  margin-right: 4px;
-  color: #ec407a;
-}
-
-.filtro-grupo select,
-.filtro-grupo input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 2px solid var(--color-border);
-  border-radius: 10px;
-  font-size: 13px;
-  background: var(--color-background);
-  color: var(--color-text);
-}
-
-.filtro-grupo select:focus,
-.filtro-grupo input:focus {
+.filter-select:focus,
+.filter-date:focus {
   outline: none;
-  border-color: #ec407a;
+  border-color: #007aff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
 /* ===== LOADING & EMPTY ===== */
-.loading-state {
-  text-align: center;
-  padding: 60px 20px;
+.citas-container {
+  padding: 0 20px;
 }
 
-.spinner {
-  width: 44px;
-  height: 44px;
-  border: 3px solid rgba(236,64,122,0.2);
-  border-top-color: #ec407a;
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.loader {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f5f5f7;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin: 0 auto 16px;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.loading-state p {
-  color: var(--color-text-secondary);
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-}
-
-.empty-icon {
-  font-size: 60px;
   margin-bottom: 16px;
 }
 
-.empty-state h3 {
-  font-size: 18px;
-  color: var(--color-text);
-  margin: 0 0 8px;
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: #86868b;
+  font-size: 15px;
+  margin: 0;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  color: #d1d1d6;
+  margin-bottom: 16px;
 }
 
 .empty-state p {
-  font-size: 14px;
-  color: var(--color-text-secondary);
+  color: #86868b;
+  font-size: 15px;
   margin: 0 0 20px;
 }
 
 .clear-btn {
   padding: 12px 20px;
-  background: linear-gradient(135deg, #ec407a, #c2185b);
+  background: #007aff;
   color: white;
   border: none;
   border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-/* ===== LISTA ===== */
-.citas-lista {
-  padding: 0 16px;
+.clear-btn:active {
+  transform: scale(0.98);
+  background: #0051d5;
 }
 
-/* Próxima cita */
-.proxima-cita-card {
-  background: linear-gradient(135deg, #fff8e1, #ffecb3);
-  border-radius: 20px;
-  margin-bottom: 20px;
-  overflow: hidden;
-  border: 2px solid #ffc107;
-}
-
-.proxima-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: rgba(255,193,7,0.3);
-}
-
-.proxima-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #f57c00;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.proxima-tiempo {
-  font-size: 12px;
-  font-weight: 600;
-  color: #e65100;
-  background: white;
-  padding: 4px 10px;
-  border-radius: 10px;
-}
-
-.proxima-body {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  cursor: pointer;
-}
-
-.proxima-fecha {
-  text-align: center;
-  padding-right: 14px;
-  border-right: 2px solid rgba(0,0,0,0.1);
-}
-
-.fecha-dia {
-  display: block;
-  font-size: 11px;
-  color: #666;
-  text-transform: uppercase;
-}
-
-.fecha-hora {
-  display: block;
-  font-size: 20px;
-  font-weight: 700;
-  color: #333;
-}
-
-.proxima-info {
-  flex: 1;
-}
-
-.proxima-info h4 {
-  margin: 0 0 4px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.proxima-info p {
-  margin: 0;
-  font-size: 13px;
-  color: #666;
-}
-
-.proxima-arrow {
-  color: #f57c00;
-  font-size: 16px;
-}
-
-/* Lista título */
-.lista-titulo {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  margin-bottom: 8px;
-}
-
-.lista-titulo span:first-child {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.contador {
-  font-size: 12px;
-  background: rgba(0,0,0,0.08);
-  padding: 4px 10px;
-  border-radius: 10px;
-  color: var(--color-text-secondary);
-}
-
-/* Cita card */
-.cita-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--color-card);
-  border-radius: 16px;
-  margin-bottom: 10px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.cita-card:hover {
-  transform: translateX(4px);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-.cita-estado-bar {
-  width: 4px;
-  align-self: stretch;
-}
-
-.cita-estado-bar.pendiente { background: #ff9800; }
-.cita-estado-bar.confirmada { background: #4caf50; }
-.cita-estado-bar.en_proceso { background: #2196f3; }
-.cita-estado-bar.completada { background: #9c27b0; }
-.cita-estado-bar.cancelada { background: #f44336; }
-.cita-estado-bar.no_show { background: #9e9e9e; }
-.cita-estado-bar.reagendada { background: #ff9800; }
-
-.cita-fecha {
-  text-align: center;
-  padding: 16px 12px;
-  min-width: 60px;
-}
-
-.cita-fecha .dia {
-  display: block;
-  font-size: 11px;
-  color: var(--color-text-secondary);
-}
-
-.cita-fecha .hora {
-  display: block;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.cita-body {
-  flex: 1;
-  padding: 14px 0;
-}
-
-.cita-cliente {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 2px;
-}
-
-.cita-servicios {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  margin-bottom: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 180px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.servicios-count-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  background: linear-gradient(135deg, #ec407a, #d81b60);
-  color: white;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.servicios-nombres {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.servicios-info {
+/* ===== CITAS LIST ===== */
+.citas-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 12px;
 }
 
-.servicios-count {
-  font-size: 11px;
+.cita-card {
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #e5e5ea;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.cita-card:active {
+  transform: scale(0.99);
+  background: #f8f9fa;
+}
+
+.cita-card.featured {
+  border: 2px solid #ff9500;
+  background: linear-gradient(135deg, #fff8e1 0%, #ffffff 100%);
+  box-shadow: 0 4px 16px rgba(255, 149, 0, 0.2);
+}
+
+.featured-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255, 149, 0, 0.15);
+  font-size: 12px;
   font-weight: 600;
-  color: #ec407a;
+  color: #ff9500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.servicios-count-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #ec407a;
-  margin-left: 4px;
+.featured-badge svg {
+  width: 14px;
+  height: 14px;
 }
 
-.cita-meta {
+.cita-card-body {
+  padding: 18px 20px;
+}
+
+.cita-time-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cita-time-row svg {
+  color: #007aff;
+  flex-shrink: 0;
+}
+
+.cita-time {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
+  flex: 1;
+}
+
+.cita-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 12px;
+  white-space: nowrap;
+  text-transform: capitalize;
+  letter-spacing: 0.2px;
+}
+
+.cita-status.pendiente {
+  background: rgba(255, 149, 0, 0.12);
+  color: #ff9500;
+}
+
+.cita-status.confirmada {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34c759;
+}
+
+.cita-status.en_proceso {
+  background: rgba(0, 122, 255, 0.12);
+  color: #007aff;
+}
+
+.cita-status.completada {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34c759;
+}
+
+.cita-status.cancelada {
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
+}
+
+.cita-status.reagendada {
+  background: rgba(255, 149, 0, 0.12);
+  color: #ff9500;
+}
+
+.cita-info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.cita-info-item {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.meta-item {
-  font-size: 11px;
-  color: var(--color-text-secondary);
+.cita-info-item svg {
+  color: #86868b;
+  flex-shrink: 0;
 }
 
-.meta-item i {
-  margin-right: 4px;
-  color: #ec407a;
-}
-
-.badge {
-  padding: 3px 8px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.badge.pendiente { background: #fff3e0; color: #e65100; }
-.badge.confirmada { background: #e8f5e9; color: #2e7d32; }
-.badge.en_proceso { background: #e3f2fd; color: #1565c0; }
-.badge.completada { background: #f3e5f5; color: #7b1fa2; }
-.badge.cancelada { background: #ffebee; color: #c62828; }
-.badge.no_show { background: #fafafa; color: #616161; }
-.badge.reagendada { background: #fff3e0; color: #e65100; }
-
-.cita-arrow {
-  padding-right: 14px;
-  color: #ccc;
+.cita-info-label {
   font-size: 12px;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 500;
+  min-width: 60px;
+}
+
+.cita-info-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1d1d1f;
+  flex: 1;
+}
+
+.cita-servicios-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.cita-servicios-row svg {
+  color: #86868b;
+  flex-shrink: 0;
+}
+
+.cita-servicios-text {
+  font-size: 13px;
+  color: #86868b;
+  flex: 1;
+  line-height: 1.4;
+}
+
+.cita-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #f0f0f0;
+}
+
+.cita-price {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.price-label {
+  font-size: 11px;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 500;
+}
+
+.price-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: -0.3px;
 }
 
 /* ===== MODAL ===== */
-.modal-backdrop {
+.modal-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   z-index: 1000;
-  animation: fadeIn 0.3s ease;
+  padding: 0;
+  animation: fadeIn 0.2s ease;
 }
 
 @keyframes fadeIn {
@@ -2069,23 +2107,23 @@ onMounted(() => {
   to { opacity: 1; }
 }
 
-.modal-card {
-  background: white;
+.modal-content {
+  background: #ffffff;
   width: 100%;
   max-height: 90vh;
   border-radius: 28px 28px 0 0;
   overflow: hidden;
-  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes slideUp {
-  from { 
-    transform: translateY(100%); 
+  from {
+    transform: translateY(100%);
     opacity: 0;
   }
-  to { 
-    transform: translateY(0); 
+  to {
+    transform: translateY(0);
     opacity: 1;
   }
 }
@@ -2102,19 +2140,25 @@ onMounted(() => {
 .modal-header h3 {
   margin: 0;
   font-size: 20px;
-  font-weight: 700;
-  color: #1a1a2e;
+  font-weight: 600;
+  color: #1d1d1f;
   letter-spacing: -0.3px;
 }
 
+.modal-subtitle {
+  font-size: 13px;
+  color: #86868b;
+  margin: 4px 0 0;
+  font-weight: 400;
+}
+
 .modal-close {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border: none;
-  border-radius: 50%;
-  background: #f0f0f0;
-  color: #666;
-  font-size: 16px;
+  border-radius: 8px;
+  background: #f5f5f7;
+  color: #86868b;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2122,13 +2166,9 @@ onMounted(() => {
   transition: all 0.2s;
 }
 
-.modal-close:hover {
-  background: #e0e0e0;
-  transform: rotate(90deg);
-}
-
 .modal-close:active {
-  transform: rotate(90deg) scale(0.95);
+  background: #ebebed;
+  transform: scale(0.95);
 }
 
 .modal-body {
@@ -2162,60 +2202,61 @@ onMounted(() => {
   gap: 20px;
 }
 
-.detail-header {
+.detail-status-badge {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 18px;
-  color: white;
-  margin-bottom: 12px;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
-}
-
-.detail-id {
-  display: flex;
-  flex-direction: column;
-}
-
-.id-label {
-  font-size: 11px;
-  opacity: 0.95;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 4px;
-}
-
-.id-value {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+  justify-content: center;
+  margin-bottom: 8px;
 }
 
 .status-badge-large {
   padding: 10px 18px;
-  border-radius: 24px;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(10px);
-  color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+}
+
+.status-badge-large.pendiente {
+  background: rgba(255, 149, 0, 0.12);
+  color: #ff9500;
+}
+
+.status-badge-large.confirmada {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34c759;
+}
+
+.status-badge-large.en_proceso {
+  background: rgba(0, 122, 255, 0.12);
+  color: #007aff;
+}
+
+.status-badge-large.completada {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34c759;
+}
+
+.status-badge-large.cancelada {
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
+}
+
+.status-badge-large.reagendada {
+  background: rgba(255, 149, 0, 0.12);
+  color: #ff9500;
 }
 
 .detail-section {
-  background: #f8f9fa;
+  background: #ffffff;
   border-radius: 16px;
   padding: 18px;
-  border: 1px solid #e9ecef;
+  border: 1px solid #e5e5ea;
   transition: all 0.2s;
 }
 
 .detail-section:hover {
-  background: #f0f0f0;
+  background: #f8f9fa;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
@@ -2225,22 +2266,17 @@ onMounted(() => {
   gap: 10px;
   margin-bottom: 14px;
   font-size: 12px;
-  font-weight: 700;
-  color: #667eea;
+  font-weight: 600;
+  color: #007aff;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
-.section-title i {
-  font-size: 16px;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 8px;
+.section-title svg {
+  width: 16px;
+  height: 16px;
+  color: #007aff;
+  flex-shrink: 0;
 }
 
 .info-block {
@@ -2287,10 +2323,10 @@ onMounted(() => {
   opacity: 0.7;
 }
 
-.info-item i {
-  width: 20px;
-  color: #667eea;
-  text-align: center;
+.info-item svg {
+  width: 16px;
+  height: 16px;
+  color: #007aff;
   flex-shrink: 0;
 }
 
@@ -2305,16 +2341,15 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 14px;
-  background: white;
+  background: #f8f9fa;
   border-radius: 12px;
-  border: 1px solid #e9ecef;
+  border: 1px solid #e5e5ea;
   transition: all 0.2s;
 }
 
 .servicio-item:hover {
-  background: #f8f9fa;
+  background: #f0f0f0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transform: translateX(4px);
 }
 
 .servicio-info {
@@ -2326,29 +2361,28 @@ onMounted(() => {
 
 .servicio-nombre {
   font-size: 15px;
-  font-weight: 700;
-  color: #333;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
 }
 
 .servicio-duracion {
   font-size: 12px;
-  color: #999;
+  color: #86868b;
   font-weight: 500;
 }
 
 .servicio-precio {
   font-size: 18px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 700;
+  color: #34c759;
+  letter-spacing: -0.3px;
 }
 
 .total-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
   color: white;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
   border: none;
 }
 
@@ -2360,26 +2394,26 @@ onMounted(() => {
 
 .total-label {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   opacity: 0.95;
 }
 
 .total-value {
   font-size: 32px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -1px;
 }
 
 .notas-content {
   padding: 16px;
-  background: white;
+  background: #f8f9fa;
   border-radius: 12px;
   font-size: 14px;
   color: #666;
   line-height: 1.7;
-  border: 1px solid #e9ecef;
+  border: 1px solid #e5e5ea;
   font-style: italic;
 }
 
@@ -2398,53 +2432,43 @@ onMounted(() => {
 
 .btn-action-primary,
 .btn-action-secondary,
-.btn-action-danger,
-.btn-action-whatsapp {
+.btn-action-whatsapp,
+.btn-action-reagendar,
+.btn-action-cancel {
   width: 100%;
   padding: 16px;
   border: none;
   border-radius: 14px;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  letter-spacing: 0.3px;
+  transition: all 0.2s;
+  letter-spacing: 0.2px;
   text-decoration: none;
 }
 
 .btn-action-primary {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  background: #34c759;
   color: white;
 }
 
-.btn-action-primary:hover {
-  box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
-  transform: translateY(-2px);
+.btn-action-primary:active {
+  transform: scale(0.98);
+  background: #30d158;
 }
 
 .btn-action-secondary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #007aff;
   color: white;
 }
 
-.btn-action-secondary:hover {
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-  transform: translateY(-2px);
-}
-
-.btn-action-danger {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-  color: white;
-}
-
-.btn-action-danger:hover {
-  box-shadow: 0 6px 20px rgba(250, 112, 154, 0.4);
-  transform: translateY(-2px);
+.btn-action-secondary:active {
+  transform: scale(0.98);
+  background: #0051d5;
 }
 
 .btn-action-whatsapp {
@@ -2452,73 +2476,39 @@ onMounted(() => {
   color: white;
 }
 
-.btn-action-whatsapp:hover {
-  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
-  transform: translateY(-2px);
+.btn-action-whatsapp:active {
+  transform: scale(0.98);
+  background: #20ba5a;
 }
 
 .btn-action-reagendar {
   flex: 1;
-  padding: 16px;
-  border: none;
-  border-radius: 14px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  letter-spacing: 0.3px;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #007aff;
   color: white;
 }
 
-.btn-action-reagendar:hover {
-  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
-  transform: translateY(-2px);
+.btn-action-reagendar:active {
+  transform: scale(0.98);
+  background: #0051d5;
 }
 
 .btn-action-cancel {
   flex: 1;
-  padding: 16px;
-  border: none;
-  border-radius: 14px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  letter-spacing: 0.3px;
-  background: linear-gradient(135deg, #ff6b6b 0%, #c62828 100%);
+  background: #ff3b30;
   color: white;
 }
 
-.btn-action-cancel:hover {
-  box-shadow: 0 6px 20px rgba(198, 40, 40, 0.4);
-  transform: translateY(-2px);
-}
-
-.btn-action-primary:active,
-.btn-action-secondary:active,
-.btn-action-danger:active,
-.btn-action-whatsapp:active,
-.btn-action-reagendar:active,
 .btn-action-cancel:active {
-  transform: translateY(0) scale(0.98);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transform: scale(0.98);
+  background: #d70015;
 }
 
-.action-buttons-group .btn-action-reagendar:active,
-.action-buttons-group .btn-action-cancel:active {
-  transform: translateY(0) scale(0.98);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+.btn-action-primary svg,
+.btn-action-secondary svg,
+.btn-action-whatsapp svg,
+.btn-action-reagendar svg,
+.btn-action-cancel svg {
+  flex-shrink: 0;
 }
 
 /* Transitions */
@@ -2543,26 +2533,26 @@ onMounted(() => {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ec407a, #c2185b);
+  background: #007aff;
   border: none;
   color: white;
-  font-size: 24px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(236, 64, 122, 0.5);
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.4);
+  transition: all 0.2s;
   z-index: 100;
-}
-
-.btn-fab-add-cita:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(236, 64, 122, 0.6);
 }
 
 .btn-fab-add-cita:active {
   transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.btn-fab-add-cita svg {
+  width: 24px;
+  height: 24px;
 }
 
 /* ===== MODAL NUEVA CITA ===== */
