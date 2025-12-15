@@ -2528,7 +2528,7 @@ onMounted(() => {
 /* ===== BOTÓN FLOTANTE AGREGAR CITA ===== */
 .btn-fab-add-cita {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 115px);
   right: 20px;
   width: 56px;
   height: 56px;

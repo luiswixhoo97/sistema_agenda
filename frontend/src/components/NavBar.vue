@@ -165,15 +165,15 @@ const isActive = (ruta: string) => {
   </Transition>
 
   <!-- Bottom Navigation -->
-  <nav class="bottom-nav">
-    <div class="nav-container">
+  <footer class="bottom-nav">
+    <nav class="footer-nav">
       <a
         v-for="item in footerItems"
         :key="item.ruta"
         href="#"
-        class="nav-item"
+        class="footer-menu-item"
         :class="{ 
-          active: isActive(item.ruta),
+          'active-nav': isActive(item.ruta),
           'mas-active': item.isMas && mostrarMenuMas,
           'center-btn': item.isCenter
         }"
@@ -181,26 +181,28 @@ const isActive = (ruta: string) => {
       >
         <!-- Botón central especial (QR Scanner) -->
         <template v-if="item.isCenter">
-          <span class="center-icon">
-            <i :class="['fa', item.icon]"></i>
-          </span>
-          <span class="nav-label center-label">{{ item.label }}</span>
+          <div class="footer-center-wrapper">
+            <span class="footer-center-btn">
+              <i :class="['fa', item.icon]"></i>
+            </span>
+            <span class="center-label-text">{{ item.label }}</span>
+          </div>
         </template>
         
         <!-- Botones normales -->
         <template v-else>
-          <span class="nav-icon">
+          <span class="footer-icon">
             <i :class="['fa', item.icon]"></i>
           </span>
-          <span class="nav-label">{{ item.label }}</span>
-          <span v-if="isActive(item.ruta) && !item.isMas" class="active-indicator"></span>
+          <span class="footer-label">{{ item.label }}</span>
+          <em v-if="isActive(item.ruta) && !item.isMas" class="footer-active-indicator"></em>
         </template>
       </a>
-    </div>
+    </nav>
     
     <!-- Safe area para iPhones con notch -->
     <div class="safe-area"></div>
-  </nav>
+  </footer>
 </template>
 
 <style scoped>
@@ -210,167 +212,218 @@ const isActive = (ruta: string) => {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
   z-index: 100;
-  padding-bottom: env(safe-area-inset-bottom, 0);
-}
-
-.theme-dark .bottom-nav {
-  background: rgba(26, 26, 26, 0.95);
-  border-top-color: rgba(255, 255, 255, 0.08);
-}
-
-.nav-container {
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-end;
-  height: 65px;
-  max-width: 500px;
-  margin: 0 auto;
-  padding: 0 8px 8px;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  flex: 1;
-  height: 100%;
-  text-decoration: none;
-  position: relative;
-  padding-bottom: 4px;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.nav-icon {
-  width: 44px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  pointer-events: none;
+}
+
+.footer-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 24px 24px 0 0;
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 
+    0 -10px 40px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  padding: 12px 16px;
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  pointer-events: auto;
+  width: 100%;
+  overflow: visible;
+}
+
+.theme-dark .footer-nav {
+  background-color: rgba(10, 10, 10, 0.7);
+  border-top-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 -10px 40px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.footer-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   border-radius: 16px;
-  font-size: 20px;
+  padding: 8px 12px;
+  text-decoration: none;
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.footer-menu-item:active:not(.center-btn) {
+  background: rgba(0, 122, 255, 0.1);
+  transform: scale(0.96);
+}
+
+.theme-dark .footer-menu-item:active:not(.center-btn) {
+  background: rgba(0, 122, 255, 0.15);
+}
+
+.footer-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 18px;
   color: #9ca3af;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
 
-.theme-dark .nav-icon {
+.theme-dark .footer-icon {
   color: #6b7280;
 }
 
-.nav-label {
+.footer-label {
   font-size: 11px;
   font-weight: 500;
   color: #9ca3af;
   margin-top: 4px;
-  transition: all 0.3s;
+  transition: all 0.25s;
   letter-spacing: 0.2px;
+  text-align: center;
 }
 
-.theme-dark .nav-label {
+.theme-dark .footer-label {
   color: #6b7280;
 }
 
 /* Active state */
-.nav-item.active .nav-icon {
-  background: linear-gradient(135deg, rgba(236, 64, 122, 0.15) 0%, rgba(194, 24, 91, 0.15) 100%);
-  color: #ec407a;
+.footer-menu-item.active-nav .footer-icon {
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.15) 0%, rgba(0, 81, 213, 0.15) 100%);
+  color: #007aff;
 }
 
-.nav-item.active .nav-label {
-  color: #ec407a;
+.footer-menu-item.active-nav .footer-label {
+  color: #007aff;
   font-weight: 600;
 }
 
-.active-indicator {
-  display: none;
+/* Indicador activo debajo del menú */
+.footer-active-indicator {
+  position: absolute;
+  width: 40px;
+  height: 3px;
+  border-radius: 3px;
+  left: 50%;
+  bottom: -2px;
+  transform: translateX(-50%);
+  background: linear-gradient(to right, #007aff 0%, #0051d5 100%);
+  pointer-events: none;
+}
+
+.theme-dark .footer-active-indicator {
+  background: linear-gradient(to right, #5ac8fa 0%, #007aff 100%);
 }
 
 /* Más button */
-.nav-item.mas-active .nav-icon {
-  background: linear-gradient(135deg, #ec407a, #c2185b);
+.footer-menu-item.mas-active .footer-icon {
+  background: linear-gradient(135deg, #007aff, #0051d5);
   color: white;
 }
 
-.nav-item.mas-active .nav-icon i {
+.footer-menu-item.mas-active .footer-icon i {
   transform: rotate(90deg);
   transition: transform 0.3s ease;
 }
 
-/* Hover/tap effect */
-.nav-item:active .nav-icon {
-  transform: scale(0.92);
-  background: rgba(236, 64, 122, 0.1);
+/* ===== BOTÓN CENTRAL (QR SCANNER) ===== */
+.footer-menu-item.center-btn {
+  flex: 0 0 auto;
+  padding: 0;
 }
 
-/* ===== BOTÓN CENTRAL (QR SCANNER) ===== */
-.nav-item.center-btn {
+.footer-center-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -24px;
   position: relative;
 }
 
-.center-icon {
-  width: 48px;
-  height: 48px;
+.footer-center-btn {
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ec407a 0%, #c2185b 100%);
+  background: linear-gradient(135deg, #007aff 0%, #0051d5 100%);
   color: white;
   font-size: 20px;
-  box-shadow: 0 4px 15px rgba(236, 64, 122, 0.4);
+  box-shadow: 
+    0 8px 24px rgba(0, 122, 255, 0.4),
+    0 0 0 4px rgba(0, 122, 255, 0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  animation: pulse-scale 2s ease-in-out infinite;
+  z-index: 1;
 }
 
-.theme-dark .center-icon {
-  box-shadow: 0 4px 20px rgba(236, 64, 122, 0.5);
+.theme-dark .footer-center-btn {
+  box-shadow: 
+    0 8px 24px rgba(0, 122, 255, 0.5),
+    0 0 0 4px rgba(0, 122, 255, 0.15);
 }
 
-.nav-item.center-btn:active .center-icon {
-  transform: scale(0.9);
+.footer-center-btn:hover {
+  animation: none;
+  transform: scale(1.05);
+  box-shadow: 
+    0 12px 32px rgba(0, 122, 255, 0.5),
+    0 0 0 4px rgba(0, 122, 255, 0.2);
 }
 
-.nav-item.center-btn.active .center-icon {
-  background: linear-gradient(135deg, #d81b60 0%, #880e4f 100%);
+.footer-menu-item.center-btn:active .footer-center-btn {
+  transform: scale(0.95);
+  animation: none;
 }
 
-.center-label {
-  color: #ec407a;
-  font-weight: 600;
-  margin-top: 4px;
-  font-size: 10px;
+.footer-menu-item.center-btn.active-nav .footer-center-btn {
+  background: linear-gradient(135deg, #0051d5 0%, #003d9e 100%);
+  box-shadow: 
+    0 8px 24px rgba(0, 122, 255, 0.5),
+    0 0 0 4px rgba(0, 122, 255, 0.2);
 }
 
-.nav-item.center-btn.active .center-label {
-  color: #c2185b;
-}
-
-/* Efecto glow animado */
-.center-icon::before {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  background: rgba(236, 64, 122, 0.3);
-  z-index: -1;
-  animation: glow-pulse 2s ease-in-out infinite;
-}
-
-@keyframes glow-pulse {
+@keyframes pulse-scale {
   0%, 100% {
     transform: scale(1);
-    opacity: 0.5;
   }
   50% {
-    transform: scale(1.15);
-    opacity: 0;
+    transform: scale(1.05);
   }
+}
+
+.center-label-text {
+  color: #007aff;
+  font-weight: 600;
+  margin-top: 6px;
+  font-size: 10px;
+  text-align: center;
+}
+
+.theme-dark .center-label-text {
+  color: #5ac8fa;
+}
+
+.footer-menu-item.center-btn.active-nav .center-label-text {
+  color: #0051d5;
 }
 
 /* Safe area */
@@ -488,30 +541,30 @@ const isActive = (ruta: string) => {
 
 .menu-mas-item:active {
   transform: scale(0.96);
-  background: rgba(236, 64, 122, 0.1);
+  background: rgba(0, 122, 255, 0.1);
 }
 
 .menu-mas-item.active {
-  background: linear-gradient(135deg, rgba(236, 64, 122, 0.12), rgba(194, 24, 91, 0.12));
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.12), rgba(0, 81, 213, 0.12));
 }
 
 .item-icon {
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(236, 64, 122, 0.1), rgba(194, 24, 91, 0.12));
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.1), rgba(0, 81, 213, 0.12));
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: #ec407a;
+  color: #007aff;
   transition: all 0.25s;
 }
 
 .menu-mas-item.active .item-icon {
-  background: linear-gradient(135deg, #ec407a, #c2185b);
+  background: linear-gradient(135deg, #007aff, #0051d5);
   color: white;
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
 }
 
 .item-label {
@@ -619,14 +672,14 @@ const isActive = (ruta: string) => {
   justify-content: space-between;
   padding: 14px 16px;
   margin: 8px 12px 4px;
-  background: linear-gradient(135deg, rgba(236, 64, 122, 0.06), rgba(194, 24, 91, 0.08));
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.06), rgba(0, 81, 213, 0.08));
   border-radius: 16px;
-  border: 1px solid rgba(236, 64, 122, 0.1);
+  border: 1px solid rgba(0, 122, 255, 0.1);
 }
 
 .theme-dark .menu-mas-footer {
-  background: linear-gradient(135deg, rgba(236, 64, 122, 0.1), rgba(194, 24, 91, 0.12));
-  border-color: rgba(236, 64, 122, 0.15);
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.1), rgba(0, 81, 213, 0.12));
+  border-color: rgba(0, 122, 255, 0.15);
 }
 
 .user-info {
@@ -639,14 +692,14 @@ const isActive = (ruta: string) => {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #ec407a, #c2185b);
+  background: linear-gradient(135deg, #007aff, #0051d5);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
   font-weight: 700;
   color: white;
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
 }
 
 .user-details {
@@ -667,7 +720,7 @@ const isActive = (ruta: string) => {
 
 .user-role {
   font-size: 12px;
-  color: #ec407a;
+  color: #007aff;
   text-transform: capitalize;
   font-weight: 600;
   letter-spacing: 0.3px;
