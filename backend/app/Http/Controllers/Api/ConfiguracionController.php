@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ConfiguracionController extends Controller
 {
@@ -123,36 +124,64 @@ class ConfiguracionController extends Controller
      */
     public function actualizar(Request $request): JsonResponse
     {
-        $request->validate([
-            'configuraciones' => 'required|array',
-            'configuraciones.*.clave' => 'required|string',
-            'configuraciones.*.valor' => 'required',
-        ]);
+        try {
+            $request->validate([
+                'configuraciones' => 'required|array',
+                'configuraciones.*.clave' => 'required|string',
+                'configuraciones.*.valor' => 'nullable', // Permitir valores null o vacíos
+            ]);
 
-        foreach ($request->configuraciones as $config) {
-            $anterior = Configuracion::where('clave', $config['clave'])->first();
-            $valorAnterior = $anterior ? $anterior->valor : null;
+            foreach ($request->configuraciones as $config) {
+                $clave = $config['clave'] ?? null;
+                $valor = $config['valor'] ?? null;
+                
+                if (!$clave) {
+                    continue; // Saltar si no hay clave
+                }
+                
+                $anterior = Configuracion::where('clave', $clave)->first();
+                $valorAnterior = $anterior ? $anterior->valor : null;
 
-            Configuracion::set($config['clave'], $config['valor']);
+                // Convertir null a string vacío para evitar problemas
+                $valorFinal = $valor !== null ? (string)$valor : '';
 
-            if ($valorAnterior !== $config['valor']) {
-                Auditoria::registrar(
-                    'actualizar',
-                    'configuracion',
-                    0,
-                    ['clave' => $config['clave'], 'valor' => $valorAnterior],
-                    ['clave' => $config['clave'], 'valor' => $config['valor']]
-                );
+                Configuracion::set($clave, $valorFinal);
+
+                if ($valorAnterior !== $valorFinal) {
+                    Auditoria::registrar(
+                        'actualizar',
+                        'configuracion',
+                        0,
+                        ['clave' => $clave, 'valor' => $valorAnterior],
+                        ['clave' => $clave, 'valor' => $valorFinal]
+                    );
+                }
             }
+
+            // Limpiar caché de configuraciones
+            Configuracion::clearCache();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Configuración actualizada correctamente',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error actualizando configuración', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar la configuración: ' . $e->getMessage(),
+            ], 500);
         }
-
-        // Limpiar caché de configuraciones
-        Configuracion::clearCache();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Configuración actualizada correctamente',
-        ]);
     }
 
     /**
