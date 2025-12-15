@@ -11,6 +11,7 @@ export function useQrScanner() {
   const scanning = ref(false)
   const error = ref<string | null>(null)
   const hasPermission = ref<boolean | null>(null)
+  const wasCancelled = ref(false) // Nueva variable para indicar si el usuario canceló
   
   let html5QrCode: Html5Qrcode | null = null
   
@@ -92,6 +93,7 @@ export function useQrScanner() {
     onSuccess: (decodedText: string) => void
   ): Promise<boolean> {
     error.value = null
+    wasCancelled.value = false // Resetear el estado de cancelación
     
     try {
       // Verificar/solicitar permisos
@@ -130,7 +132,11 @@ export function useQrScanner() {
         }
       }
 
-      error.value = 'No se detectó ningún código QR'
+      // Si no hay códigos escaneados, el usuario probablemente cerró el escáner
+      // Marcar como cancelación en lugar de error
+      console.log('📱 Escáner cerrado sin escanear código')
+      wasCancelled.value = true
+      error.value = null
       return false
 
     } catch (e: any) {
@@ -138,8 +144,26 @@ export function useQrScanner() {
       scanning.value = false
       console.error('Error en escáner nativo:', e)
       
-      if (e.message?.includes('canceled') || e.message?.includes('cancelled')) {
-        // Usuario canceló el escaneo
+      // Detectar múltiples formas de cancelación del usuario
+      const errorMsg = (e.message || '').toLowerCase()
+      const isCancellation = 
+        errorMsg.includes('canceled') || 
+        errorMsg.includes('cancelled') ||
+        errorMsg.includes('scan was cancelled') ||
+        errorMsg.includes('user cancelled') ||
+        errorMsg.includes('back button') ||
+        errorMsg.includes('closed') ||
+        errorMsg.includes('failed to scan') || // ML Kit error cuando se cierra el escáner
+        errorMsg.includes('scan failed') ||
+        errorMsg.includes('no barcode') ||
+        e.code === 'USER_CANCELLED' ||
+        e.code === 'CANCELED' ||
+        e.code === 'SCAN_CANCELLED'
+      
+      if (isCancellation) {
+        // Usuario canceló el escaneo (X, gesto atrás, etc.)
+        console.log('📱 Usuario canceló el escaneo QR')
+        wasCancelled.value = true
         error.value = null
         return false
       }
@@ -319,6 +343,7 @@ export function useQrScanner() {
     error,
     hasPermission,
     isNative,
+    wasCancelled, // Exportar para detectar cancelaciones
     checkPermissions,
     requestPermissions,
     startScanner,

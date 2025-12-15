@@ -173,6 +173,7 @@ const {
   scanning, 
   error: scannerError, 
   isNative,
+  wasCancelled, // Detectar cancelaciones del usuario
   checkPermissions,
   requestPermissions,
   startScanner, 
@@ -317,6 +318,15 @@ const iniciarEscaner = async () => {
       // Detener el escáner si está activo
       await stopQrScanner()
       
+      // Verificar si el usuario canceló el escaneo (X o gesto atrás)
+      if (wasCancelled.value) {
+        console.log('📱 Usuario canceló el escaneo, redirigiendo al dashboard...')
+        // No mostrar error, simplemente redirigir
+        errorOcurrido.value = true
+        irAlDashboard()
+        return
+      }
+      
       // Marcar que hubo un error para evitar reiniciar automáticamente
       errorOcurrido.value = true
       
@@ -324,9 +334,9 @@ const iniciarEscaner = async () => {
           scannerError.value?.includes('denegado') ||
           scannerError.value?.includes('Permission')) {
         permisoDenegado.value = true
-      } else {
-        // Mostrar error con formato mejorado
-        const errorText = scannerError.value || 'Error al iniciar el escáner de QR'
+      } else if (scannerError.value) {
+        // Solo mostrar error si realmente hay un error (no cancelación)
+        const errorText = scannerError.value
         const errorLines = errorText.split('\n')
         
         const result = await Swal.fire({
@@ -342,6 +352,10 @@ const iniciarEscaner = async () => {
         })
         
         // Después de cerrar el error (ya sea con OK, X, o Escape), volver al dashboard
+        irAlDashboard()
+      } else {
+        // Sin error específico pero tampoco éxito - probablemente cancelación no detectada
+        // Redirigir silenciosamente
         irAlDashboard()
       }
     }

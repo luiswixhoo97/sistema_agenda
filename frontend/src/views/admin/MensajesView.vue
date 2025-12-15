@@ -734,6 +734,14 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.mensajes-view {
+  padding: 1.5rem 1.5rem calc(120px + env(safe-area-inset-bottom, 0px)) 1.5rem;
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
 .admin-view {
   padding: 1.5rem;
   max-width: 1200px;
@@ -1504,6 +1512,10 @@ onMounted(() => {
 
 /* Responsive */
 @media (max-width: 640px) {
+  .mensajes-view {
+    padding: 1rem 1rem calc(120px + env(safe-area-inset-bottom, 0px)) 1rem;
+  }
+  
   .admin-view {
     padding: 1rem;
   }
