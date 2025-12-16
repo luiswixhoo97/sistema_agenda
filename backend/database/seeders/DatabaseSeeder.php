@@ -184,6 +184,11 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        // =====================================================
+        // DATOS DE PRUEBA PARA VENTAS
+        // =====================================================
+        $this->call(VentasTestSeeder::class);
+
         $this->command->info('✅ Base de datos sembrada correctamente!');
         $this->command->info('');
         $this->command->info('📋 CREDENCIALES DE PRUEBA:');

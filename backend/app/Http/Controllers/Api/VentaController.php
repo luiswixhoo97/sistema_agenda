@@ -201,13 +201,13 @@ class VentaController extends Controller
     }
 
     /**
-     * Actualizar venta (solo si está pendiente)
+     * Actualizar venta (permite agregar productos/servicios si está pendiente o parcial)
      * 
      * PUT /api/admin/ventas/{id}
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $venta = Venta::find($id);
+        $venta = Venta::with('detalles')->find($id);
 
         if (!$venta) {
             return response()->json([
@@ -219,24 +219,112 @@ class VentaController extends Controller
         if (!$venta->puedeModificarse()) {
             return response()->json([
                 'success' => false,
-                'message' => 'No se puede modificar una venta que ya tiene pagos registrados',
+                'message' => 'No se puede modificar una venta completada o cancelada',
             ], 422);
         }
 
         $request->validate([
             'notas' => 'nullable|string',
+            'detalles' => 'nullable|array',
+            'detalles.*.tipo' => 'required_with:detalles|in:producto,servicio',
+            'detalles.*.producto_id' => 'required_if:detalles.*.tipo,producto|exists:productos,id',
+            'detalles.*.servicio_id' => 'required_if:detalles.*.tipo,servicio|exists:servicios,id',
+            'detalles.*.cantidad' => 'required_with:detalles|integer|min:1',
+            'detalles.*.precio_unitario' => 'required_with:detalles|numeric|min:0',
+            'detalles.*.descuento' => 'nullable|numeric|min:0',
+            'detalles.*.impuesto' => 'nullable|numeric|min:0',
         ]);
 
-        $datosAnteriores = $venta->toArray();
-        $venta->update($request->only(['notas']));
+        DB::beginTransaction();
+        try {
+            $datosAnteriores = $venta->toArray();
+            $nuevoSubtotal = $venta->subtotal;
 
-        Auditoria::registrar('actualizar', 'ventas', $venta->id, $datosAnteriores, $venta->toArray());
+            // Si se envían nuevos detalles, agregarlos
+            if ($request->has('detalles') && count($request->detalles) > 0) {
+                // Validar stock de productos
+                foreach ($request->detalles as $detalle) {
+                    if ($detalle['tipo'] === 'producto') {
+                        $producto = Producto::findOrFail($detalle['producto_id']);
+                        if (!$producto->tieneStock($detalle['cantidad'])) {
+                            DB::rollBack();
+                            return response()->json([
+                                'success' => false,
+                                'message' => "Stock insuficiente para producto: {$producto->nombre}. Disponible: {$producto->inventario_actual}",
+                            ], 422);
+                        }
+                    }
+                }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Venta actualizada correctamente',
-            'data' => $this->formatearVenta($venta),
-        ]);
+                // Agregar nuevos detalles
+                foreach ($request->detalles as $detalle) {
+                    $subtotalLinea = ($detalle['precio_unitario'] * $detalle['cantidad']) 
+                        - ($detalle['descuento'] ?? 0) 
+                        + ($detalle['impuesto'] ?? 0);
+                    $nuevoSubtotal += $subtotalLinea;
+
+                    VentaDetalle::create([
+                        'venta_id' => $venta->id,
+                        'tipo' => $detalle['tipo'],
+                        'producto_id' => $detalle['tipo'] === 'producto' ? $detalle['producto_id'] : null,
+                        'servicio_id' => $detalle['tipo'] === 'servicio' ? $detalle['servicio_id'] : null,
+                        'cantidad' => $detalle['cantidad'],
+                        'precio_unitario' => $detalle['precio_unitario'],
+                        'descuento' => $detalle['descuento'] ?? 0,
+                        'impuesto' => $detalle['impuesto'] ?? 0,
+                        'subtotal_linea' => $subtotalLinea,
+                    ]);
+
+                    // Actualizar inventario si es producto
+                    if ($detalle['tipo'] === 'producto') {
+                        $producto = Producto::findOrFail($detalle['producto_id']);
+                        $producto->inventario_actual -= $detalle['cantidad'];
+                        $producto->save();
+
+                        // Crear movimiento de inventario
+                        MovimientoInventario::create([
+                            'producto_id' => $producto->id,
+                            'tipo' => MovimientoInventario::TIPO_VENTA,
+                            'cantidad' => $detalle['cantidad'],
+                            'referencia_id' => $venta->id,
+                            'referencia_tipo' => 'venta',
+                            'user_id' => auth()->id(),
+                            'created_at' => now(),
+                        ]);
+                    }
+                }
+
+                // Actualizar totales de la venta (manteniendo el total_pagado)
+                $nuevoTotal = $nuevoSubtotal - $venta->descuento_general + $venta->impuesto_total;
+                $venta->subtotal = $nuevoSubtotal;
+                $venta->total = $nuevoTotal;
+                $venta->saldo_pendiente = $nuevoTotal - $venta->total_pagado;
+            }
+
+            // Actualizar notas si se proporciona
+            if ($request->has('notas')) {
+                $venta->notas = $request->notas;
+            }
+
+            $venta->save();
+
+            Auditoria::registrar('actualizar', 'ventas', $venta->id, $datosAnteriores, $venta->toArray());
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Venta actualizada correctamente',
+                'data' => $this->formatearVentaCompleta($venta->load(['detalles.producto', 'detalles.servicio'])),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar venta: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

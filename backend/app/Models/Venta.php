@@ -102,7 +102,9 @@ class Venta extends Model
 
     public function puedeModificarse(): bool
     {
-        return $this->estado === self::ESTADO_PENDIENTE_PAGO;
+        // Permitir modificaciones si está pendiente o parcial (tiene anticipos)
+        // No permitir si está completada o cancelada
+        return in_array($this->estado, [self::ESTADO_PENDIENTE_PAGO, self::ESTADO_PARCIAL]);
     }
 
     public function actualizarSaldo(): void

@@ -153,7 +153,7 @@ class VentaCitaController extends Controller
         if (!$venta->puedeModificarse()) {
             return response()->json([
                 'success' => false,
-                'message' => 'No se puede modificar una venta que ya tiene pagos registrados',
+                'message' => 'No se puede modificar una venta completada o cancelada',
             ], 422);
         }
 
