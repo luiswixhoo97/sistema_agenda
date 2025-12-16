@@ -29,6 +29,12 @@ Route::prefix('auth/cliente')->group(function () {
 
 include __DIR__ . '/v1/publico.php';
 
+// Webhooks públicos (sin autenticación)
+Route::prefix('webhooks')->group(function () {
+    Route::post('/mercadopago', [\App\Http\Controllers\Api\PagoController::class, 'webhookMercadoPago']);
+    Route::post('/stripe', [\App\Http\Controllers\Api\PagoController::class, 'webhookStripe']);
+});
+
 
 // =====================================================
 // RUTAS AUTENTICADAS
@@ -51,7 +57,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     include __DIR__ . '/v1/admin.php';
 
+    // Sistema de ventas e inventario
+    include __DIR__ . '/v1/productos.php';
+    include __DIR__ . '/v1/inventario.php';
     include __DIR__ . '/v1/ventas.php';
+    include __DIR__ . '/v1/ventas-citas.php';
+    include __DIR__ . '/v1/metodos-pago.php';
+    include __DIR__ . '/v1/anticipos.php';
+    include __DIR__ . '/v1/pagos.php';
 
     
 });
