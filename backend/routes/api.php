@@ -3,18 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClienteAuthController;
-use App\Http\Controllers\Api\ServicioController;
-use App\Http\Controllers\Api\CategoriaController;
-use App\Http\Controllers\Api\EmpleadoController;
-use App\Http\Controllers\Api\CitaController;
-use App\Http\Controllers\Api\DisponibilidadController;
-use App\Http\Controllers\Api\ClienteController;
-use App\Http\Controllers\Api\PromocionController;
-use App\Http\Controllers\Api\ConfiguracionController;
 use App\Http\Controllers\Api\DispositivoController;
-use App\Http\Controllers\Api\FotoController;
-use App\Http\Controllers\Api\AgendamientoPublicoController;
-use App\Http\Controllers\Api\PlantillaNotificacionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,32 +27,8 @@ Route::prefix('auth/cliente')->group(function () {
     Route::post('/registrar', [ClienteAuthController::class, 'registrar']);
 });
 
-// Catálogo público
-Route::prefix('publico')->group(function () {
-    Route::get('/servicios', [ServicioController::class, 'indexPublico']);
-    Route::get('/categorias', [CategoriaController::class, 'indexPublico']);
-    Route::get('/empleados', [EmpleadoController::class, 'indexPublico']);
-    Route::get('/promociones', [PromocionController::class, 'indexPublico']);
-    
-    // Agendamiento público (sin sesión)
-    Route::post('/agendar/otp', [AgendamientoPublicoController::class, 'enviarOtp']);
-    Route::post('/agendar', [AgendamientoPublicoController::class, 'agendar']);
-    Route::post('/agendar/multiples', [AgendamientoPublicoController::class, 'agendarMultiples']);
-    
-    // Disponibilidad pública
-    Route::get('/disponibilidad/dias', [DisponibilidadController::class, 'diasDisponibles']);
-    Route::get('/disponibilidad/slots', [DisponibilidadController::class, 'slotsDisponibles']);
-    Route::post('/disponibilidad/slots-coordinados', [DisponibilidadController::class, 'slotsCoordinados']);
-    Route::post('/disponibilidad/calcular', [DisponibilidadController::class, 'calcularServicio']);
-    
-    // Reservas temporales de slots (para evitar conflictos entre usuarios)
-    Route::post('/disponibilidad/reservar-temporal', [DisponibilidadController::class, 'reservarTemporal']);
-    Route::post('/disponibilidad/reservar-temporal-multiple', [DisponibilidadController::class, 'reservarTemporalMultiple']);
-    Route::post('/disponibilidad/liberar-temporal', [DisponibilidadController::class, 'liberarTemporal']);
-    Route::post('/disponibilidad/liberar-temporal-multiple', [DisponibilidadController::class, 'liberarTemporalMultiple']);
-    Route::post('/disponibilidad/extender-temporal', [DisponibilidadController::class, 'extenderTemporal']);
-    Route::get('/disponibilidad/verificar-reserva/{token}', [DisponibilidadController::class, 'verificarReserva']);
-});
+include __DIR__ . '/v1/publico.php';
+
 
 // =====================================================
 // RUTAS AUTENTICADAS
@@ -80,154 +45,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/dispositivos/registrar', [DispositivoController::class, 'registrar']);
     Route::delete('/dispositivos/{token}', [DispositivoController::class, 'eliminar']);
 
-    // =====================================================
-    // RUTAS PARA CLIENTES
-    // =====================================================
-    Route::prefix('cliente')->group(function () {
-        // Perfil
-        Route::get('/perfil', [ClienteController::class, 'miPerfil']);
-        Route::put('/perfil', [ClienteController::class, 'actualizarPerfil']);
-        Route::put('/perfil/notificaciones', [ClienteController::class, 'actualizarNotificaciones']);
+    include __DIR__ . '/v1/clientes.php';
 
-        // Citas del cliente
-        Route::get('/citas', [CitaController::class, 'misCitas']);
-        Route::get('/citas/{id}', [CitaController::class, 'verMiCita']);
-        Route::post('/citas', [CitaController::class, 'agendar']);
-        Route::put('/citas/{id}', [CitaController::class, 'modificarMiCita']);
-        Route::post('/citas/{id}/cancelar', [CitaController::class, 'cancelarMiCita']);
+    include __DIR__ . '/v1/empleado.php';
 
-        // Disponibilidad
-        Route::get('/disponibilidad/dias', [DisponibilidadController::class, 'diasDisponibles']);
-        Route::get('/disponibilidad/slots', [DisponibilidadController::class, 'slotsDisponibles']);
-        Route::post('/disponibilidad/verificar', [DisponibilidadController::class, 'verificar']);
-        Route::get('/disponibilidad/empleados', [DisponibilidadController::class, 'empleadosDisponibles']);
-        Route::post('/disponibilidad/calcular', [DisponibilidadController::class, 'calcularServicio']);
+    include __DIR__ . '/v1/admin.php';
 
-        // Calificaciones
-        Route::post('/citas/{id}/calificar', [CitaController::class, 'calificar']);
+    include __DIR__ . '/v1/ventas.php';
 
-        // Fotos
-        Route::get('/citas/{id}/fotos', [FotoController::class, 'index']);
-        Route::post('/citas/{id}/fotos', [FotoController::class, 'subir']);
-        Route::get('/galeria', [FotoController::class, 'galeriaCliente']);
-    });
-
-    // =====================================================
-    // RUTAS PARA EMPLEADOS
-    // =====================================================
-    Route::prefix('empleado')->middleware('tipo:empleado,admin')->group(function () {
-        // Calendario
-        Route::get('/calendario/dia', [CitaController::class, 'citasDelDia']);
-        Route::get('/calendario/semana', [CitaController::class, 'citasDeLaSemana']);
-
-        // Gestión de citas
-        Route::get('/citas', [CitaController::class, 'misCitasEmpleado']);
-        Route::post('/citas', [CitaController::class, 'storeEmpleado']);
-        Route::put('/citas/{id}/estado', [CitaController::class, 'cambiarEstado']);
-        Route::post('/citas/{id}/reagendar', [CitaController::class, 'reagendarEmpleado']);
-        Route::post('/citas/{id}/cancelar', [CitaController::class, 'cancelarEmpleado']);
-        Route::post('/citas/{id}/fotos', [CitaController::class, 'subirFoto']);
-        Route::post('/citas/scan-qr/{token}', [CitaController::class, 'escanearQr']);
-        
-        // Mi perfil de empleado
-        Route::get('/perfil', [EmpleadoController::class, 'miPerfil']);
-        Route::put('/perfil', [EmpleadoController::class, 'actualizarMiPerfil']);
-        Route::get('/estadisticas', [EmpleadoController::class, 'misEstadisticas']);
-
-        // Mis servicios asignados
-        Route::get('/mis-servicios', [EmpleadoController::class, 'misServicios']);
-
-        // Clientes (para crear citas)
-        Route::get('/clientes', [ClienteController::class, 'indexEmpleado']);
-        Route::post('/clientes', [ClienteController::class, 'storeEmpleado']);
-
-        // Horarios
-        Route::get('/horarios', [EmpleadoController::class, 'misHorarios']);
-        Route::put('/horarios', [EmpleadoController::class, 'actualizarHorarios']);
-
-        // Bloqueos
-        Route::get('/bloqueos', [EmpleadoController::class, 'misBloqueos']);
-        Route::post('/bloqueos', [EmpleadoController::class, 'crearBloqueo']);
-        Route::delete('/bloqueos/{id}', [EmpleadoController::class, 'eliminarBloqueo']);
-
-        // Disponibilidad (sin restricción de anticipación mínima)
-        Route::get('/disponibilidad/slots', [DisponibilidadController::class, 'slotsDisponiblesEmpleado']);
-
-        // Fotos de citas
-        Route::get('/citas/{id}/fotos', [FotoController::class, 'index']);
-        Route::post('/citas/{id}/fotos', [FotoController::class, 'subir']);
-        Route::delete('/fotos/{id}', [FotoController::class, 'destroy']);
-    });
-
-    // =====================================================
-    // RUTAS PARA ADMIN
-    // =====================================================
-    Route::prefix('admin')->middleware('tipo:admin')->group(function () {
-        // Dashboard
-        Route::get('/dashboard', [ConfiguracionController::class, 'dashboard']);
-
-        // Servicios
-        Route::apiResource('servicios', ServicioController::class);
-        
-        // Categorías
-        Route::apiResource('categorias', CategoriaController::class);
-        
-        // Empleados
-        Route::apiResource('empleados', EmpleadoController::class);
-        Route::get('/empleados/{id}/horarios', [EmpleadoController::class, 'horarios']);
-        Route::put('/empleados/{id}/horarios', [EmpleadoController::class, 'actualizarHorarios']);
-        Route::get('/empleados/{id}/servicios', [EmpleadoController::class, 'servicios']);
-        Route::put('/empleados/{id}/servicios', [EmpleadoController::class, 'asignarServicios']);
-
-        // Clientes
-        Route::apiResource('clientes', ClienteController::class);
-        Route::get('/clientes/{id}/citas', [ClienteController::class, 'citasDelCliente']);
-
-        // Citas
-        Route::apiResource('citas', CitaController::class);
-        Route::get('/citas-calendario', [CitaController::class, 'calendario']);
-        Route::post('/citas/{id}/reagendar', [CitaController::class, 'reagendarAdmin']);
-        Route::post('/citas/{id}/cancelar', [CitaController::class, 'cancelarAdmin']);
-        Route::post('/citas/scan-qr/{token}', [CitaController::class, 'escanearQr']);
-        
-        // Disponibilidad (para reagendar citas, sin restricción de anticipación)
-        Route::get('/disponibilidad/slots', [DisponibilidadController::class, 'slotsDisponiblesEmpleado']);
-        
-        // Promociones
-        Route::apiResource('promociones', PromocionController::class);
-
-        // Configuración
-        Route::get('/configuracion', [ConfiguracionController::class, 'index']);
-        Route::put('/configuracion', [ConfiguracionController::class, 'actualizar']);
-
-        // Reportes
-        Route::prefix('reportes')->group(function () {
-            Route::get('/citas', [ConfiguracionController::class, 'reporteCitas']);
-            Route::get('/ingresos', [ConfiguracionController::class, 'reporteIngresos']);
-            Route::get('/empleados', [ConfiguracionController::class, 'reporteEmpleados']);
-            Route::get('/servicios', [ConfiguracionController::class, 'reporteServicios']);
-        });
-
-        // Auditoría
-        Route::get('/auditoria', [ConfiguracionController::class, 'auditoria']);
-
-        // Días festivos
-        Route::apiResource('dias-festivos', ConfiguracionController::class . '@diasFestivos');
-
-        // Plantillas de notificación y comunicaciones
-        Route::prefix('plantillas')->group(function () {
-            Route::get('/', [PlantillaNotificacionController::class, 'index']);
-            Route::get('/{id}', [PlantillaNotificacionController::class, 'show']);
-            Route::put('/{id}', [PlantillaNotificacionController::class, 'update']);
-            Route::post('/{id}/restablecer', [PlantillaNotificacionController::class, 'restablecer']);
-            Route::post('/{id}/preview', [PlantillaNotificacionController::class, 'preview']);
-        });
-
-        Route::prefix('comunicaciones')->group(function () {
-            Route::post('/enviar', [PlantillaNotificacionController::class, 'enviarComunicacion']);
-            Route::get('/clientes', [PlantillaNotificacionController::class, 'getClientes']);
-            Route::get('/estadisticas', [PlantillaNotificacionController::class, 'getEstadisticas']);
-        });
-    });
+    
 });
 
