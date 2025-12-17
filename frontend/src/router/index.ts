@@ -137,6 +137,33 @@ const router = createRouter({
       component: () => import('@/views/empleado/ScanQrView.vue'),
       meta: { requiresAuth: true, tipo: 'admin' },
     },
+    // =====================================================
+    // RUTAS DE ALMACÉN Y VENTAS
+    // =====================================================
+    {
+      path: '/admin/productos',
+      name: 'admin-productos',
+      component: () => import('@/views/admin/ProductosView.vue'),
+      meta: { requiresAuth: true, tipo: 'admin' },
+    },
+    {
+      path: '/admin/categorias-productos',
+      name: 'admin-categorias-productos',
+      component: () => import('@/views/admin/CategoriasProductosView.vue'),
+      meta: { requiresAuth: true, tipo: 'admin' },
+    },
+    {
+      path: '/admin/inventario',
+      name: 'admin-inventario',
+      component: () => import('@/views/admin/InventarioView.vue'),
+      meta: { requiresAuth: true, tipo: 'admin' },
+    },
+    {
+      path: '/admin/ventas',
+      name: 'admin-ventas',
+      component: () => import('@/views/admin/VentasView.vue'),
+      meta: { requiresAuth: true, tipo: 'admin' },
+    },
 
     // =====================================================
     // RUTA PÚBLICA SCAN QR (redirect)

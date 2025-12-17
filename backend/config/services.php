@@ -41,4 +41,9 @@ return [
         'session_id' => env('WHATSAPP_SESSION_ID', ''),
     ],
 
+    'firebase' => [
+        'server_key' => env('FIREBASE_SERVER_KEY', 'AIzaSyBeO4Jc023gHxXV7N8D3efmtqvJ91EbCTk'),
+        'fcm_url' => env('FIREBASE_FCM_URL', 'https://fcm.googleapis.com/fcm/send'),
+    ],
+
 ];

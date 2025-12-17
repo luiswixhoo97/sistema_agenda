@@ -91,7 +91,7 @@ class EnviarPushNotificationJob implements ShouldQueue
      */
     protected function desactivarToken(): void
     {
-        Dispositivo::where('token', $this->token)->update(['activo' => false]);
+        Dispositivo::where('token_push', $this->token)->update(['activo' => false]);
         Log::info("Token de dispositivo desactivado: " . substr($this->token, 0, 20) . '...');
     }
 }

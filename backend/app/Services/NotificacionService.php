@@ -322,7 +322,7 @@ class NotificacionService
         $dispositivos = $cliente->dispositivos()->where('activo', true)->get();
         foreach ($dispositivos as $dispositivo) {
             EnviarPushNotificationJob::dispatch(
-                $dispositivo->token,
+                $dispositivo->token_push,
                 $this->obtenerTituloPush($tipoPlantilla),
                 $this->renderizarPlantilla($tipoPlantilla . '_corto', $datos),
                 $this->obtenerDataPush($notificacion),
