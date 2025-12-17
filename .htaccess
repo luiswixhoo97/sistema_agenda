@@ -1,0 +1,45 @@
+# Configuración para hosting compartido
+# Redirige la raíz a frontend/dist y permite que /api/* pase al backend
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # PRIORIDAD 1: Rutas de API y webhooks - redirigir al backend/public/index.php
+    # Laravel necesita recibir la URI completa para enrutar correctamente
+    # La REQUEST_URI se mantiene automáticamente en redirecciones internas
+    RewriteCond %{REQUEST_URI} ^/api/ [OR]
+    RewriteCond %{REQUEST_URI} ^/webhooks/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ backend/public/index.php [L]
+
+    # PRIORIDAD 2: Si el archivo existe físicamente en frontend/dist, servirlo
+    RewriteCond %{REQUEST_URI} !^/api/
+    RewriteCond %{REQUEST_URI} !^/webhooks/
+    RewriteCond %{REQUEST_URI} !^/backend/
+    RewriteCond %{DOCUMENT_ROOT}/frontend/dist%{REQUEST_URI} -f
+    RewriteRule ^(.*)$ frontend/dist/$1 [L]
+
+    # PRIORIDAD 3: Si el directorio existe en frontend/dist, servirlo
+    RewriteCond %{REQUEST_URI} !^/api/
+    RewriteCond %{REQUEST_URI} !^/webhooks/
+    RewriteCond %{REQUEST_URI} !^/backend/
+    RewriteCond %{DOCUMENT_ROOT}/frontend/dist%{REQUEST_URI} -d
+    RewriteRule ^(.*)$ frontend/dist/$1 [L]
+
+    # PRIORIDAD 4: Todas las demás rutas - servir index.html del frontend (SPA)
+    # Esto maneja las rutas del Vue Router
+    RewriteCond %{REQUEST_URI} !^/api/
+    RewriteCond %{REQUEST_URI} !^/webhooks/
+    RewriteCond %{REQUEST_URI} !^/backend/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ frontend/dist/index.html [L]
+</IfModule>
+
+# Prevenir listado de directorios
+Options -Indexes
+
+# UTF-8 encoding
+AddDefaultCharset UTF-8
