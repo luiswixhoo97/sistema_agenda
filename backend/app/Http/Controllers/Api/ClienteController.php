@@ -434,6 +434,49 @@ class ClienteController extends Controller
         return $user instanceof Cliente ? $user : null;
     }
 
+    // =====================================================
+    // RUTAS PÚBLICAS
+    // =====================================================
+
+    /**
+     * Buscar cliente por teléfono (público)
+     * 
+     * GET /api/publico/cliente/telefono/{telefono}
+     */
+    public function buscarPorTelefonoPublico(string $telefono): JsonResponse
+    {
+        // Validar que el teléfono tenga exactamente 10 dígitos
+        $telefonoLimpio = preg_replace('/\D/', '', $telefono);
+        
+        if (strlen($telefonoLimpio) !== 10) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El teléfono debe tener exactamente 10 dígitos',
+            ], 422);
+        }
+
+        $cliente = Cliente::where('telefono', $telefonoLimpio)
+            ->where('active', true)
+            ->first();
+
+        if (!$cliente) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cliente no encontrado',
+            ], 404);
+        }
+
+        $nombreCompleto = trim($cliente->nombre);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'nombre' => $nombreCompleto,
+                'email' => $cliente->email,
+            ],
+        ]);
+    }
+
     /**
      * Formatear cliente para respuesta
      */

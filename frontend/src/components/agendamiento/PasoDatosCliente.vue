@@ -78,27 +78,6 @@
         <h2 class="form-title">Agendar tu cita</h2>
        
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Nombre <span class="required">*</span></label>
-          <input
-            type="text"
-            v-model="store.datosCliente.nombre"
-            placeholder="Juan"
-            maxlength="50"
-          />
-        </div>
-        <div class="form-group">
-          <label>Apellido <span class="required">*</span></label>
-          <input
-            type="text"
-            v-model="store.datosCliente.apellido"
-            placeholder="Pérez"
-            maxlength="50"
-          />
-        </div>
-      </div>
-
       <div class="form-group">
         <label>Teléfono (10 dígitos) <span class="required">*</span></label>
         <div class="input-with-icon">
@@ -108,13 +87,27 @@
             v-model="store.datosCliente.telefono"
             placeholder="5512345678"
             maxlength="10"
-            @input="onlyNumbers"
+            @input="onTelefonoInput"
           />
         </div>
         <span class="input-hint">
           <i class="fab fa-whatsapp"></i>
           Te enviaremos un código por WhatsApp para confirmar tu cita
         </span>
+        <span v-if="buscandoCliente" class="input-hint loading">
+          <i class="fa fa-spinner fa-spin"></i>
+          Buscando cliente...
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label>Nombre completo <span class="required">*</span></label>
+        <input
+          type="text"
+          v-model="store.datosCliente.nombre"
+          placeholder="Juan Pérez"
+          maxlength="100"
+        />
       </div>
 
       <div class="form-group">
@@ -148,6 +141,7 @@ const store = useCitasStore()
 const promociones = ref<any[]>([])
 const indiceActual = ref(0)
 let autoPlayInterval: number | null = null
+const buscandoCliente = ref(false)
 
 // Usar el store para la promoción seleccionada en lugar de un ref local
 const promocionSeleccionada = computed(() => {
@@ -334,9 +328,39 @@ function formatearTiempoRestante(promo: any): string {
   return partes.join(', ') + ' restantes'
 }
 
-function onlyNumbers(e: Event) {
+async function onTelefonoInput(e: Event) {
   const input = e.target as HTMLInputElement
   input.value = input.value.replace(/\D/g, '')
   store.datosCliente.telefono = input.value
+
+  // Si tiene 10 dígitos, buscar el cliente
+  if (input.value.length === 10) {
+    await buscarClientePorTelefono(input.value)
+  }
+}
+
+async function buscarClientePorTelefono(telefono: string) {
+  if (buscandoCliente.value) return
+  
+  buscandoCliente.value = true
+  try {
+    const resultado = await catalogoService.buscarClientePorTelefono(telefono)
+    
+    if (resultado.success && resultado.data) {
+      // Llenar nombre completo (sin separar)
+      store.datosCliente.nombre = resultado.data.nombre.trim()
+      store.datosCliente.apellido = '' // Dejar apellido vacío ya que no está separado en BD
+      
+      // Llenar email si existe
+      if (resultado.data.email) {
+        store.datosCliente.email = resultado.data.email
+      }
+    }
+  } catch (error) {
+    console.error('Error buscando cliente:', error)
+    // No mostrar error al usuario, simplemente no llenar los campos
+  } finally {
+    buscandoCliente.value = false
+  }
 }
 </script>

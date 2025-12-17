@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\EmpleadoController;
 use App\Http\Controllers\Api\PromocionController;
 use App\Http\Controllers\Api\AgendamientoPublicoController;
 use App\Http\Controllers\Api\DisponibilidadController;
+use App\Http\Controllers\Api\ClienteController;
 
 // Catálogo público
 Route::prefix('publico')->group(function () {
@@ -14,6 +15,9 @@ Route::prefix('publico')->group(function () {
     Route::get('/categorias', [CategoriaController::class, 'indexPublico']);
     Route::get('/empleados', [EmpleadoController::class, 'indexPublico']);
     Route::get('/promociones', [PromocionController::class, 'indexPublico']);
+    Route::get('/cliente/telefono/{telefono}', [ClienteController::class, 'buscarPorTelefonoPublico']);
+
+    
     
     // Agendamiento público (sin sesión)
     Route::post('/agendar/otp', [AgendamientoPublicoController::class, 'enviarOtp']);

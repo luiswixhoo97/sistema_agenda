@@ -163,8 +163,9 @@ export const useCitasStore = defineStore('citas', () => {
 
   // Validación de datos del cliente
   const datosClienteValidos = computed(() => {
-    return datosCliente.value.nombre.trim().length >= 2 &&
-           datosCliente.value.apellido.trim().length >= 2 &&
+    // Solo validar nombre completo (mínimo 3 caracteres) y teléfono
+    // El apellido puede estar vacío ya que no está separado en BD
+    return datosCliente.value.nombre.trim().length >= 3 &&
            datosCliente.value.telefono.length === 10
   })
 
@@ -839,8 +840,10 @@ export const useCitasStore = defineStore('citas', () => {
     error.value = null
 
     try {
-      // Combinar nombre y apellido
-      const nombreCompleto = `${datosCliente.value.nombre.trim()} ${datosCliente.value.apellido.trim()}`
+      // Combinar nombre y apellido (si el apellido está vacío, solo usar el nombre)
+      const nombreCompleto = datosCliente.value.apellido.trim()
+        ? `${datosCliente.value.nombre.trim()} ${datosCliente.value.apellido.trim()}`
+        : datosCliente.value.nombre.trim()
 
       const request = {
         // Datos del cliente
@@ -904,8 +907,10 @@ export const useCitasStore = defineStore('citas', () => {
     error.value = null
 
     try {
-      // Combinar nombre y apellido
-      const nombreCompleto = `${datosCliente.value.nombre.trim()} ${datosCliente.value.apellido.trim()}`
+      // Combinar nombre y apellido (si el apellido está vacío, solo usar el nombre)
+      const nombreCompleto = datosCliente.value.apellido.trim()
+        ? `${datosCliente.value.nombre.trim()} ${datosCliente.value.apellido.trim()}`
+        : datosCliente.value.nombre.trim()
 
       // Construir array de servicios con sus empleados y horarios
       const serviciosRequest = slotCoordinadoSeleccionado.value.servicios.map(s => ({
