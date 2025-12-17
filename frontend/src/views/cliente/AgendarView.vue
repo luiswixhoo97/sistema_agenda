@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, watch } from 'vue'
 import { useAgendamiento } from '@/composables/useAgendamiento'
+import { useAppkit } from '@/composables/useAppkit'
 import PasoDatosCliente from '@/components/agendamiento/PasoDatosCliente.vue'
 import PasoServicios from '@/components/agendamiento/PasoServicios.vue'
 import PasoEmpleado from '@/components/agendamiento/PasoEmpleado.vue'
@@ -12,6 +13,8 @@ const {
   cargarCatalogo, 
   cargarEmpleados 
 } = useAgendamiento()
+
+const { theme, toggleTheme } = useAppkit()
 
 onMounted(() => {
   cargarCatalogo()
@@ -38,6 +41,11 @@ const pasos = [
 
 <template>
   <div class="agendar-view">
+    <!-- FAB Toggle Theme -->
+    <button class="theme-fab" @click="toggleTheme" :aria-label="theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'">
+      <i :class="['fa', theme === 'light' ? 'fa-moon' : 'fa-sun']"></i>
+    </button>
+
     <!-- Indicador de pasos -->
     <div class="pasos-container">
   
@@ -483,5 +491,58 @@ const pasos = [
 .toast-leave-to {
   opacity: 0;
   transform: translateY(20px);
+}
+
+/* Theme FAB */
+.theme-fab {
+  position: fixed;
+  top: 3px;
+  right: 5px;
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 0 0 0.5px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 20px;
+  color: #007aff;
+  padding: 0;
+  outline: none;
+}
+
+.theme-dark .theme-fab {
+  background: rgba(28, 28, 30, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 0 0 0.5px rgba(255, 255, 255, 0.05);
+  color: #ffd60a;
+}
+
+.theme-fab:hover {
+  transform: scale(1.05);
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.15),
+    0 0 0 0.5px rgba(0, 0, 0, 0.08);
+}
+
+.theme-dark .theme-fab:hover {
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.4),
+    0 0 0 0.5px rgba(255, 255, 255, 0.08);
+}
+
+.theme-fab:active {
+  transform: scale(0.95);
 }
 </style>
