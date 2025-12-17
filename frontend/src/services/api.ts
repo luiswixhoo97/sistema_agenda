@@ -1,22 +1,16 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
 
-// Configuración base - detectar si estamos en localhost o en red local
+// Configuración base - usar variable de entorno o detectar automáticamente
 const getApiUrl = () => {
-  // Si hay variable de entorno, usarla
+  // Si hay variable de entorno, usarla (prioridad)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL
   }
   
-  // URL del servidor de producción
+
+  // Por defecto: URL de producción
   return 'https://salmon-eland-125157.hostingersite.com/backend/public/api'
-  
-  /* Para desarrollo local, descomenta esto:
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:8000/api'
-  }
-  return `http://${window.location.hostname}:8000/api`
-  */
 }
 
 const API_URL = getApiUrl()
