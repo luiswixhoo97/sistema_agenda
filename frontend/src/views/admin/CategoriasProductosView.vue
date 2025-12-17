@@ -272,7 +272,7 @@ const formData = reactive({
   active: true,
 });
 
-const coloresCategoria = [
+const coloresCategoria: readonly string[] = [
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
   'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
@@ -289,7 +289,9 @@ const categoriasFiltradas = computed(() => {
 });
 
 function getColorCategoria(id: number): string {
-  return coloresCategoria[id % coloresCategoria.length];
+  const index = id % coloresCategoria.length;
+  const color = coloresCategoria[index];
+  return color ?? coloresCategoria[0] ?? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
 }
 
 function isActiva(categoria: any): boolean {
