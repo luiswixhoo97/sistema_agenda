@@ -524,7 +524,7 @@ Table categorias_productos {
 
 Table productos {
   id bigint [pk, increment]
-  codigo varchar(50) [unique, not null]
+  codigo varchar(100) [unique, not null]
   nombre varchar(255) [not null]
   foto varchar(255)
   categoria_id bigint [ref: > categorias_productos.id]
@@ -549,11 +549,11 @@ Table productos {
 Table movimientos_inventario {
   id bigint [pk, increment]
   producto_id bigint [ref: > productos.id, not null]
-  tipo enum [not null, note: 'entrada_manual, salida_manual, compra, venta']
+  tipo enum [not null, note: 'entrada_manual, salida_manual, venta']
   cantidad integer [not null]
   motivo varchar(255)
-  referencia_id bigint [note: 'ID de venta o compra relacionada']
-  referencia_tipo varchar(50) [note: 'tipo de referencia: venta, compra, etc.']
+  referencia_id bigint [note: 'ID de venta relacionada']
+  referencia_tipo varchar(50) [note: 'tipo de referencia: venta, etc.']
   user_id bigint [ref: > users.id]
   notas text
   created_at timestamp
@@ -590,7 +590,6 @@ Table metodos_pago {
 Table ventas {
   id bigint [pk, increment]
   cliente_id bigint [ref: > clientes.id]
-  numero_venta varchar(50) [unique]
   fecha_venta datetime [not null]
   subtotal decimal(10,2) [not null]
   descuento_general decimal(10,2) [default: 0]
@@ -602,24 +601,15 @@ Table ventas {
   requiere_anticipo boolean [default: false]
   monto_anticipo_requerido decimal(10,2) [note: 'Monto de anticipo requerido']
   monto_anticipo_pagado decimal(10,2) [default: 0, note: 'Monto de anticipo pagado']
-  transaccion_id varchar(255) [note: 'ID de transacción del proveedor de pago (último pago o resumen)']
-  proveedor_pago enum [note: 'mercadopago, stripe']
-  estado_pago enum [default: 'pendiente', note: 'pendiente, aprobado, rechazado, reembolsado']
-  metadata_pago json [note: 'Datos adicionales del pago (último pago o resumen)']
   notas text
-  user_id bigint [ref: > users.id, not null, note: 'Usuario que registró la venta']
   deleted_at timestamp
   created_at timestamp
   updated_at timestamp
   
   indexes {
     cliente_id [name: 'idx_ventas_cliente']
-    numero_venta [name: 'idx_ventas_numero']
     fecha_venta [name: 'idx_ventas_fecha']
     estado [name: 'idx_ventas_estado']
-    transaccion_id [name: 'idx_ventas_transaccion']
-    estado_pago [name: 'idx_ventas_estado_pago']
-    user_id [name: 'idx_ventas_user']
     requiere_anticipo [name: 'idx_ventas_requiere_anticipo']
   }
   
@@ -632,15 +622,13 @@ Table venta_detalle {
   tipo enum [default: 'producto', note: 'servicio, producto']
   producto_id bigint [ref: > productos.id, note: 'NULL si tipo=servicio']
   servicio_id bigint [ref: > servicios.id, note: 'NULL si tipo=producto']
-  cita_id bigint [ref: > citas.id, note: 'Cada servicio tiene su cita (NULL si tipo=producto)']
-  cita_servicio_id bigint [ref: > citas_servicios.id, note: 'NULL si no viene de citas_servicios']
-  empleado_id bigint [ref: > empleados.id, note: 'Empleado que realizó el servicio para comisiones']
+  cita_id bigint [ref: > citas.id, note: 'Cita asociada al servicio (NULL si tipo=producto)']
   promocion_id bigint [ref: > promociones.id, note: 'Promoción aplicada a esta línea']
   cantidad integer [not null]
   precio_unitario decimal(10,2) [not null]
   descuento decimal(10,2) [default: 0, note: 'Descuento aplicado a esta línea']
   impuesto decimal(10,2) [default: 0, note: 'Impuesto aplicado a esta línea']
-  subtotal_linea decimal(10,2) [not null, note: 'Subtotal de la línea']
+  subtotal_linea decimal(10,2) [not null, note: 'Subtotal de la línea (cantidad * precio_unitario - descuento + impuesto)']
   created_at timestamp
   updated_at timestamp
   
@@ -650,8 +638,6 @@ Table venta_detalle {
     producto_id [name: 'idx_venta_detalle_producto']
     servicio_id [name: 'idx_venta_detalle_servicio']
     cita_id [name: 'idx_venta_detalle_cita']
-    cita_servicio_id [name: 'idx_venta_detalle_cita_servicio']
-    empleado_id [name: 'idx_venta_detalle_empleado']
     promocion_id [name: 'idx_venta_detalle_promocion']
   }
   
@@ -814,13 +800,10 @@ Ref: productos.categoria_id > categorias_productos.id
 Ref: movimientos_inventario.producto_id > productos.id
 Ref: movimientos_inventario.user_id > users.id
 Ref: ventas.cliente_id > clientes.id
-Ref: ventas.user_id > users.id
 Ref: venta_detalle.venta_id > ventas.id
 Ref: venta_detalle.producto_id > productos.id
 Ref: venta_detalle.servicio_id > servicios.id
 Ref: venta_detalle.cita_id > citas.id
-Ref: venta_detalle.cita_servicio_id > citas_servicios.id
-Ref: venta_detalle.empleado_id > empleados.id
 Ref: venta_detalle.promocion_id > promociones.id
 Ref: venta_pagos.venta_id > ventas.id
 Ref: venta_pagos.metodo_pago_id > metodos_pago.id
@@ -845,7 +828,7 @@ Ref: reglas_anticipo_servicio.servicio_id > servicios.id
    - Filtros por fecha y empleado
    - Búsquedas de clientes por teléfono/email
    - Notificaciones pendientes
-   - Búsquedas de productos por código y código de barras
+   - Búsquedas de productos por código
    - Movimientos de inventario por producto y tipo
    - Ventas por cliente, fecha y estado
    - Webhooks de pagos por proveedor y estado
@@ -880,9 +863,9 @@ Ref: reglas_anticipo_servicio.servicio_id > servicios.id
    - Una venta puede tener múltiples citas (cada servicio en `venta_detalle` tiene su `cita_id`)
    - Puede incluir servicios (de citas) y productos en el mismo documento
    - Soporta pagos parciales múltiples a través de `venta_pagos`
-   - Mantiene trazabilidad de empleados para comisiones en `venta_detalle.empleado_id`
    - Las promociones pueden aplicarse tanto a servicios como a productos
    - Solo los productos afectan el inventario, los servicios no
+   - Los pagos online se registran en `venta_pagos` con información del proveedor (Mercado Pago/Stripe)
 
 7. **Sistema de Reglas de Anticipo**:
    - Configuración flexible de anticipos mediante reglas
