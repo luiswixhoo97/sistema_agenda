@@ -143,6 +143,9 @@ const indiceActual = ref(0)
 let autoPlayInterval: number | null = null
 const buscandoCliente = ref(false)
 
+// Clave para localStorage
+const STORAGE_KEY_TELEFONO = 'sistema_agenda_telefono_cliente'
+
 // Usar el store para la promoción seleccionada en lugar de un ref local
 const promocionSeleccionada = computed(() => {
   if (!store.promocionSeleccionada) return null
@@ -152,6 +155,7 @@ const promocionSeleccionada = computed(() => {
 onMounted(async () => {
   await cargarPromociones()
   iniciarAutoPlay()
+  await cargarTelefonoGuardado()
 })
 
 onUnmounted(() => {
@@ -355,12 +359,36 @@ async function buscarClientePorTelefono(telefono: string) {
       if (resultado.data.email) {
         store.datosCliente.email = resultado.data.email
       }
+      
+      // Guardar teléfono en localStorage cuando se encuentra el cliente
+      if (telefono.length === 10) {
+        localStorage.setItem(STORAGE_KEY_TELEFONO, telefono)
+      }
     }
   } catch (error) {
     console.error('Error buscando cliente:', error)
     // No mostrar error al usuario, simplemente no llenar los campos
   } finally {
     buscandoCliente.value = false
+  }
+}
+
+// Cargar teléfono guardado al montar el componente
+async function cargarTelefonoGuardado() {
+  try {
+    const telefonoGuardado = localStorage.getItem(STORAGE_KEY_TELEFONO)
+    
+    if (telefonoGuardado && telefonoGuardado.length === 10) {
+      // Establecer el teléfono en el store
+      store.datosCliente.telefono = telefonoGuardado
+      
+      // Disparar la búsqueda automáticamente
+      await buscarClientePorTelefono(telefonoGuardado)
+    }
+  } catch (error) {
+    console.error('Error cargando teléfono guardado:', error)
+    // Si hay error, limpiar el localStorage corrupto
+    localStorage.removeItem(STORAGE_KEY_TELEFONO)
   }
 }
 </script>
