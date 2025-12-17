@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AgendamientoPublicoController;
 use App\Http\Controllers\Api\DisponibilidadController;
 use App\Http\Controllers\Api\ClienteController;
 use App\Http\Controllers\Api\AnticipoController;
+use App\Http\Controllers\Api\MercadoPagoController;
 
 // Catálogo público
 Route::prefix('publico')->group(function () {
@@ -41,4 +42,9 @@ Route::prefix('publico')->group(function () {
     
     // Validación de anticipos
     Route::post('/anticipo/validar', [AnticipoController::class, 'validarPublico']);
+    
+    // Mercado Pago
+    Route::post('/mercadopago/crear-preferencia', [MercadoPagoController::class, 'crearPreferencia']);
+    Route::post('/mercadopago/webhook', [MercadoPagoController::class, 'webhook']);
+    Route::get('/mercadopago/verificar/{payment_id}', [MercadoPagoController::class, 'verificarPago']);
 });

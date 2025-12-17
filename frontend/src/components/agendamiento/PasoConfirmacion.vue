@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useCitasStore } from '@/stores/citas'
+import mercadopagoService from '@/services/mercadopagoService'
 import './PasoConfirmacion.css'
 const store = useCitasStore()
 
@@ -8,6 +9,9 @@ const confirmando = ref(false)
 const exito = ref(false)
 const otpDigits = ref(['', '', '', '', '', ''])
 const otpRefs = ref<(HTMLInputElement | null)[]>([])
+const procesandoPago = ref(false)
+const mostrarModalPayPal = ref(false)
+const mostrarModalStripe = ref(false)
 
 // Verificar si está en modo múltiples empleados
 const esModoMultiples = computed(() => store.modoMultiplesEmpleados)
@@ -39,6 +43,13 @@ const debeMostrarOtp = computed(() => {
 })
 
 onMounted(async () => {
+  // Verificar si hay parámetros de retorno de Mercado Pago
+  const params = mercadopagoService.obtenerParametrosRetorno()
+  if (params.payment_id && params.status) {
+    await manejarRetornoPago(params)
+    return
+  }
+
   // Solo enviar OTP si no requiere anticipo o si ya se seleccionó método de pago
   if (!store.otpEnviado) {
     if (!store.anticipoInfo.requiere_anticipo) {
@@ -139,6 +150,116 @@ function formatHora(hora: string): string {
   const ampm = hour >= 12 ? 'PM' : 'AM'
   const hour12 = hour % 12 || 12
   return `${hour12}:${minutes} ${ampm}`
+}
+
+async function manejarRetornoPago(params: { payment_id: string | null; status: string | null; external_reference: string | null }) {
+  if (!params.payment_id || !params.status) return
+
+  procesandoPago.value = true
+  store.clearError()
+
+  try {
+    // Verificar estado del pago
+    const verificacion = await mercadopagoService.verificarPago(params.payment_id)
+
+    if (verificacion.success && verificacion.data) {
+      if (verificacion.data.status === 'approved') {
+        // Pago aprobado
+        store.anticipoPagado = true
+        store.metodoPagoAnticipo = 'pasarela'
+        store.error = null
+        
+        // Limpiar parámetros de la URL
+        window.history.replaceState({}, document.title, window.location.pathname)
+        
+        // Si ya tenemos el OTP, proceder a agendar
+        if (store.otpCodigo.length === 6) {
+          await confirmar()
+        } else {
+          // Enviar OTP si no se ha enviado
+          if (!store.otpEnviado) {
+            await store.enviarOtpConfirmacion()
+          }
+        }
+      } else if (verificacion.data.status === 'pending') {
+        store.error = 'Tu pago está pendiente. Te notificaremos cuando se apruebe.'
+      } else {
+        store.error = 'El pago no pudo ser procesado. Intenta con otro método de pago.'
+      }
+    } else {
+      store.error = 'No se pudo verificar el estado del pago. Intenta de nuevo.'
+    }
+  } catch (error: any) {
+    console.error('Error verificando pago:', error)
+    store.error = 'Error al verificar el pago. Intenta de nuevo.'
+  } finally {
+    procesandoPago.value = false
+  }
+}
+
+async function pagarConMercadoPago() {
+  if (!store.anticipoInfo.requiere_anticipo) return
+
+  procesandoPago.value = true
+  store.clearError()
+
+  try {
+    // Generar external_reference único
+    const timestamp = Date.now()
+    const externalReference = `anticipo_${timestamp}`
+
+    // Obtener URLs de retorno
+    const baseUrl = window.location.origin + window.location.pathname
+    const backUrls = {
+      success: baseUrl,
+      failure: baseUrl,
+      pending: baseUrl,
+    }
+
+    // Crear preferencia de pago
+    const response = await mercadopagoService.crearPreferencia({
+      monto: store.anticipoInfo.monto_anticipo,
+      descripcion: `Anticipo para cita - ${store.serviciosSeleccionados.map(s => s.nombre).join(', ')}`,
+      payer_email: store.datosCliente.email || undefined, // Enviar undefined si no hay email
+      payer_name: store.datosCliente.nombre || undefined,
+      payer_surname: store.datosCliente.apellido || undefined,
+      external_reference: externalReference,
+      back_url_success: backUrls.success,
+      back_url_failure: backUrls.failure,
+      back_url_pending: backUrls.pending,
+    })
+
+    if (response.success && response.data) {
+      // Guardar external_reference en el store para verificar después
+      store.metodoPagoAnticipo = 'pasarela'
+      
+      // Redirigir al checkout de Mercado Pago
+      mercadopagoService.redirigirAlCheckout(response.data.init_point)
+    } else {
+      store.error = response.message || 'Error al crear la preferencia de pago'
+    }
+  } catch (error: any) {
+    console.error('Error creando preferencia de Mercado Pago:', error)
+    store.error = 'Error al procesar el pago. Intenta de nuevo.'
+  } finally {
+    procesandoPago.value = false
+  }
+}
+
+function abrirModalPayPal() {
+  mostrarModalPayPal.value = true
+}
+
+function abrirModalStripe() {
+  mostrarModalStripe.value = true
+}
+
+function cerrarModalPayPal() {
+  mostrarModalPayPal.value = false
+}
+
+function cerrarModalStripe() {
+  mostrarModalStripe.value = false
 }
 </script>
 
@@ -400,35 +521,49 @@ function formatHora(hora: string): string {
           </div>
           
           <div class="anticipo-opcion">
-            <div class="anticipo-pasarelas">
-              <p class="pasarelas-titulo">Pago con Pasarela</p>
-              <div class="pasarelas-botones">
-                <button 
-                  class="btn-pasarela"
-                  disabled
-                  title="Próximamente disponible"
-                >
-                  <i class="fab fa-cc-paypal"></i>
-                  PayPal
-                </button>
-                <button 
-                  class="btn-pasarela"
-                  disabled
-                  title="Próximamente disponible"
-                >
-                  <i class="fab fa-cc-stripe"></i>
-                  Stripe
-                </button>
-                <button 
-                  class="btn-pasarela"
-                  disabled
-                  title="Próximamente disponible"
-                >
-                  <i class="fab fa-cc-mastercard"></i>
-                  Mercado Pago
-                </button>
+            <p class="pasarelas-titulo">Pago con Pasarela</p>
+            <div class="pasarelas-cards">
+              <!-- Card PayPal -->
+              <div 
+                class="pasarela-card pasarela-paypal"
+                @click="abrirModalPayPal"
+              >
+                <div class="pasarela-logo">
+                  <img src="/logos/PayPal.svg.png" alt="PayPal" />
+                </div>
+                <div class="pasarela-nombre">PayPal</div>
+                <div class="pasarela-badge">Disponible</div>
               </div>
-              <p class="pasarelas-nota">Próximamente disponible</p>
+
+              <!-- Card Stripe -->
+              <div 
+                class="pasarela-card pasarela-stripe"
+                @click="abrirModalStripe"
+              >
+                <div class="pasarela-logo">
+                  <img src="/logos/Stripe_Logo,_revised_2016.svg.png" alt="Stripe" />
+                </div>
+                <div class="pasarela-nombre">Stripe</div>
+                <div class="pasarela-badge">Disponible</div>
+              </div>
+
+              <!-- Card Mercado Pago -->
+              <div 
+                class="pasarela-card pasarela-mercadopago"
+                :class="{ 'activo': store.metodoPagoAnticipo === 'pasarela' }"
+                @click="pagarConMercadoPago"
+              >
+                <div class="pasarela-logo">
+                  <img src="/logos/mercado-pago-logo.png" alt="Mercado Pago" />
+                </div>
+                <div class="pasarela-nombre">Mercado Pago</div>
+                <div class="pasarela-badge activo" v-if="store.metodoPagoAnticipo === 'pasarela'">Seleccionado</div>
+                <div class="pasarela-badge" v-else>Disponible</div>
+                <div class="pasarela-loading" v-if="procesandoPago">
+                  <i class="fa fa-spinner fa-spin"></i>
+                  Procesando...
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -537,5 +672,53 @@ function formatHora(hora: string): string {
         Volver
       </button>
     </template>
+
+    <!-- Modal PayPal -->
+    <div v-if="mostrarModalPayPal" class="modal-overlay" @click.self="cerrarModalPayPal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-logo">
+            <img src="/logos/PayPal.svg.png" alt="PayPal" />
+          </div>
+          <button class="modal-close" @click="cerrarModalPayPal">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-icon">
+            <i class="fa fa-exclamation-triangle"></i>
+          </div>
+          <h3>Integración no configurada</h3>
+          <p>La llave de integración de PayPal no está configurada en el sistema. Por favor, contacta al administrador para habilitar este método de pago.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-primary" @click="cerrarModalPayPal">Entendido</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Stripe -->
+    <div v-if="mostrarModalStripe" class="modal-overlay" @click.self="cerrarModalStripe">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-logo">
+            <img src="/logos/Stripe_Logo,_revised_2016.svg.png" alt="Stripe" />
+          </div>
+          <button class="modal-close" @click="cerrarModalStripe">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-icon">
+            <i class="fa fa-exclamation-triangle"></i>
+          </div>
+          <h3>Integración no configurada</h3>
+          <p>La llave de integración de Stripe no está configurada en el sistema. Por favor, contacta al administrador para habilitar este método de pago.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-primary" @click="cerrarModalStripe">Entendido</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

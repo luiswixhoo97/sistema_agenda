@@ -46,4 +46,8 @@ return [
         'fcm_url' => env('FIREBASE_FCM_URL', 'https://fcm.googleapis.com/fcm/send'),
     ],
 
+    'mercadopago' => [
+        'access_token' => env('MERCADOPAGO_ACCESS_TOKEN','APP_USR-8563970170397929-121716-aac8a8d4c33976af547881ea84989602-3074781789'),
+    ],
+
 ];
