@@ -895,3 +895,392 @@
   font-weight: 700;
   letter-spacing: -0.4px;
 }
+
+/* Sección de Anticipo */
+.anticipo-card {
+  margin-top: 20px;
+  border: 2px solid #ff9500;
+  background: rgba(255, 149, 0, 0.05);
+}
+
+.theme-dark .anticipo-card {
+  background: rgba(255, 149, 0, 0.1);
+  border-color: #ff9500;
+}
+
+.anticipo-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.anticipo-header i {
+  font-size: 24px;
+  color: #ff9500;
+}
+
+.anticipo-header h4 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.theme-dark .anticipo-header h4 {
+  color: #f5f5f7;
+}
+
+.anticipo-mensaje {
+  font-size: 16px;
+  color: #1d1d1f;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.theme-dark .anticipo-mensaje {
+  color: #f5f5f7;
+}
+
+.anticipo-mensaje strong {
+  color: #ff9500;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.anticipo-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.anticipo-opcion {
+  width: 100%;
+}
+
+.btn-anticipo {
+  width: 100%;
+  padding: 20px;
+  border-radius: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.theme-dark .btn-anticipo {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-anticipo:hover {
+  border-color: #007aff;
+  background: rgba(0, 122, 255, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15);
+}
+
+.btn-anticipo.activo {
+  border-color: #007aff;
+  background: rgba(0, 122, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.theme-dark .btn-anticipo.activo {
+  background: rgba(0, 122, 255, 0.15);
+}
+
+.btn-anticipo i {
+  font-size: 28px;
+  color: #007aff;
+  margin-bottom: 4px;
+}
+
+.btn-anticipo span {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
+}
+
+.theme-dark .btn-anticipo span {
+  color: #f5f5f7;
+}
+
+.btn-anticipo p {
+  font-size: 14px;
+  color: #86868b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.theme-dark .btn-anticipo p {
+  color: #a1a1a6;
+}
+
+.anticipo-pasarelas {
+  padding: 20px;
+  border-radius: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.02);
+  text-align: center;
+}
+
+.theme-dark .anticipo-pasarelas {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pasarelas-titulo {
+  font-size: 16px;
+  font-weight: 600;
+  color: #86868b;
+  margin: 0 0 16px;
+}
+
+.theme-dark .pasarelas-titulo {
+  color: #a1a1a6;
+}
+
+.pasarelas-botones {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.btn-pasarela {
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  background: white;
+  cursor: not-allowed;
+  opacity: 0.5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 80px;
+  transition: all 0.2s;
+}
+
+.theme-dark .btn-pasarela {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-pasarela i {
+  font-size: 24px;
+  color: #86868b;
+}
+
+.btn-pasarela:not(:disabled) {
+  cursor: pointer;
+  opacity: 1;
+}
+
+.btn-pasarela:not(:disabled):hover {
+  border-color: #007aff;
+  background: rgba(0, 122, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+.btn-pasarela span,
+.btn-pasarela {
+  font-size: 12px;
+  font-weight: 500;
+  color: #86868b;
+}
+
+.pasarelas-nota {
+  font-size: 13px;
+  color: #86868b;
+  margin: 0;
+  font-style: italic;
+}
+
+.theme-dark .pasarelas-nota {
+  color: #a1a1a6;
+}
+
+.anticipo-confirmacion {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(0, 122, 255, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 122, 255, 0.2);
+}
+
+.theme-dark .anticipo-confirmacion {
+  background: rgba(0, 122, 255, 0.15);
+  border-color: rgba(0, 122, 255, 0.25);
+}
+
+.anticipo-info {
+  font-size: 14px;
+  color: #1d1d1f;
+  margin: 0;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.theme-dark .anticipo-info {
+  color: #f5f5f7;
+}
+
+.anticipo-info i {
+  color: #007aff;
+  font-size: 16px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* Advertencia de 24 horas */
+.anticipo-advertencia {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(255, 149, 0, 0.1);
+  border-radius: 12px;
+  border: 2px solid #ff9500;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.theme-dark .anticipo-advertencia {
+  background: rgba(255, 149, 0, 0.15);
+  border-color: #ff9500;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.advertencia-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #ff9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.advertencia-icon i {
+  color: white;
+  font-size: 18px;
+}
+
+.advertencia-texto {
+  flex: 1;
+  font-size: 14px;
+  color: #1d1d1f;
+  line-height: 1.5;
+}
+
+.theme-dark .advertencia-texto {
+  color: #f5f5f7;
+}
+
+.advertencia-texto strong {
+  color: #ff9500;
+  font-weight: 700;
+}
+
+/* Mensaje pendiente cuando no se ha seleccionado método */
+.anticipo-pendiente {
+  margin-top: 20px;
+  border: 2px dashed rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.theme-dark .anticipo-pendiente {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.pendiente-mensaje {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  text-align: center;
+  justify-content: center;
+}
+
+.pendiente-mensaje i {
+  font-size: 24px;
+  color: #86868b;
+  flex-shrink: 0;
+}
+
+.theme-dark .pendiente-mensaje i {
+  color: #a1a1a6;
+}
+
+.pendiente-mensaje p {
+  margin: 0;
+  font-size: 15px;
+  color: #86868b;
+  font-weight: 500;
+}
+
+.theme-dark .pendiente-mensaje p {
+  color: #a1a1a6;
+}
+
+/* Mejorar visibilidad de la sección de anticipo */
+.anticipo-card {
+  margin-top: 20px;
+  border: 2px solid #ff9500;
+  background: rgba(255, 149, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(255, 149, 0, 0.15);
+  order: -1; /* Aparecer antes que otras cards */
+}
+
+.theme-dark .anticipo-card {
+  background: rgba(255, 149, 0, 0.12);
+  border-color: #ff9500;
+  box-shadow: 0 4px 16px rgba(255, 149, 0, 0.2);
+}
+
+/* Transición suave cuando se selecciona método */
+.btn-anticipo.activo {
+  border-color: #007aff;
+  background: rgba(0, 122, 255, 0.12);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15), 0 4px 12px rgba(0, 122, 255, 0.2);
+  transform: scale(1.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-dark .btn-anticipo.activo {
+  background: rgba(0, 122, 255, 0.18);
+}
+
+/* OTP card con transición cuando aparece */
+.otp-card {
+  transition: opacity 0.3s ease-in, transform 0.3s ease-in;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.otp-card.otp-visible {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}

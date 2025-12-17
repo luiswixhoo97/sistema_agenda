@@ -22,6 +22,9 @@ watch(() => store.paso, async (nuevoPaso) => {
   if (nuevoPaso === 3) {
     await cargarEmpleados()
   }
+  if (nuevoPaso === 5) {
+    await store.validarAnticipo()
+  }
 })
 
 const pasos = [

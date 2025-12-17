@@ -189,6 +189,11 @@ class DatabaseSeeder extends Seeder
         // =====================================================
         $this->call(VentasTestSeeder::class);
 
+        // =====================================================
+        // DATOS BANCARIOS
+        // =====================================================
+        $this->call(DatosBancariosSeeder::class);
+
         $this->command->info('✅ Base de datos sembrada correctamente!');
         $this->command->info('');
         $this->command->info('📋 CREDENCIALES DE PRUEBA:');

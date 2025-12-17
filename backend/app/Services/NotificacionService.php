@@ -22,7 +22,7 @@ class NotificacionService
     /**
      * Enviar notificación de confirmación de cita
      */
-    public function notificarCitaAgendada(Cita $cita): void
+    public function notificarCitaAgendada(Cita $cita, bool $anticipoTransferencia = false, bool $anticipoPagado = false, ?float $montoAnticipo = null): void
     {
         $cliente = $cita->cliente;
         
@@ -31,9 +31,31 @@ class NotificacionService
             'cliente_id' => $cliente->id,
             'cliente_telefono' => $cliente->telefono,
             'token_qr' => $cita->token_qr,
+            'anticipo_transferencia' => $anticipoTransferencia,
         ]);
         
         $datos = $this->preparaDatosCita($cita);
+        
+        // Si requiere anticipo por transferencia, agregar datos de cuenta bancaria
+        if ($anticipoTransferencia) {
+            $datos['anticipo_requerido'] = true;
+            $datos['monto_anticipo'] = $montoAnticipo ?? 0;
+            $datosCuenta = $this->obtenerDatosCuentaBancaria();
+            $datos['datos_cuenta'] = $datosCuenta;
+            
+            Log::info("💳 Datos de cuenta bancaria obtenidos", [
+                'cita_id' => $cita->id,
+                'banco' => $datosCuenta['banco'],
+                'numero_cuenta' => $datosCuenta['numero_cuenta'],
+                'clabe' => $datosCuenta['clabe'] ?? 'no configurado',
+                'titular' => $datosCuenta['titular'],
+                'monto_anticipo' => $montoAnticipo,
+            ]);
+        } elseif ($anticipoPagado) {
+            // Si el anticipo ya fue pagado por pasarela, no agregar datos de cuenta
+            $datos['anticipo_requerido'] = true;
+            $datos['anticipo_pagado'] = true;
+        }
         
         // Generar QR code para la cita
         $qrUrl = $this->qrService->generarQrCita($cita);
@@ -44,13 +66,14 @@ class NotificacionService
         ]);
         
         // Registrar notificación en BD
+        $mensaje = $this->renderizarPlantilla('confirmacion_cita', $datos);
         $notificacion = Notificacion::create([
             'cita_id' => $cita->id,
             'cliente_id' => $cliente->id,
             'tipo' => 'confirmacion',
             'medio' => 'whatsapp',
             'estado' => 'pendiente',
-            'mensaje' => $this->renderizarPlantilla('confirmacion_cita', $datos),
+            'mensaje' => $mensaje,
         ]);
 
         // Despachar jobs según preferencias del cliente (con QR si está disponible)
@@ -390,10 +413,41 @@ class NotificacionService
         // Limpiar líneas vacías múltiples que puedan quedar
         $contenido = preg_replace('/\n{3,}/', "\n\n", $contenido);
         
+        // Si hay datos de cuenta bancaria (anticipo por transferencia), agregarlos al final
+        if (isset($datos['anticipo_requerido']) && $datos['anticipo_requerido'] && isset($datos['datos_cuenta'])) {
+            $cuenta = $datos['datos_cuenta'];
+            
+            Log::info("📝 Agregando datos de cuenta al mensaje", [
+                'tipo' => $tipo,
+                'tiene_datos_cuenta' => !empty($cuenta),
+                'banco' => $cuenta['banco'] ?? 'no existe',
+            ]);
+            
+            $montoAnticipo = isset($datos['monto_anticipo']) && $datos['monto_anticipo'] > 0 
+                ? number_format($datos['monto_anticipo'], 2) 
+                : '0.00';
+            
+            $textoCuenta = "\n\n💳 *DATOS PARA TRANSFERENCIA DEL ANTICIPO*\n\n";
+            $textoCuenta .= "💰 *Monto a transferir: \${$montoAnticipo}*\n\n";
+            $textoCuenta .= "🏦 Banco: {$cuenta['banco']}\n";
+            $textoCuenta .= "📋 Número de cuenta: {$cuenta['numero_cuenta']}\n";
+            if (!empty($cuenta['clabe'])) {
+                $textoCuenta .= "🔢 CLABE: {$cuenta['clabe']}\n";
+            }
+            $textoCuenta .= "👤 Titular: {$cuenta['titular']}\n";
+            $textoCuenta .= "\n⚠️ *IMPORTANTE:* Tienes 24 horas para realizar la transferencia. Si no se recibe el pago en ese tiempo, tu cita será cancelada automáticamente.";
+            $contenido .= $textoCuenta;
+            
+            Log::info("✅ Datos de cuenta agregados al mensaje", [
+                'longitud_texto_agregado' => strlen($textoCuenta),
+            ]);
+        }
+        
         // Log del contenido después del reemplazo (solo primeros 200 caracteres)
         Log::info('✅ Plantilla renderizada', [
             'preview' => substr($contenido, 0, 200),
             'tiene_direccion' => str_contains($contenido, '📍') && !str_contains($contenido, '{{negocio_direccion}}'),
+            'tiene_datos_cuenta' => isset($datos['datos_cuenta']),
         ]);
 
         return $contenido;
@@ -497,6 +551,34 @@ class NotificacionService
         }
 
         Log::info("Recordatorios enviados: " . $citas->count());
+    }
+
+    /**
+     * Obtener datos de cuenta bancaria desde configuración
+     */
+    protected function obtenerDatosCuentaBancaria(): array
+    {
+        $bancoNombre = Configuracion::get('banco_nombre');
+        $bancoNumero = Configuracion::get('banco_numero_cuenta');
+        $bancoClabe = Configuracion::get('banco_clabe');
+        $bancoTitular = Configuracion::get('banco_titular');
+        $nombreNegocio = Configuracion::get('nombre_negocio');
+        
+        // Log para debugging
+        Log::info("🔍 Obteniendo datos bancarios desde configuración", [
+            'banco_nombre' => $bancoNombre ?: 'NO CONFIGURADO',
+            'banco_numero_cuenta' => $bancoNumero ?: 'NO CONFIGURADO',
+            'banco_clabe' => $bancoClabe ?: 'NO CONFIGURADO',
+            'banco_titular' => $bancoTitular ?: 'NO CONFIGURADO',
+            'nombre_negocio_fallback' => $nombreNegocio ?: 'NO CONFIGURADO',
+        ]);
+        
+        return [
+            'banco' => $bancoNombre ?: 'Banco no configurado',
+            'numero_cuenta' => $bancoNumero ?: 'No configurado',
+            'clabe' => $bancoClabe ?: null,
+            'titular' => $bancoTitular ?: ($nombreNegocio ?: 'No configurado'),
+        ];
     }
 }
 

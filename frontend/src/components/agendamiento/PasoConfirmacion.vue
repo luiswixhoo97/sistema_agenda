@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useCitasStore } from '@/stores/citas'
 import './PasoConfirmacion.css'
 const store = useCitasStore()
@@ -18,8 +18,44 @@ const profesionalesTexto = computed(() => {
   return store.empleadosPorServicio.map(ep => ep.empleadoNombre).join(', ')
 })
 
+// Computed para verificar si puede confirmar
+const puedeConfirmar = computed(() => {
+  // Si requiere anticipo, debe tener método de pago seleccionado Y OTP completo
+  if (store.anticipoInfo.requiere_anticipo) {
+    return store.metodoPagoAnticipo !== null && store.otpCodigo.length === 6
+  }
+  // Si NO requiere anticipo, solo necesita OTP completo
+  return store.otpCodigo.length === 6
+})
+
+// Computed para verificar si debe mostrar OTP
+const debeMostrarOtp = computed(() => {
+  // Si requiere anticipo, mostrar OTP solo después de seleccionar método
+  if (store.anticipoInfo.requiere_anticipo) {
+    return store.metodoPagoAnticipo !== null
+  }
+  // Si NO requiere anticipo, mostrar OTP siempre
+  return true
+})
+
 onMounted(async () => {
+  // Solo enviar OTP si no requiere anticipo o si ya se seleccionó método de pago
   if (!store.otpEnviado) {
+    if (!store.anticipoInfo.requiere_anticipo) {
+      // Sin anticipo: enviar OTP inmediatamente
+      await store.enviarOtpConfirmacion()
+    } else if (store.metodoPagoAnticipo !== null) {
+      // Con anticipo pero ya se seleccionó método: enviar OTP
+      await store.enviarOtpConfirmacion()
+    }
+    // Si requiere anticipo y no hay método seleccionado, NO enviar OTP aún
+  }
+})
+
+// Watch para enviar OTP cuando se selecciona método de pago (si requiere anticipo)
+watch(() => store.metodoPagoAnticipo, async (nuevoMetodo) => {
+  if (store.anticipoInfo.requiere_anticipo && nuevoMetodo !== null && !store.otpEnviado) {
+    console.log('📱 Método de pago seleccionado, enviando OTP...', nuevoMetodo)
     await store.enviarOtpConfirmacion()
   }
 })
@@ -71,6 +107,12 @@ async function reenviarOtp() {
 async function confirmar() {
   if (store.otpCodigo.length !== 6) {
     store.error = 'Ingresa el código de 6 dígitos'
+    return
+  }
+
+  // Validar que si requiere anticipo, se haya seleccionado método
+  if (store.anticipoInfo.requiere_anticipo && !store.metodoPagoAnticipo) {
+    store.error = 'Debes seleccionar un método de pago para el anticipo'
     return
   }
 
@@ -333,8 +375,85 @@ function formatHora(hora: string): string {
         </div>
       </div>
 
-      <!-- OTP -->
-      <div class="card otp-card">
+      <!-- Sección de Anticipo (PRIMERO si requiere) -->
+      <div v-if="store.anticipoInfo.requiere_anticipo" class="card anticipo-card">
+        <div class="anticipo-header">
+          <i class="fa fa-exclamation-circle"></i>
+          <h4>Anticipo Requerido</h4>
+        </div>
+        <p class="anticipo-mensaje">
+          Los servicios solicitados requieren un anticipo de 
+          <strong>${{ Number(store.anticipoInfo.monto_anticipo).toFixed(2) }}</strong>
+        </p>
+        
+        <div class="anticipo-opciones">
+          <div class="anticipo-opcion">
+            <button 
+              class="btn-anticipo btn-transferencia"
+              :class="{ 'activo': store.metodoPagoAnticipo === 'transferencia' }"
+              @click="store.seleccionarMetodoPagoAnticipo('transferencia')"
+            >
+              <i class="fa fa-university"></i>
+              <span>Transferencia Bancaria</span>
+              <p>Recibirás los datos de cuenta por WhatsApp</p>
+            </button>
+          </div>
+          
+          <div class="anticipo-opcion">
+            <div class="anticipo-pasarelas">
+              <p class="pasarelas-titulo">Pago con Pasarela</p>
+              <div class="pasarelas-botones">
+                <button 
+                  class="btn-pasarela"
+                  disabled
+                  title="Próximamente disponible"
+                >
+                  <i class="fab fa-cc-paypal"></i>
+                  PayPal
+                </button>
+                <button 
+                  class="btn-pasarela"
+                  disabled
+                  title="Próximamente disponible"
+                >
+                  <i class="fab fa-cc-stripe"></i>
+                  Stripe
+                </button>
+                <button 
+                  class="btn-pasarela"
+                  disabled
+                  title="Próximamente disponible"
+                >
+                  <i class="fab fa-cc-mastercard"></i>
+                  Mercado Pago
+                </button>
+              </div>
+              <p class="pasarelas-nota">Próximamente disponible</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Advertencia de 24 horas para transferencia -->
+        <div v-if="store.metodoPagoAnticipo === 'transferencia'" class="anticipo-advertencia">
+          <div class="advertencia-icon">
+            <i class="fa fa-exclamation-triangle"></i>
+          </div>
+          <div class="advertencia-texto">
+            <strong>Importante:</strong> Tienes 24 horas para realizar la transferencia. Si no se recibe el pago en ese tiempo, tu cita será cancelada automáticamente.
+          </div>
+        </div>
+
+        <!-- Mensaje informativo -->
+        <div v-if="store.metodoPagoAnticipo === 'transferencia'" class="anticipo-confirmacion">
+          <p class="anticipo-info">
+            <i class="fa fa-info-circle"></i>
+            Al confirmar, recibirás los datos de cuenta bancaria por WhatsApp para realizar el depósito del anticipo.
+          </p>
+        </div>
+      </div>
+
+      <!-- OTP (solo si no requiere anticipo O si ya se seleccionó método) -->
+      <div v-if="debeMostrarOtp" class="card otp-card" :class="{ 'otp-visible': debeMostrarOtp }">
         <div class="otp-header">
           <i class="fa fa-shield-alt"></i>
           <h4>Código de Verificación</h4>
@@ -378,12 +497,20 @@ function formatHora(hora: string): string {
         <!-- Confirmar -->
         <button 
           class="btn-primary btn-full"
-          :disabled="confirmando || store.otpCodigo.length !== 6"
+          :disabled="confirmando || !puedeConfirmar"
           @click="confirmar"
         >
           <span v-if="confirmando">
             <i class="fa fa-spinner fa-spin"></i>
             Confirmando...
+          </span>
+          <span v-else-if="store.anticipoInfo.requiere_anticipo && !store.metodoPagoAnticipo">
+            <i class="fa fa-lock"></i>
+            Selecciona método de pago
+          </span>
+          <span v-else-if="store.otpCodigo.length !== 6">
+            <i class="fa fa-shield-alt"></i>
+            Completa el código OTP
           </span>
           <span v-else-if="!esModoMultiples">
             <i class="fa fa-check"></i>
@@ -394,6 +521,14 @@ function formatHora(hora: string): string {
             Confirmar {{ store.serviciosSeleccionados.length }} Citas
           </span>
         </button>
+      </div>
+
+      <!-- Mensaje si requiere anticipo pero no se ha seleccionado método -->
+      <div v-if="store.anticipoInfo.requiere_anticipo && store.metodoPagoAnticipo === null" class="card anticipo-pendiente">
+        <div class="pendiente-mensaje">
+          <i class="fa fa-lock"></i>
+          <p>Por favor selecciona un método de pago para el anticipo para continuar</p>
+        </div>
       </div>
 
       <!-- Volver -->

@@ -78,6 +78,8 @@ export interface AgendarPublicoRequest {
   notas?: string
   token_reserva?: string
   promocion_id?: number
+  anticipo_transferencia?: boolean
+  anticipo_pagado?: boolean
 }
 
 export interface ServicioCitaMultiple {
@@ -94,6 +96,8 @@ export interface AgendarMultiplesRequest {
   tokens_reserva?: string[]
   servicios: ServicioCitaMultiple[]
   notas?: string
+  anticipo_transferencia?: boolean
+  anticipo_pagado?: boolean
 }
 
 export interface CitaMultipleResponse {
@@ -167,6 +171,28 @@ const citaService = {
    */
   async agendarMultiples(data: AgendarMultiplesRequest): Promise<AgendarMultiplesResponse> {
     const response = await api.post('/publico/agendar/multiples', data)
+    return response.data
+  },
+
+  /**
+   * Validar si se requiere anticipo para una cita
+   */
+  async validarAnticipo(data: {
+    servicios: number[]
+    total: number
+    fecha_cita: string
+  }): Promise<{
+    success: boolean
+    data: {
+      requiere_anticipo: boolean
+      monto_anticipo: number
+      regla_aplicada: {
+        id: number
+        nombre: string
+      } | null
+    }
+  }> {
+    const response = await api.post('/publico/anticipo/validar', data)
     return response.data
   },
 

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PromocionController;
 use App\Http\Controllers\Api\AgendamientoPublicoController;
 use App\Http\Controllers\Api\DisponibilidadController;
 use App\Http\Controllers\Api\ClienteController;
+use App\Http\Controllers\Api\AnticipoController;
 
 // Catálogo público
 Route::prefix('publico')->group(function () {
@@ -37,4 +38,7 @@ Route::prefix('publico')->group(function () {
     Route::post('/disponibilidad/liberar-temporal-multiple', [DisponibilidadController::class, 'liberarTemporalMultiple']);
     Route::post('/disponibilidad/extender-temporal', [DisponibilidadController::class, 'extenderTemporal']);
     Route::get('/disponibilidad/verificar-reserva/{token}', [DisponibilidadController::class, 'verificarReserva']);
+    
+    // Validación de anticipos
+    Route::post('/anticipo/validar', [AnticipoController::class, 'validarPublico']);
 });

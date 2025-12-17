@@ -116,6 +116,23 @@ export const useCitasStore = defineStore('citas', () => {
   // Estado UI
   const loading = ref(false)
   const error = ref<string | null>(null)
+  
+  // Estado de anticipo
+  const anticipoInfo = ref<{
+    requiere_anticipo: boolean
+    monto_anticipo: number
+    regla_aplicada: {
+      id: number
+      nombre: string
+    } | null
+  }>({
+    requiere_anticipo: false,
+    monto_anticipo: 0,
+    regla_aplicada: null
+  })
+  const validandoAnticipo = ref(false)
+  const metodoPagoAnticipo = ref<'transferencia' | 'pasarela' | null>(null)
+  const anticipoPagado = ref(false) // Para pasarelas: indica si el pago ya se procesó
 
   // Getters
   const totalPrecio = computed(() => {
@@ -836,6 +853,12 @@ export const useCitasStore = defineStore('citas', () => {
       return false
     }
 
+    // Validar que si requiere anticipo, se haya seleccionado método de pago
+    if (anticipoInfo.value.requiere_anticipo && !metodoPagoAnticipo.value) {
+      error.value = 'Debes seleccionar un método de pago para el anticipo antes de confirmar'
+      return false
+    }
+
     loading.value = true
     error.value = null
 
@@ -859,6 +882,10 @@ export const useCitasStore = defineStore('citas', () => {
         notas: notas.value || undefined,
         promocion_id: promocionSeleccionada.value || undefined,
         token_reserva: reservaTemporal.value.token || undefined,
+        // Anticipo
+        anticipo_transferencia: (anticipoInfo.value.requiere_anticipo && metodoPagoAnticipo.value === 'transferencia') ? true : undefined,
+        anticipo_pagado: (anticipoInfo.value.requiere_anticipo && metodoPagoAnticipo.value === 'pasarela' && anticipoPagado.value) ? true : undefined,
+        monto_anticipo: (anticipoInfo.value.requiere_anticipo && metodoPagoAnticipo.value === 'transferencia') ? anticipoInfo.value.monto_anticipo : undefined,
       }
 
       console.log('📅 Agendando cita (público):', request)
@@ -903,6 +930,12 @@ export const useCitasStore = defineStore('citas', () => {
       return false
     }
 
+    // Validar que si requiere anticipo, se haya seleccionado método de pago
+    if (anticipoInfo.value.requiere_anticipo && !metodoPagoAnticipo.value) {
+      error.value = 'Debes seleccionar un método de pago para el anticipo antes de confirmar'
+      return false
+    }
+
     loading.value = true
     error.value = null
 
@@ -927,6 +960,10 @@ export const useCitasStore = defineStore('citas', () => {
         servicios: serviciosRequest,
         notas: notas.value || undefined,
         tokens_reserva: reservaTemporal.value.tokens.length > 0 ? reservaTemporal.value.tokens : undefined,
+        // Anticipo
+        anticipo_transferencia: (anticipoInfo.value.requiere_anticipo && metodoPagoAnticipo.value === 'transferencia') ? true : undefined,
+        anticipo_pagado: (anticipoInfo.value.requiere_anticipo && metodoPagoAnticipo.value === 'pasarela' && anticipoPagado.value) ? true : undefined,
+        monto_anticipo: (anticipoInfo.value.requiere_anticipo && metodoPagoAnticipo.value === 'transferencia') ? anticipoInfo.value.monto_anticipo : undefined,
       }
 
       console.log('📅 Agendando citas múltiples:', request)
@@ -987,6 +1024,14 @@ export const useCitasStore = defineStore('citas', () => {
     slotsCoordinados.value = null
     slotCoordinadoSeleccionado.value = null
     citasMultiples.value = []
+    // Limpiar estado de anticipo
+    anticipoInfo.value = {
+      requiere_anticipo: false,
+      monto_anticipo: 0,
+      regla_aplicada: null
+    }
+    metodoPagoAnticipo.value = null
+    anticipoPagado.value = false
   }
 
   // Actions - Seleccionar promoción
@@ -1090,6 +1135,60 @@ export const useCitasStore = defineStore('citas', () => {
     error.value = null
   }
 
+  // Actions - Validar anticipo
+  async function validarAnticipo(): Promise<boolean> {
+    if (servicioIds.value.length === 0 || !fechaSeleccionada.value || totalPrecio.value <= 0) {
+      anticipoInfo.value = {
+        requiere_anticipo: false,
+        monto_anticipo: 0,
+        regla_aplicada: null
+      }
+      return false
+    }
+
+    validandoAnticipo.value = true
+    error.value = null
+
+    try {
+      const response = await citaService.validarAnticipo({
+        servicios: servicioIds.value,
+        total: totalPrecio.value,
+        fecha_cita: fechaSeleccionada.value
+      })
+
+      if (response.success && response.data) {
+        anticipoInfo.value = {
+          requiere_anticipo: response.data.requiere_anticipo,
+          monto_anticipo: response.data.monto_anticipo,
+          regla_aplicada: response.data.regla_aplicada
+        }
+        return true
+      } else {
+        anticipoInfo.value = {
+          requiere_anticipo: false,
+          monto_anticipo: 0,
+          regla_aplicada: null
+        }
+        return false
+      }
+    } catch (e: any) {
+      console.error('Error validando anticipo:', e)
+      anticipoInfo.value = {
+        requiere_anticipo: false,
+        monto_anticipo: 0,
+        regla_aplicada: null
+      }
+      return false
+    } finally {
+      validandoAnticipo.value = false
+    }
+  }
+
+  // Actions - Seleccionar método de pago de anticipo
+  function seleccionarMetodoPagoAnticipo(metodo: 'transferencia' | 'pasarela' | null) {
+    metodoPagoAnticipo.value = metodo
+  }
+
   return {
     // Estado catálogo
     categorias,
@@ -1117,6 +1216,11 @@ export const useCitasStore = defineStore('citas', () => {
     citaActual,
     loading,
     error,
+    // Estado anticipo
+    anticipoInfo,
+    validandoAnticipo,
+    metodoPagoAnticipo,
+    anticipoPagado,
     // Estado múltiples empleados
     modoMultiplesEmpleados,
     empleadosPorServicio,
@@ -1157,6 +1261,8 @@ export const useCitasStore = defineStore('citas', () => {
     cancelarCita,
     clearError,
     seleccionarPromocion,
+    validarAnticipo,
+    seleccionarMetodoPagoAnticipo,
     preSeleccionarServiciosDePromocion,
     // Actions múltiples empleados
     toggleModoMultiplesEmpleados,
