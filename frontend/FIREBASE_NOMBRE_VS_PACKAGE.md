@@ -132,3 +132,4 @@ No. Lo importante es que el **package name** de la app Android coincida con el q
 
 
 
+
