@@ -25,7 +25,7 @@ class CitaService
     /**
      * Agendar una nueva cita
      */
-    public function agendar(array $datos, int $clienteId, bool $ignorarAnticipacionMinima = false): array
+    public function agendar(array $datos, int $clienteId, bool $ignorarAnticipacionMinima = false, bool $enviarNotificacion = true): array
     {
         // Validar datos requeridos
         $empleadoId = $datos['empleado_id'];
@@ -129,16 +129,18 @@ class CitaService
             // Cargar relaciones
             $cita->load(['cliente', 'empleado.user', 'servicio', 'servicios.servicio']);
 
-            // Enviar notificación de confirmación con QR (asíncrono)
+            // Enviar notificación de confirmación con QR (asíncrono) solo si se solicita
             // Envolver en try-catch para que no bloquee el agendamiento si falla
-            try {
-                $this->notificacionService->notificarCitaAgendada($cita);
-            } catch (\Exception $e) {
-                // Log del error pero no fallar el agendamiento
-                Log::error('Error enviando notificación de cita agendada (cita ya creada): ' . $e->getMessage(), [
-                    'cita_id' => $cita->id,
-                    'error' => $e->getMessage(),
-                ]);
+            if ($enviarNotificacion) {
+                try {
+                    $this->notificacionService->notificarCitaAgendada($cita);
+                } catch (\Exception $e) {
+                    // Log del error pero no fallar el agendamiento
+                    Log::error('Error enviando notificación de cita agendada (cita ya creada): ' . $e->getMessage(), [
+                        'cita_id' => $cita->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             return [

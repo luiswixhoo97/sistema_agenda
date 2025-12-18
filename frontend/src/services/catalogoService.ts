@@ -121,6 +121,31 @@ const catalogoService = {
     const response = await api.get('/publico/promociones')
     return response.data.data
   },
+
+  /**
+   * Buscar cliente por teléfono
+   */
+  async buscarClientePorTelefono(telefono: string): Promise<{
+    success: boolean
+    data?: {
+      nombre: string
+      email: string | null
+    }
+    message?: string
+  }> {
+    try {
+      const response = await api.get(`/publico/cliente/telefono/${telefono}`)
+      return response.data
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return {
+          success: false,
+          message: 'Cliente no encontrado'
+        }
+      }
+      throw error
+    }
+  },
 }
 
 export default catalogoService

@@ -158,6 +158,8 @@ class AgendamientoPublicoController extends Controller
             'promocion_id' => 'nullable|integer|exists:promociones,id',
             'token_reserva' => 'nullable|string',
             'notas' => 'nullable|string|max:500',
+            'anticipo_transferencia' => 'nullable|boolean',
+            'anticipo_pagado' => 'nullable|boolean',
         ]);
 
         // Verificar OTP
@@ -289,7 +291,8 @@ class AgendamientoPublicoController extends Controller
                 $datosCita['promocion_id'] = $request->promocion_id;
             }
 
-            $resultado = $this->citaService->agendar($datosCita, $cliente->id, true);
+            // No enviar notificación desde CitaService, la enviaremos después con los datos de anticipo
+            $resultado = $this->citaService->agendar($datosCita, $cliente->id, true, false);
             
             if (!$resultado['success']) {
                 DB::rollBack();
@@ -303,8 +306,25 @@ class AgendamientoPublicoController extends Controller
 
             DB::commit();
 
-            // TODO: Enviar confirmación por WhatsApp
-            // NotificacionService::enviarConfirmacionCita($cita);
+            // Enviar confirmación por WhatsApp
+            // Obtener la cita completa para enviar notificación
+            $cita = Cita::with(['cliente', 'empleado.user', 'servicios.servicio'])->find($citaFormateada['id']);
+            if ($cita) {
+                try {
+                    $this->notificacionService->notificarCitaAgendada(
+                        $cita,
+                        $request->boolean('anticipo_transferencia', false),
+                        $request->boolean('anticipo_pagado', false),
+                        $request->input('monto_anticipo') // Monto del anticipo para incluir en el mensaje
+                    );
+                } catch (\Exception $e) {
+                    // Log del error pero no fallar el agendamiento
+                    Log::error('Error enviando notificación de cita agendada (cita ya creada): ' . $e->getMessage(), [
+                        'cita_id' => $cita->id,
+                        'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+                    ]);
+                }
+            }
 
             Log::info("✅ Cita agendada públicamente - ID: {$citaFormateada['id']}, Cliente: {$cliente->nombre}");
 
@@ -350,6 +370,8 @@ class AgendamientoPublicoController extends Controller
             'tokens_reserva' => 'nullable|array',
             'tokens_reserva.*' => 'string',
             'notas' => 'nullable|string|max:500',
+            'anticipo_transferencia' => 'nullable|boolean',
+            'anticipo_pagado' => 'nullable|boolean',
         ]);
 
         // Verificar OTP
@@ -593,7 +615,12 @@ class AgendamientoPublicoController extends Controller
                             'token_qr' => $primeraCita->token_qr,
                         ]);
                         
-                        $this->notificacionService->notificarCitaAgendada($primeraCita);
+                        $this->notificacionService->notificarCitaAgendada(
+                            $primeraCita,
+                            $request->boolean('anticipo_transferencia', false),
+                            $request->boolean('anticipo_pagado', false),
+                            $request->input('monto_anticipo') // Monto del anticipo para incluir en el mensaje
+                        );
                     }
                 } catch (\Exception $e) {
                     // Log del error pero no fallar el agendamiento

@@ -304,6 +304,83 @@ class AnticipoController extends Controller
     }
 
     /**
+     * Validar anticipo requerido (endpoint público)
+     * 
+     * POST /api/publico/anticipo/validar
+     */
+    public function validarPublico(Request $request): JsonResponse
+    {
+        $request->validate([
+            'servicios' => 'required|array|min:1',
+            'servicios.*' => 'integer|exists:servicios,id',
+            'total' => 'required|numeric|min:0',
+            'fecha_cita' => 'required|date',
+        ]);
+
+        $total = $request->total;
+        $fechaCita = \Carbon\Carbon::parse($request->fecha_cita);
+        $serviciosIds = $request->servicios;
+
+        // Obtener reglas activas ordenadas por prioridad
+        $reglas = ReglaAnticipo::activas()
+            ->ordenadasPorPrioridad()
+            ->with(['reglaFecha', 'reglaMonto', 'reglasServicio'])
+            ->get();
+
+        $reglasAplicables = [];
+        $mayorAnticipo = 0;
+        $reglaAplicada = null;
+
+        foreach ($reglas as $regla) {
+            $aplica = false;
+
+            // Evaluar según tipo de regla
+            if ($regla->tipo_regla === 'fecha' && $regla->reglaFecha) {
+                $aplica = $regla->reglaFecha->aplicaEnFecha($fechaCita);
+            } elseif ($regla->tipo_regla === 'monto' && $regla->reglaMonto) {
+                $aplica = $regla->reglaMonto->aplicaAMonto($total);
+            } elseif ($regla->tipo_regla === 'servicio') {
+                $serviciosRegla = $regla->reglasServicio->pluck('servicio_id')->toArray();
+                $aplica = !empty(array_intersect($serviciosIds, $serviciosRegla));
+            }
+
+            if ($aplica) {
+                // Calcular anticipo según tipo de cálculo
+                $anticipo = 0;
+                if ($regla->tipo_calculo === 'porcentaje') {
+                    $anticipo = $total * ($regla->valor_calculo / 100);
+                } else {
+                    $anticipo = $regla->valor_calculo;
+                }
+
+                $reglasAplicables[] = [
+                    'regla_id' => $regla->id,
+                    'nombre' => $regla->nombre,
+                    'anticipo' => $anticipo,
+                ];
+
+                // Seleccionar la regla que requiera mayor anticipo
+                if ($anticipo > $mayorAnticipo) {
+                    $mayorAnticipo = $anticipo;
+                    $reglaAplicada = $regla;
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'requiere_anticipo' => $mayorAnticipo > 0,
+                'monto_anticipo' => round($mayorAnticipo, 2),
+                'regla_aplicada' => $reglaAplicada ? [
+                    'id' => $reglaAplicada->id,
+                    'nombre' => $reglaAplicada->nombre,
+                ] : null,
+            ],
+        ]);
+    }
+
+    /**
      * Evaluar qué reglas aplican a una venta
      * 
      * POST /api/admin/anticipos/evaluar
