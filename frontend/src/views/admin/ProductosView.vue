@@ -845,11 +845,12 @@ onMounted(() => {
 
 .productos-view {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+  background: #f5f5f7;
   padding: 20px;
   padding-bottom: 100px;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Header */
@@ -859,10 +860,10 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
   border-radius: 20px;
   color: white;
-  box-shadow: 0 10px 40px rgba(79, 172, 254, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
 .header-left {
@@ -904,8 +905,8 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   color: white;
   font-size: 14px;
@@ -1010,10 +1011,10 @@ onMounted(() => {
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  border-color: transparent;
+  background: #007aff;
+  border-color: #007aff;
   color: white;
-  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 /* Alert Banner */
@@ -1050,7 +1051,7 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   border: 3px solid #e5e5ea;
-  border-top-color: #4facfe;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 16px;
@@ -1077,7 +1078,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #007aff;
   border: none;
   border-radius: 12px;
   color: white;
@@ -1175,8 +1176,8 @@ onMounted(() => {
 .producto-codigo {
   font-size: 11px;
   font-weight: 700;
-  color: #4facfe;
-  background: rgba(79, 172, 254, 0.1);
+  color: #007aff;
+  background: rgba(0, 122, 255, 0.1);
   padding: 3px 8px;
   border-radius: 6px;
   text-transform: uppercase;
@@ -1245,7 +1246,7 @@ onMounted(() => {
 }
 
 .stat-item.precio .stat-value {
-  color: #4facfe;
+  color: #007aff;
 }
 
 .stat-item.stock.warning .stat-value {
@@ -1278,12 +1279,13 @@ onMounted(() => {
 }
 
 .action-btn.edit {
-  color: #4facfe;
+  background: #f5f5f7;
+  color: #86868b;
 }
 
 .action-btn.inventory {
-  color: #5856d6;
-  background: rgba(88, 86, 214, 0.1);
+  background: #f5f5f7;
+  color: #86868b;
 }
 
 .action-btn.warning {
@@ -1342,18 +1344,21 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .modal-header.stock-header {
-  background: linear-gradient(135deg, #5856d6 0%, #af52de 100%);
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.3px;
 }
 
 .modal-close {
@@ -1361,12 +1366,13 @@ onMounted(() => {
   height: 36px;
   border: none;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: #f5f5f7;
+  color: #86868b;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
 }
 
 .modal-body {
@@ -1406,7 +1412,7 @@ onMounted(() => {
 .form-label {
   font-size: 12px;
   font-weight: 600;
-  color: #4facfe;
+  color: #007aff;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1432,8 +1438,9 @@ onMounted(() => {
 .form-input:focus,
 .form-select:focus {
   outline: none;
-  border-color: #4facfe;
+  border-color: #007aff;
   background: white;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
 .input-prefix {
@@ -1447,8 +1454,9 @@ onMounted(() => {
 }
 
 .input-prefix:focus-within {
-  border-color: #4facfe;
+  border-color: #007aff;
   background: white;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
 .input-prefix span {
@@ -1483,7 +1491,7 @@ onMounted(() => {
 }
 
 .foto-preview:hover {
-  border-color: #4facfe;
+  border-color: #007aff;
 }
 
 .foto-preview img {
@@ -1551,7 +1559,7 @@ onMounted(() => {
 }
 
 .toggle-switch input:checked + .toggle-slider {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #007aff;
 }
 
 .toggle-switch input:checked + .toggle-slider::before {
@@ -1586,7 +1594,7 @@ onMounted(() => {
 }
 
 .stock-actual strong {
-  color: #5856d6;
+  color: #007aff;
   font-size: 18px;
 }
 
@@ -1615,9 +1623,9 @@ onMounted(() => {
 
 .stock-action-btn.active {
   background: white;
-  border-color: #5856d6;
-  color: #5856d6;
-  box-shadow: 0 4px 15px rgba(88, 86, 214, 0.2);
+  border-color: #007aff;
+  color: #007aff;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
 }
 
 .stock-input {
@@ -1657,9 +1665,9 @@ onMounted(() => {
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #34c759;
   color: white;
-  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+  box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
 }
 
 .btn-submit.entrada {
