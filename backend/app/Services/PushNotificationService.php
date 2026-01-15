@@ -125,6 +125,12 @@ class PushNotificationService
                 return ['success' => true, 'simulated' => true];
             }
 
+            // Generar tag único para evitar que Android colapse las notificaciones
+            $uniqueTag = 'notif_' . uniqid() . '_' . time();
+            
+            // Agregar notification_id único al data
+            $data['notification_tag'] = $uniqueTag;
+            
             // Payload para FCM v1 API
             $payload = [
                 'message' => [
@@ -142,6 +148,8 @@ class PushNotificationService
                             'default_sound' => true,
                             'default_vibrate_timings' => true,
                             'default_light_settings' => true,
+                            'tag' => $uniqueTag, // Tag único para que no se colapsen las notificaciones
+                            'notification_count' => 1,
                         ],
                     ],
                 ],
@@ -265,6 +273,10 @@ class PushNotificationService
                 return ['success' => true, 'simulated' => true];
             }
 
+            // Generar tag único
+            $uniqueTag = 'topic_' . uniqid() . '_' . time();
+            $data['notification_tag'] = $uniqueTag;
+
             $payload = [
                 'message' => [
                     'topic' => $topic,
@@ -278,6 +290,7 @@ class PushNotificationService
                         'notification' => [
                             'channel_id' => 'beautyspa_citas',
                             'sound' => 'default',
+                            'tag' => $uniqueTag,
                             'default_sound' => true,
                             'default_vibrate_timings' => true,
                             'default_light_settings' => true,

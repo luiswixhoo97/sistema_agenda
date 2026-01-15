@@ -45,9 +45,12 @@ return [
     | considered expired. This will override any values set in the token's
     | "expires_at" attribute, but first-party sessions are not affected.
     |
+    | null = tokens nunca expiran (recomendado para apps móviles)
+    | 525600 = 1 año en minutos (alternativa)
+    |
     */
 
-    'expiration' => null,
+    'expiration' => null, // Tokens nunca expiran para apps móviles
 
     /*
     |--------------------------------------------------------------------------

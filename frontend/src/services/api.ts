@@ -39,25 +39,50 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Interceptor para manejar errores 401 - SIN refresh automático
+// Contador de errores 401 consecutivos
+let consecutive401Errors = 0
+const MAX_401_BEFORE_LOGOUT = 3
+
+// Interceptor para manejar errores 401 - Con tolerancia a errores temporales
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Reset contador en respuestas exitosas
+    consecutive401Errors = 0
+    return response
+  },
   (error: AxiosError) => {
-    // Si es 401, limpiar sesión (token inválido/expirado)
+    // Si es error de red (sin respuesta), NO desloguear
+    if (!error.response) {
+      console.warn('Error de red, no se deslogueará al usuario')
+      return Promise.reject(error)
+    }
+
+    // Si es 401, verificar si debemos desloguear
     if (error.response?.status === 401) {
       const url = error.config?.url || ''
       
       // No limpiar si es una ruta de login/auth
-      const isAuthRoute = url.includes('/auth/') || url.includes('/publico/')
+      const isAuthRoute = url.includes('/auth/') || url.includes('/publico/') || url.includes('/cliente/auth/')
       
       if (!isAuthRoute) {
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('user')
-        localStorage.removeItem('user_type')
+        consecutive401Errors++
         
-        // Redirigir solo si no estamos en login
-        if (!window.location.pathname.includes('login')) {
-          window.location.href = '/'
+        console.warn(`Error 401 #${consecutive401Errors} de ${MAX_401_BEFORE_LOGOUT}`)
+        
+        // Solo desloguear después de varios errores 401 consecutivos
+        // Esto evita desloguear por errores temporales del servidor
+        if (consecutive401Errors >= MAX_401_BEFORE_LOGOUT) {
+          console.warn('Demasiados errores 401, cerrando sesión')
+          localStorage.removeItem('auth_token')
+          localStorage.removeItem('user')
+          localStorage.removeItem('user_type')
+          localStorage.removeItem('empleado')
+          consecutive401Errors = 0
+          
+          // Redirigir solo si no estamos en login
+          if (!window.location.pathname.includes('login') && !window.location.pathname.includes('home')) {
+            window.location.href = '/'
+          }
         }
       }
     }
