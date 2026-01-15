@@ -134,6 +134,12 @@ class NotificacionService
 
         // Cancelación no lleva QR
         $this->despacharNotificaciones($cliente, $notificacion, $datos, 'cancelacion_cita');
+        
+        // Notificar al empleado asignado
+        $this->notificarEmpleadoCitaCancelada($cita, $datos, $motivo);
+        
+        // Notificar a todos los admins
+        $this->notificarAdminCitaCancelada($cita, $datos, $motivo);
     }
 
     /**
@@ -174,6 +180,12 @@ class NotificacionService
 
         // Despachar con el nuevo QR
         $this->despacharNotificaciones($cliente, $notificacion, $datos, 'modificacion_cita', $qrUrl);
+        
+        // Notificar al empleado asignado
+        $this->notificarEmpleadoCitaModificada($cita, $datos);
+        
+        // Notificar a todos los admins
+        $this->notificarAdminCitaModificada($cita, $datos);
     }
 
     /**
@@ -673,8 +685,241 @@ class NotificacionService
      */
     protected function notificarAdminCitaAgendada(Cita $cita, array $datos): void
     {
+        $this->enviarPushAAdmins(
+            $cita,
+            '📅 Nueva Cita Agendada',
+            "Se ha agendado una nueva cita:\n\n" .
+            "👤 Cliente: {$datos['cliente_nombre']}\n" .
+            "👨‍💼 Empleado: {$datos['empleado_nombre']}\n" .
+            "📅 Fecha: {$datos['fecha']}\n" .
+            "⏰ Hora: {$datos['hora']}\n" .
+            "💇 Servicios: {$datos['servicios']}\n" .
+            "💰 Precio: \${$datos['precio_total']}",
+            'nueva_cita_admin'
+        );
+    }
+
+    /**
+     * Notificar al empleado sobre cita cancelada
+     */
+    protected function notificarEmpleadoCitaCancelada(Cita $cita, array $datos, string $motivo = ''): void
+    {
+        $mensaje = "❌ Cita cancelada:\n\n";
+        $mensaje .= "👤 Cliente: {$datos['cliente_nombre']}\n";
+        $mensaje .= "📅 Fecha: {$datos['fecha']}\n";
+        $mensaje .= "⏰ Hora: {$datos['hora']}\n";
+        $mensaje .= "💇 Servicios: {$datos['servicios']}";
+        if ($motivo) {
+            $mensaje .= "\n📋 Motivo: {$motivo}";
+        }
+
+        $this->enviarPushAEmpleado($cita, '❌ Cita Cancelada', $mensaje, 'cita_cancelada_empleado');
+    }
+
+    /**
+     * Notificar a admins sobre cita cancelada
+     */
+    protected function notificarAdminCitaCancelada(Cita $cita, array $datos, string $motivo = ''): void
+    {
+        $mensaje = "❌ Se ha cancelado una cita:\n\n";
+        $mensaje .= "👤 Cliente: {$datos['cliente_nombre']}\n";
+        $mensaje .= "👨‍💼 Empleado: {$datos['empleado_nombre']}\n";
+        $mensaje .= "📅 Fecha: {$datos['fecha']}\n";
+        $mensaje .= "⏰ Hora: {$datos['hora']}\n";
+        $mensaje .= "💇 Servicios: {$datos['servicios']}";
+        if ($motivo) {
+            $mensaje .= "\n📋 Motivo: {$motivo}";
+        }
+
+        $this->enviarPushAAdmins($cita, '❌ Cita Cancelada', $mensaje, 'cita_cancelada_admin');
+    }
+
+    /**
+     * Notificar al empleado sobre cita modificada/reagendada
+     */
+    protected function notificarEmpleadoCitaModificada(Cita $cita, array $datos): void
+    {
+        $mensaje = "📝 Tu cita ha sido modificada:\n\n";
+        $mensaje .= "👤 Cliente: {$datos['cliente_nombre']}\n";
+        $mensaje .= "📅 Nueva fecha: {$datos['fecha']}\n";
+        $mensaje .= "⏰ Nueva hora: {$datos['hora']}\n";
+        $mensaje .= "💇 Servicios: {$datos['servicios']}\n";
+        $mensaje .= "💰 Precio: \${$datos['precio_total']}";
+
+        $this->enviarPushAEmpleado($cita, '📝 Cita Modificada', $mensaje, 'cita_modificada_empleado');
+    }
+
+    /**
+     * Notificar a admins sobre cita modificada/reagendada
+     */
+    protected function notificarAdminCitaModificada(Cita $cita, array $datos): void
+    {
+        $mensaje = "📝 Se ha modificado una cita:\n\n";
+        $mensaje .= "👤 Cliente: {$datos['cliente_nombre']}\n";
+        $mensaje .= "👨‍💼 Empleado: {$datos['empleado_nombre']}\n";
+        $mensaje .= "📅 Nueva fecha: {$datos['fecha']}\n";
+        $mensaje .= "⏰ Nueva hora: {$datos['hora']}\n";
+        $mensaje .= "💇 Servicios: {$datos['servicios']}\n";
+        $mensaje .= "💰 Precio: \${$datos['precio_total']}";
+
+        $this->enviarPushAAdmins($cita, '📝 Cita Modificada', $mensaje, 'cita_modificada_admin');
+    }
+
+    /**
+     * Enviar recordatorio push 10 minutos antes de la cita
+     * Este método debe ser llamado por un scheduler/cron
+     */
+    public function enviarRecordatoriosPush(): void
+    {
+        // Buscar citas que inician en los próximos 10 minutos
+        $ahora = now();
+        $en10Minutos = now()->addMinutes(10);
+        
+        $citas = Cita::whereBetween('fecha_hora', [$ahora, $en10Minutos])
+            ->whereIn('estado', ['confirmada', 'pendiente'])
+            ->whereDoesntHave('notificaciones', function ($query) {
+                $query->where('tipo', 'recordatorio_push')
+                    ->where('created_at', '>=', now()->subMinutes(15));
+            })
+            ->with(['cliente', 'empleado.user', 'servicios.servicio'])
+            ->get();
+
+        Log::info("⏰ Verificando recordatorios push", [
+            'citas_encontradas' => $citas->count(),
+            'rango' => "{$ahora->format('H:i')} - {$en10Minutos->format('H:i')}",
+        ]);
+
+        foreach ($citas as $cita) {
+            $this->enviarRecordatorioPushCita($cita);
+        }
+    }
+
+    /**
+     * Enviar recordatorio push para una cita específica
+     */
+    protected function enviarRecordatorioPushCita(Cita $cita): void
+    {
         try {
-            // Obtener todos los usuarios con rol admin
+            $datos = $this->preparaDatosCita($cita);
+            
+            // Registrar notificación para evitar duplicados
+            Notificacion::create([
+                'cita_id' => $cita->id,
+                'cliente_id' => $cita->cliente_id,
+                'tipo' => 'recordatorio_push',
+                'medio' => 'push',
+                'estado' => 'enviada',
+                'mensaje' => "Recordatorio: Cita en 10 minutos",
+            ]);
+
+            // Notificar al cliente
+            $this->enviarPushACliente(
+                $cita,
+                '⏰ ¡Tu cita es en 10 minutos!',
+                "Recuerda tu cita a las {$datos['hora']}\n" .
+                "💇 {$datos['servicios']}\n" .
+                "👤 Con: {$datos['empleado_nombre']}",
+                'recordatorio_cliente'
+            );
+
+            // Notificar al empleado
+            $this->enviarPushAEmpleado(
+                $cita,
+                '⏰ Cita en 10 minutos',
+                "Tienes una cita próxima:\n" .
+                "👤 Cliente: {$datos['cliente_nombre']}\n" .
+                "⏰ Hora: {$datos['hora']}\n" .
+                "💇 {$datos['servicios']}",
+                'recordatorio_empleado'
+            );
+
+            Log::info("✅ Recordatorio push enviado", [
+                'cita_id' => $cita->id,
+                'hora_cita' => $cita->fecha_hora->format('H:i'),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("❌ Error enviando recordatorio push: " . $e->getMessage(), [
+                'cita_id' => $cita->id,
+            ]);
+        }
+    }
+
+    /**
+     * Enviar push notification al cliente de una cita
+     */
+    protected function enviarPushACliente(Cita $cita, string $titulo, string $mensaje, string $tipo): void
+    {
+        try {
+            $dispositivos = $cita->cliente->dispositivos()->where('activo', true)->get();
+
+            foreach ($dispositivos as $dispositivo) {
+                EnviarPushNotificationJob::dispatch(
+                    $dispositivo->token_push,
+                    $titulo,
+                    $mensaje,
+                    [
+                        'cita_id' => $cita->id,
+                        'tipo' => $tipo,
+                        'click_action' => 'OPEN_CITA',
+                    ],
+                    null
+                )->onQueue('notifications');
+            }
+        } catch (\Exception $e) {
+            Log::error("❌ Error enviando push a cliente: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Enviar push notification al empleado de una cita
+     */
+    protected function enviarPushAEmpleado(Cita $cita, string $titulo, string $mensaje, string $tipo): void
+    {
+        try {
+            $cita->load(['empleado.user']);
+            
+            if (!$cita->empleado || !$cita->empleado->user) {
+                Log::warning("⚠️ No se puede notificar al empleado: no encontrado", [
+                    'cita_id' => $cita->id,
+                ]);
+                return;
+            }
+
+            $dispositivos = \App\Models\Dispositivo::where('user_id', $cita->empleado->user->id)
+                ->where('activo', true)
+                ->get();
+
+            foreach ($dispositivos as $dispositivo) {
+                EnviarPushNotificationJob::dispatch(
+                    $dispositivo->token_push,
+                    $titulo,
+                    $mensaje,
+                    [
+                        'cita_id' => $cita->id,
+                        'tipo' => $tipo,
+                        'click_action' => 'OPEN_CITA',
+                    ],
+                    null
+                )->onQueue('notifications');
+            }
+
+            Log::info("📤 Push enviado al empleado", [
+                'empleado_id' => $cita->empleado->id,
+                'dispositivos' => $dispositivos->count(),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("❌ Error enviando push a empleado: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Enviar push notification a todos los admins
+     */
+    protected function enviarPushAAdmins(Cita $cita, string $titulo, string $mensaje, string $tipo): void
+    {
+        try {
             $adminRole = \App\Models\Role::where('nombre', 'admin')->first();
             
             if (!$adminRole) {
@@ -686,68 +931,37 @@ class NotificacionService
                 ->where('active', true)
                 ->get();
 
-            if ($adminUsers->isEmpty()) {
-                Log::info("📱 No hay usuarios admin activos");
-                return;
-            }
-
-            $titulo = '📅 Nueva Cita Agendada';
-            $mensaje = "Se ha agendado una nueva cita:\n\n";
-            $mensaje .= "👤 Cliente: {$datos['cliente_nombre']}\n";
-            $mensaje .= "👨‍💼 Empleado: {$datos['empleado_nombre']}\n";
-            $mensaje .= "📅 Fecha: {$datos['fecha']}\n";
-            $mensaje .= "⏰ Hora: {$datos['hora']}\n";
-            $mensaje .= "💇 Servicios: {$datos['servicios']}\n";
-            $mensaje .= "💰 Precio: \${$datos['precio_total']}";
-
-            $dataPush = [
-                'cita_id' => $cita->id,
-                'tipo' => 'nueva_cita_admin',
-                'click_action' => 'OPEN_CITA',
-            ];
-
             $totalDispositivos = 0;
 
             foreach ($adminUsers as $adminUser) {
-                // Obtener dispositivos activos del admin
                 $dispositivos = \App\Models\Dispositivo::where('user_id', $adminUser->id)
                     ->where('activo', true)
                     ->get();
 
-                Log::info("📱 Dispositivos del admin encontrados", [
-                    'admin_user_id' => $adminUser->id,
-                    'dispositivos_count' => $dispositivos->count(),
-                ]);
-
                 foreach ($dispositivos as $dispositivo) {
-                    Log::info("📤 Despachando job de push para admin", [
-                        'admin_user_id' => $adminUser->id,
-                        'dispositivo_id' => $dispositivo->id,
-                        'token_preview' => substr($dispositivo->token_push, 0, 20) . '...',
-                    ]);
-                    
                     EnviarPushNotificationJob::dispatch(
                         $dispositivo->token_push,
                         $titulo,
                         $mensaje,
-                        $dataPush,
-                        null // No hay notificación en BD para admin
+                        [
+                            'cita_id' => $cita->id,
+                            'tipo' => $tipo,
+                            'click_action' => 'OPEN_CITA',
+                        ],
+                        null
                     )->onQueue('notifications');
                     
                     $totalDispositivos++;
                 }
             }
 
-            Log::info("✅ Jobs de notificación despachados a admins", [
-                'admin_count' => $adminUsers->count(),
+            Log::info("📤 Push enviado a admins", [
+                'admins' => $adminUsers->count(),
                 'dispositivos' => $totalDispositivos,
             ]);
-            
+
         } catch (\Exception $e) {
-            Log::error("❌ Error notificando a admins: " . $e->getMessage(), [
-                'cita_id' => $cita->id,
-                'error' => $e->getMessage(),
-            ]);
+            Log::error("❌ Error enviando push a admins: " . $e->getMessage());
         }
     }
 }
