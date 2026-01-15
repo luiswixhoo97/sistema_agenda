@@ -12,6 +12,10 @@ const config: CapacitorConfig = {
   },
   plugins: {
     PushNotifications: {
+      // Configuración para mostrar notificaciones como notificaciones del sistema
+      // 'badge': muestra el badge en el ícono de la app
+      // 'sound': reproduce el sonido de notificación
+      // 'alert': muestra la notificación en la barra de estado y centro de notificaciones
       presentationOptions: ['badge', 'sound', 'alert'],
     },
     SplashScreen: {

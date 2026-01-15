@@ -38,6 +38,18 @@ class PushNotificationService
                 ],
                 'data' => $data,
                 'priority' => 'high',
+                // Configuración específica para Android - asegura que se muestre como notificación del sistema
+                'android' => [
+                    'priority' => 'high',
+                    'notification' => [
+                        'channel_id' => 'beautyspa_citas',
+                        'sound' => 'default',
+                        'priority' => 'high',
+                        'default_sound' => true,
+                        'default_vibrate_timings' => true,
+                        'default_light_settings' => true,
+                    ],
+                ],
             ];
 
             $response = Http::withHeaders([
@@ -105,6 +117,18 @@ class PushNotificationService
                     ],
                     'data' => $data,
                     'priority' => 'high',
+                    // Configuración específica para Android
+                    'android' => [
+                        'priority' => 'high',
+                        'notification' => [
+                            'channel_id' => 'beautyspa_citas',
+                            'sound' => 'default',
+                            'priority' => 'high',
+                            'default_sound' => true,
+                            'default_vibrate_timings' => true,
+                            'default_light_settings' => true,
+                        ],
+                    ],
                 ];
 
                 $response = Http::withHeaders([
@@ -152,6 +176,18 @@ class PushNotificationService
                 ],
                 'data' => $data,
                 'priority' => 'high',
+                // Configuración específica para Android
+                'android' => [
+                    'priority' => 'high',
+                    'notification' => [
+                        'channel_id' => 'beautyspa_citas',
+                        'sound' => 'default',
+                        'priority' => 'high',
+                        'default_sound' => true,
+                        'default_vibrate_timings' => true,
+                        'default_light_settings' => true,
+                    ],
+                ],
             ];
 
             $response = Http::withHeaders([
