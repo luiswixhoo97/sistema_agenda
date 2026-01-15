@@ -403,12 +403,28 @@ class DisponibilidadService
     public function calcularDuracionTotal(array $servicioIds): int
     {
         if (empty($servicioIds)) {
+            \Log::warning('calcularDuracionTotal: No se proporcionaron servicios');
             return 0;
         }
         
-        return Servicio::whereIn('id', $servicioIds)
+        $servicios = Servicio::whereIn('id', $servicioIds)
             ->where('active', true)
-            ->sum('duracion');
+            ->get(['id', 'nombre', 'duracion', 'active']);
+        
+        $duracionTotal = $servicios->sum('duracion');
+        
+        \Log::info('calcularDuracionTotal', [
+            'servicioIds_solicitados' => $servicioIds,
+            'servicios_encontrados' => $servicios->count(),
+            'servicios_detalle' => $servicios->map(fn($s) => [
+                'id' => $s->id,
+                'nombre' => $s->nombre,
+                'duracion' => $s->duracion,
+            ])->toArray(),
+            'duracion_total' => $duracionTotal,
+        ]);
+        
+        return $duracionTotal;
     }
 
     /**

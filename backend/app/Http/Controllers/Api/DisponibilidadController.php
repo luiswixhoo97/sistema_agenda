@@ -64,6 +64,12 @@ class DisponibilidadController extends Controller
      */
     public function slotsDisponiblesEmpleado(Request $request): JsonResponse
     {
+        Log::info('🔍 slotsDisponiblesEmpleado - Request recibido', [
+            'empleado_id' => $request->empleado_id,
+            'fecha' => $request->fecha,
+            'servicios' => $request->servicios,
+        ]);
+
         $request->validate([
             'empleado_id' => 'required|integer|exists:empleados,id',
             'fecha' => 'required|date|date_format:Y-m-d',
@@ -80,11 +86,26 @@ class DisponibilidadController extends Controller
                 true // Siempre ignorar anticipación mínima para empleados
             );
 
+            Log::info('✅ slotsDisponiblesEmpleado - Resultado', [
+                'empleado_id' => $request->empleado_id,
+                'fecha' => $request->fecha,
+                'slots_count' => count($resultado['slots'] ?? []),
+                'mensaje' => $resultado['mensaje'] ?? null,
+                'horario_empleado' => $resultado['horario_empleado'] ?? null,
+            ]);
+
             return response()->json([
                 'success' => true,
                 'data' => $resultado,
             ]);
         } catch (\Exception $e) {
+            Log::error('❌ slotsDisponiblesEmpleado - Error', [
+                'empleado_id' => $request->empleado_id,
+                'fecha' => $request->fecha,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener slots: ' . $e->getMessage(),
