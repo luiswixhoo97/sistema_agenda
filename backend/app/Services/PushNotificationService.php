@@ -52,17 +52,36 @@ class PushNotificationService
                 ],
             ];
 
+            Log::info("📤 Enviando push notification a Firebase", [
+                'token_preview' => substr($token, 0, 20) . '...',
+                'titulo' => $titulo,
+                'mensaje_preview' => substr($mensaje, 0, 50),
+                'fcm_url' => $this->fcmApiUrl,
+                'tiene_server_key' => !empty($this->fcmServerKey),
+            ]);
+
             $response = Http::withHeaders([
                 'Authorization' => 'key=' . $this->fcmServerKey,
                 'Content-Type' => 'application/json',
             ])->post($this->fcmApiUrl, $payload);
 
+            $responseData = $response->json();
+            
+            Log::info("📥 Respuesta de Firebase", [
+                'status' => $response->status(),
+                'successful' => $response->successful(),
+                'response' => $responseData,
+            ]);
+
             if ($response->successful()) {
-                $responseData = $response->json();
-                
                 // Verificar si el token es válido
                 if (isset($responseData['results'][0]['error'])) {
                     $error = $responseData['results'][0]['error'];
+                    
+                    Log::warning("⚠️ Error en respuesta de Firebase", [
+                        'error' => $error,
+                        'token_preview' => substr($token, 0, 20) . '...',
+                    ]);
                     
                     if (in_array($error, ['NotRegistered', 'InvalidRegistration'])) {
                         return [
@@ -75,15 +94,25 @@ class PushNotificationService
                     return ['success' => false, 'error' => $error];
                 }
 
+                Log::info("✅ Push notification enviada exitosamente", [
+                    'message_id' => $responseData['results'][0]['message_id'] ?? null,
+                ]);
+
                 return [
                     'success' => true,
                     'message_id' => $responseData['results'][0]['message_id'] ?? null,
                 ];
             }
 
+            Log::error("❌ Error HTTP de Firebase", [
+                'status' => $response->status(),
+                'response' => $responseData,
+            ]);
+
             return [
                 'success' => false,
                 'error' => 'Error HTTP: ' . $response->status(),
+                'response' => $responseData,
             ];
             
         } catch (\Exception $e) {

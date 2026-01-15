@@ -78,6 +78,12 @@ class NotificacionService
 
         // Despachar jobs según preferencias del cliente (con QR si está disponible)
         $this->despacharNotificaciones($cliente, $notificacion, $datos, 'confirmacion_cita', $qrUrl);
+        
+        // Notificar al empleado asignado
+        $this->notificarEmpleadoCitaAgendada($cita, $datos);
+        
+        // Notificar a todos los usuarios admin
+        $this->notificarAdminCitaAgendada($cita, $datos);
     }
 
     /**
@@ -579,6 +585,170 @@ class NotificacionService
             'clabe' => $bancoClabe ?: null,
             'titular' => $bancoTitular ?: ($nombreNegocio ?: 'No configurado'),
         ];
+    }
+
+    /**
+     * Notificar al empleado asignado sobre una nueva cita
+     */
+    protected function notificarEmpleadoCitaAgendada(Cita $cita, array $datos): void
+    {
+        try {
+            $cita->load(['empleado.user']);
+            
+            if (!$cita->empleado || !$cita->empleado->user) {
+                Log::warning("⚠️ No se puede notificar al empleado: empleado o user no encontrado", [
+                    'cita_id' => $cita->id,
+                    'empleado_id' => $cita->empleado_id,
+                ]);
+                return;
+            }
+
+            $user = $cita->empleado->user;
+            
+            // Obtener dispositivos activos del empleado
+            $dispositivos = \App\Models\Dispositivo::where('user_id', $user->id)
+                ->where('activo', true)
+                ->get();
+
+            if ($dispositivos->isEmpty()) {
+                Log::info("📱 Empleado sin dispositivos registrados", [
+                    'user_id' => $user->id,
+                    'empleado_id' => $cita->empleado->id,
+                ]);
+                return;
+            }
+
+            $titulo = '📅 Nueva Cita Asignada';
+            $mensaje = "Tienes una nueva cita:\n\n";
+            $mensaje .= "👤 Cliente: {$datos['cliente_nombre']}\n";
+            $mensaje .= "📅 Fecha: {$datos['fecha']}\n";
+            $mensaje .= "⏰ Hora: {$datos['hora']}\n";
+            $mensaje .= "💇 Servicios: {$datos['servicios']}\n";
+            $mensaje .= "💰 Precio: \${$datos['precio_total']}";
+
+            $dataPush = [
+                'cita_id' => $cita->id,
+                'tipo' => 'nueva_cita_empleado',
+                'click_action' => 'OPEN_CITA',
+            ];
+
+            Log::info("📱 Preparando envío de notificaciones push al empleado", [
+                'user_id' => $user->id,
+                'empleado_id' => $cita->empleado->id,
+                'dispositivos_count' => $dispositivos->count(),
+                'tokens' => $dispositivos->pluck('token_push')->map(fn($t) => substr($t, 0, 20) . '...')->toArray(),
+            ]);
+
+            foreach ($dispositivos as $dispositivo) {
+                Log::info("📤 Despachando job de push para empleado", [
+                    'dispositivo_id' => $dispositivo->id,
+                    'token_preview' => substr($dispositivo->token_push, 0, 20) . '...',
+                ]);
+                
+                EnviarPushNotificationJob::dispatch(
+                    $dispositivo->token_push,
+                    $titulo,
+                    $mensaje,
+                    $dataPush,
+                    null // No hay notificación en BD para empleados
+                )->onQueue('notifications');
+            }
+
+            Log::info("✅ Jobs de notificación despachados al empleado", [
+                'user_id' => $user->id,
+                'empleado_id' => $cita->empleado->id,
+                'dispositivos' => $dispositivos->count(),
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error("❌ Error notificando al empleado: " . $e->getMessage(), [
+                'cita_id' => $cita->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Notificar a todos los usuarios admin sobre una nueva cita
+     */
+    protected function notificarAdminCitaAgendada(Cita $cita, array $datos): void
+    {
+        try {
+            // Obtener todos los usuarios con rol admin
+            $adminRole = \App\Models\Role::where('nombre', 'admin')->first();
+            
+            if (!$adminRole) {
+                Log::warning("⚠️ Rol 'admin' no encontrado");
+                return;
+            }
+
+            $adminUsers = \App\Models\User::where('role_id', $adminRole->id)
+                ->where('active', true)
+                ->get();
+
+            if ($adminUsers->isEmpty()) {
+                Log::info("📱 No hay usuarios admin activos");
+                return;
+            }
+
+            $titulo = '📅 Nueva Cita Agendada';
+            $mensaje = "Se ha agendado una nueva cita:\n\n";
+            $mensaje .= "👤 Cliente: {$datos['cliente_nombre']}\n";
+            $mensaje .= "👨‍💼 Empleado: {$datos['empleado_nombre']}\n";
+            $mensaje .= "📅 Fecha: {$datos['fecha']}\n";
+            $mensaje .= "⏰ Hora: {$datos['hora']}\n";
+            $mensaje .= "💇 Servicios: {$datos['servicios']}\n";
+            $mensaje .= "💰 Precio: \${$datos['precio_total']}";
+
+            $dataPush = [
+                'cita_id' => $cita->id,
+                'tipo' => 'nueva_cita_admin',
+                'click_action' => 'OPEN_CITA',
+            ];
+
+            $totalDispositivos = 0;
+
+            foreach ($adminUsers as $adminUser) {
+                // Obtener dispositivos activos del admin
+                $dispositivos = \App\Models\Dispositivo::where('user_id', $adminUser->id)
+                    ->where('activo', true)
+                    ->get();
+
+                Log::info("📱 Dispositivos del admin encontrados", [
+                    'admin_user_id' => $adminUser->id,
+                    'dispositivos_count' => $dispositivos->count(),
+                ]);
+
+                foreach ($dispositivos as $dispositivo) {
+                    Log::info("📤 Despachando job de push para admin", [
+                        'admin_user_id' => $adminUser->id,
+                        'dispositivo_id' => $dispositivo->id,
+                        'token_preview' => substr($dispositivo->token_push, 0, 20) . '...',
+                    ]);
+                    
+                    EnviarPushNotificationJob::dispatch(
+                        $dispositivo->token_push,
+                        $titulo,
+                        $mensaje,
+                        $dataPush,
+                        null // No hay notificación en BD para admin
+                    )->onQueue('notifications');
+                    
+                    $totalDispositivos++;
+                }
+            }
+
+            Log::info("✅ Jobs de notificación despachados a admins", [
+                'admin_count' => $adminUsers->count(),
+                'dispositivos' => $totalDispositivos,
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error("❌ Error notificando a admins: " . $e->getMessage(), [
+                'cita_id' => $cita->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
 

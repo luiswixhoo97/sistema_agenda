@@ -49,6 +49,13 @@ class EnviarPushNotificationJob implements ShouldQueue
     public function handle(PushNotificationService $pushService): void
     {
         try {
+            Log::info("🚀 Procesando job de push notification", [
+                'token_preview' => substr($this->token, 0, 20) . '...',
+                'titulo' => $this->titulo,
+                'notificacion_id' => $this->notificacionId,
+                'intento' => $this->attempts(),
+            ]);
+
             $resultado = $pushService->enviar(
                 $this->token,
                 $this->titulo,
@@ -57,21 +64,55 @@ class EnviarPushNotificationJob implements ShouldQueue
             );
 
             if ($resultado['success']) {
-                Log::info("Push notification enviada exitosamente");
+                Log::info("✅ Push notification enviada exitosamente desde job", [
+                    'message_id' => $resultado['message_id'] ?? null,
+                    'notificacion_id' => $this->notificacionId,
+                ]);
+                
+                // Actualizar notificación si existe
+                if ($this->notificacionId) {
+                    $notificacion = Notificacion::find($this->notificacionId);
+                    if ($notificacion) {
+                        $notificacion->marcarEnviada();
+                    }
+                }
             } else {
+                Log::error("❌ Push notification falló", [
+                    'error' => $resultado['error'] ?? 'Error desconocido',
+                    'invalid_token' => $resultado['invalid_token'] ?? false,
+                    'notificacion_id' => $this->notificacionId,
+                ]);
+                
                 // Si el token es inválido, desactivarlo
                 if ($resultado['invalid_token'] ?? false) {
                     $this->desactivarToken();
                 }
+                
+                // Actualizar notificación si existe
+                if ($this->notificacionId) {
+                    $notificacion = Notificacion::find($this->notificacionId);
+                    if ($notificacion) {
+                        $notificacion->marcarFallida($resultado['error'] ?? 'Error desconocido');
+                    }
+                }
+                
                 throw new \Exception($resultado['error'] ?? 'Error desconocido');
             }
             
         } catch (\Exception $e) {
-            Log::error("Error enviando push notification: " . $e->getMessage());
+            Log::error("❌ Excepción en job de push notification", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'notificacion_id' => $this->notificacionId,
+                'intento' => $this->attempts(),
+                'max_intentos' => $this->tries,
+            ]);
             
             if ($this->attempts() >= $this->tries) {
-                // No marcamos como fallido ya que puede haber otros canales exitosos
-                Log::warning("Push notification falló después de {$this->tries} intentos");
+                Log::warning("⚠️ Push notification falló después de {$this->tries} intentos", [
+                    'token_preview' => substr($this->token, 0, 20) . '...',
+                    'notificacion_id' => $this->notificacionId,
+                ]);
             }
             
             throw $e;
