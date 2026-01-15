@@ -42,8 +42,9 @@ return [
     ],
 
     'firebase' => [
-        'server_key' => env('FIREBASE_SERVER_KEY', 'AIzaSyBeO4Jc023gHxXV7N8D3efmtqvJ91EbCTk'),
-        'fcm_url' => env('FIREBASE_FCM_URL', 'https://fcm.googleapis.com/fcm/send'),
+        // FCM v1 API - requiere Service Account credentials
+        'project_id' => env('FIREBASE_PROJECT_ID', 'com-beautyspa-app'),
+        'credentials_path' => env('FIREBASE_CREDENTIALS_PATH', null), // Ruta al archivo JSON de credenciales
     ],
 
     'mercadopago' => [
