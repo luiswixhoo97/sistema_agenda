@@ -603,11 +603,12 @@ onMounted(async () => {
 
 .inventario-view {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f0fff4 0%, #e8f5e9 100%);
+  background: #f5f5f7;
   padding: 20px;
   padding-bottom: 100px;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Header */
@@ -617,10 +618,10 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 20px;
   padding: 20px;
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
   border-radius: 20px;
   color: white;
-  box-shadow: 0 10px 40px rgba(67, 233, 123, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
 .header-left {
@@ -685,7 +686,7 @@ onMounted(async () => {
 }
 
 .stat-icon.productos {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: #007aff;
 }
 
 .stat-icon.warning {
@@ -693,7 +694,7 @@ onMounted(async () => {
 }
 
 .stat-icon.movimientos {
-  background: linear-gradient(135deg, #5856d6 0%, #af52de 100%);
+  background: #007aff;
 }
 
 .stat-info {
@@ -739,9 +740,9 @@ onMounted(async () => {
 }
 
 .view-tab.active {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: #007aff;
   color: white;
-  box-shadow: 0 4px 15px rgba(67, 233, 123, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 /* Filters */
@@ -772,7 +773,7 @@ onMounted(async () => {
 .filter-select:focus,
 .filter-input:focus {
   outline: none;
-  border-color: #43e97b;
+  border-color: #007aff;
 }
 
 .filter-select.large {
@@ -785,7 +786,7 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   padding: 10px 18px;
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: #007aff;
   border: none;
   border-radius: 12px;
   color: white;
@@ -821,7 +822,7 @@ onMounted(async () => {
   width: 36px;
   height: 36px;
   border: 3px solid #e5e5ea;
-  border-top-color: #43e97b;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 16px;
@@ -970,7 +971,7 @@ onMounted(async () => {
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: #43e97b;
+  color: #007aff;
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -981,10 +982,11 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
   border-radius: 14px;
   margin-bottom: 20px;
-  color: white;
+  color: #1d1d1f;
 }
 
 .kardex-producto h3 {
@@ -1190,7 +1192,7 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   padding: 10px 16px;
-  background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+  background: #34c759;
   border: none;
   border-radius: 10px;
   color: white;
@@ -1246,14 +1248,16 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
-  color: white;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.3px;
 }
 
 .modal-close {
@@ -1261,12 +1265,13 @@ onMounted(async () => {
   height: 36px;
   border: none;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: #f5f5f7;
+  color: #86868b;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
 }
 
 .modal-body {
@@ -1295,7 +1300,7 @@ onMounted(async () => {
 }
 
 .ep-stock strong {
-  color: #34c759;
+  color: #007aff;
   font-size: 18px;
 }
 
@@ -1307,7 +1312,7 @@ onMounted(async () => {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #34c759;
+  color: #007aff;
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1327,8 +1332,9 @@ onMounted(async () => {
 
 .form-input:focus {
   outline: none;
-  border-color: #34c759;
+  border-color: #007aff;
   background: white;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
 .entrada-input {
@@ -1365,14 +1371,14 @@ onMounted(async () => {
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: #34c759;
   color: white;
-  box-shadow: 0 4px 15px rgba(67, 233, 123, 0.4);
+  box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
 }
 
 .btn-submit.entrada {
-  background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
-  box-shadow: 0 4px 15px rgba(52, 199, 89, 0.4);
+  background: #34c759;
+  box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
 }
 
 .btn-submit:disabled {

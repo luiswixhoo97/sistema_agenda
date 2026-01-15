@@ -931,11 +931,12 @@ onMounted(() => {
 
 .ventas-view {
   min-height: 100vh;
-  background: linear-gradient(135deg, #ffeef8 0%, #fff5f8 100%);
+  background: #f5f5f7;
   padding: 20px;
   padding-bottom: 100px;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Header */
@@ -945,10 +946,10 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
   border-radius: 20px;
   color: white;
-  box-shadow: 0 10px 40px rgba(250, 112, 154, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
 .header-left {
@@ -985,8 +986,8 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   color: white;
   font-size: 14px;
@@ -1032,14 +1033,14 @@ onMounted(() => {
 }
 
 .view-tab.active {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: #007aff;
   color: white;
-  box-shadow: 0 4px 15px rgba(250, 112, 154, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 .badge {
   background: white;
-  color: #fa709a;
+  color: #007aff;
   padding: 2px 8px;
   border-radius: 10px;
   font-size: 12px;
@@ -1066,7 +1067,7 @@ onMounted(() => {
   display: block;
   font-size: 20px;
   font-weight: 700;
-  color: #fa709a;
+  color: #007aff;
 }
 
 .sm-label {
@@ -1105,7 +1106,7 @@ onMounted(() => {
 }
 
 .search-box:focus-within {
-  border-color: #fa709a;
+  border-color: #007aff;
   background: white;
 }
 
@@ -1134,7 +1135,7 @@ onMounted(() => {
 
 .filter-select:focus {
   outline: none;
-  border-color: #fa709a;
+  border-color: #007aff;
 }
 
 .loading-state,
@@ -1151,7 +1152,7 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   border: 3px solid #f0f0f0;
-  border-top-color: #fa709a;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 16px;
@@ -1176,7 +1177,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: #007aff;
   border: none;
   border-radius: 12px;
   color: white;
@@ -1202,7 +1203,7 @@ onMounted(() => {
 }
 
 .venta-card:hover {
-  border-color: #fa709a;
+  border-color: #007aff;
   background: white;
 }
 
@@ -1334,12 +1335,12 @@ onMounted(() => {
 }
 
 .action-btn.pagar {
-  background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+  background: #34c759;
   color: white;
 }
 
 .action-btn.cancel {
-  background: rgba(255, 59, 48, 0.15);
+  background: rgba(255, 59, 48, 0.12);
   color: #ff3b30;
 }
 
@@ -1392,22 +1393,26 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-  color: white;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .modal-header.pago-header {
-  background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .modal-header.detalle-header {
-  background: linear-gradient(135deg, #5856d6 0%, #af52de 100%);
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.3px;
 }
 
 .modal-close {
@@ -1415,12 +1420,13 @@ onMounted(() => {
   height: 36px;
   border: none;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: #f5f5f7;
+  color: #86868b;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
 }
 
 .modal-body {
@@ -1460,7 +1466,7 @@ onMounted(() => {
 }
 
 .pos-search:focus-within {
-  border-color: #fa709a;
+  border-color: #007aff;
   background: white;
 }
 
@@ -1499,7 +1505,7 @@ onMounted(() => {
 }
 
 .producto-tile:hover {
-  border-color: #fa709a;
+  border-color: #007aff;
   background: white;
   transform: translateY(-2px);
 }
@@ -1507,12 +1513,12 @@ onMounted(() => {
 .tile-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: rgba(0, 122, 255, 0.1);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #007aff;
 }
 
 .tile-info {
@@ -1524,7 +1530,7 @@ onMounted(() => {
 .tile-codigo {
   font-size: 10px;
   font-weight: 700;
-  color: #fa709a;
+  color: #007aff;
   text-transform: uppercase;
 }
 
@@ -1648,7 +1654,7 @@ onMounted(() => {
 .item-subtotal {
   font-size: 14px;
   font-weight: 700;
-  color: #fa709a;
+  color: #007aff;
 }
 
 .item-remove {
@@ -1696,7 +1702,7 @@ onMounted(() => {
 }
 
 .total-line.total-final span:last-child {
-  color: #fa709a;
+  color: #007aff;
 }
 
 .carrito-actions {
@@ -1710,7 +1716,7 @@ onMounted(() => {
   justify-content: center;
   gap: 8px;
   padding: 16px;
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: #34c759;
   border: none;
   border-radius: 14px;
   color: white;
@@ -1780,7 +1786,7 @@ onMounted(() => {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #34c759;
+  color: #007aff;
   margin-bottom: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1810,8 +1816,8 @@ onMounted(() => {
 
 .metodo-btn.active {
   background: white;
-  border-color: #34c759;
-  color: #34c759;
+  border-color: #007aff;
+  color: #007aff;
 }
 
 .monto-input-container {
@@ -1824,7 +1830,7 @@ onMounted(() => {
 }
 
 .monto-input-container:focus-within {
-  border-color: #34c759;
+  border-color: #007aff;
   background: white;
 }
 
@@ -1905,8 +1911,9 @@ onMounted(() => {
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+  background: #34c759;
   color: white;
+  box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
 }
 
 .btn-submit:disabled {
@@ -1946,7 +1953,7 @@ onMounted(() => {
 
 .detalle-items h4 {
   font-size: 14px;
-  color: #5856d6;
+  color: #007aff;
   margin: 0 0 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -2039,7 +2046,7 @@ onMounted(() => {
   justify-content: center;
   gap: 8px;
   padding: 14px;
-  background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+  background: #34c759;
   border: none;
   border-radius: 14px;
   color: white;

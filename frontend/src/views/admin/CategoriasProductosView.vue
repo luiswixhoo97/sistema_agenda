@@ -455,11 +455,12 @@ onMounted(() => {
 
 .categorias-productos-view {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+  background: #f5f5f7;
   padding: 20px;
   padding-bottom: 100px;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Header */
@@ -469,10 +470,10 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 20px;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
   border-radius: 20px;
   color: white;
-  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
 .header-left {
@@ -522,8 +523,8 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   color: white;
   font-size: 14px;
@@ -592,10 +593,10 @@ onMounted(() => {
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: transparent;
+  background: #007aff;
+  border-color: #007aff;
   color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 /* Content */
@@ -617,7 +618,7 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   border: 3px solid #e5e5ea;
-  border-top-color: #667eea;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 16px;
@@ -644,7 +645,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #007aff;
   border: none;
   border-radius: 12px;
   color: white;
@@ -753,7 +754,7 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #667eea;
+  color: #007aff;
   font-weight: 500;
 }
 
@@ -785,7 +786,8 @@ onMounted(() => {
 }
 
 .action-btn.edit {
-  color: #667eea;
+  background: #f5f5f7;
+  color: #86868b;
 }
 
 .action-btn.warning {
@@ -842,14 +844,14 @@ onMounted(() => {
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid #f0f0f0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: #ffffff;
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
+  color: #1d1d1f;
   letter-spacing: -0.3px;
 }
 
@@ -858,8 +860,8 @@ onMounted(() => {
   height: 36px;
   border: none;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: #f5f5f7;
+  color: #86868b;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -897,7 +899,7 @@ onMounted(() => {
   gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #667eea;
+  color: #007aff;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -923,9 +925,9 @@ onMounted(() => {
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #007aff;
   background: white;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
 .form-input::placeholder,
@@ -986,7 +988,7 @@ onMounted(() => {
 }
 
 .toggle-switch input:checked + .toggle-slider {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #007aff;
 }
 
 .toggle-switch input:checked + .toggle-slider::before {
@@ -1036,9 +1038,9 @@ onMounted(() => {
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #34c759;
   color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
 }
 
 .btn-submit:active:not(:disabled) {
