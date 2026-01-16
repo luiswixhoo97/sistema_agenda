@@ -636,7 +636,7 @@ class NotificacionService
             $mensaje .= "📅 Fecha: {$datos['fecha']}\n";
             $mensaje .= "⏰ Hora: {$datos['hora']}\n";
             $mensaje .= "💇 Servicios: {$datos['servicios']}\n";
-            $mensaje .= "💰 Precio: \${$datos['precio_total']}";
+           
 
             $dataPush = [
                 'cita_id' => $cita->id,
@@ -692,9 +692,7 @@ class NotificacionService
             "👤 Cliente: {$datos['cliente_nombre']}\n" .
             "👨‍💼 Empleado: {$datos['empleado_nombre']}\n" .
             "📅 Fecha: {$datos['fecha']}\n" .
-            "⏰ Hora: {$datos['hora']}\n" .
-            "💇 Servicios: {$datos['servicios']}\n" .
-            "💰 Precio: \${$datos['precio_total']}",
+            "⏰ Hora: {$datos['hora']}\n",
             'nueva_cita_admin'
         );
     }
@@ -708,7 +706,6 @@ class NotificacionService
         $mensaje .= "👤 Cliente: {$datos['cliente_nombre']}\n";
         $mensaje .= "📅 Fecha: {$datos['fecha']}\n";
         $mensaje .= "⏰ Hora: {$datos['hora']}\n";
-        $mensaje .= "💇 Servicios: {$datos['servicios']}";
         if ($motivo) {
             $mensaje .= "\n📋 Motivo: {$motivo}";
         }
@@ -726,7 +723,6 @@ class NotificacionService
         $mensaje .= "👨‍💼 Empleado: {$datos['empleado_nombre']}\n";
         $mensaje .= "📅 Fecha: {$datos['fecha']}\n";
         $mensaje .= "⏰ Hora: {$datos['hora']}\n";
-        $mensaje .= "💇 Servicios: {$datos['servicios']}";
         if ($motivo) {
             $mensaje .= "\n📋 Motivo: {$motivo}";
         }
@@ -743,8 +739,6 @@ class NotificacionService
         $mensaje .= "👤 Cliente: {$datos['cliente_nombre']}\n";
         $mensaje .= "📅 Nueva fecha: {$datos['fecha']}\n";
         $mensaje .= "⏰ Nueva hora: {$datos['hora']}\n";
-        $mensaje .= "💇 Servicios: {$datos['servicios']}\n";
-        $mensaje .= "💰 Precio: \${$datos['precio_total']}";
 
         $this->enviarPushAEmpleado($cita, '📝 Cita Modificada', $mensaje, 'cita_modificada_empleado');
     }
@@ -759,8 +753,6 @@ class NotificacionService
         $mensaje .= "👨‍💼 Empleado: {$datos['empleado_nombre']}\n";
         $mensaje .= "📅 Nueva fecha: {$datos['fecha']}\n";
         $mensaje .= "⏰ Nueva hora: {$datos['hora']}\n";
-        $mensaje .= "💇 Servicios: {$datos['servicios']}\n";
-        $mensaje .= "💰 Precio: \${$datos['precio_total']}";
 
         $this->enviarPushAAdmins($cita, '📝 Cita Modificada', $mensaje, 'cita_modificada_admin');
     }
