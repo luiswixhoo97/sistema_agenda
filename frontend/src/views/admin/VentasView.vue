@@ -1,7 +1,7 @@
 <template>
   <div class="ventas-view">
     <!-- Header -->
-    <div class="page-header">
+    <header class="servicios-header">
       <div class="header-left">
         <div class="header-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -12,16 +12,32 @@
         </div>
         <div class="header-text">
           <h1>Ventas</h1>
-          <p class="header-subtitle">Punto de venta</p>
+          <p class="header-subtitle">{{ ventas.length }} registradas</p>
         </div>
       </div>
-      <button class="btn-primary" @click="nuevaVenta">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="btn-new-servicio" @click="nuevaVenta">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
-        <span class="btn-text">Nueva Venta</span>
+        Nueva venta
       </button>
+    </header>
+
+    <!-- Quick Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value">${{ formatPrecio(ventasHoy) }}</div>
+        <div class="stat-label">Hoy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ totalVentasHoy }}</div>
+        <div class="stat-label">Transacciones</div>
+      </div>
+      <div class="stat-card" @click="vistaActiva = 'pendientes'">
+        <div class="stat-value accent">{{ ventasPendientes.length }}</div>
+        <div class="stat-label">Pendientes</div>
+      </div>
     </div>
 
     <!-- Vista Tabs -->
@@ -49,150 +65,79 @@
       </button>
     </div>
 
-    <!-- Quick Stats -->
-    <div class="stats-row">
-      <div class="stat-mini">
-        <span class="sm-value">${{ formatPrecio(ventasHoy) }}</span>
-        <span class="sm-label">Ventas hoy</span>
-      </div>
-      <div class="stat-mini">
-        <span class="sm-value">{{ totalVentasHoy }}</span>
-        <span class="sm-label">Transacciones</span>
+    <!-- Search & Filter -->
+    <div class="search-section">
+      <div class="search-input">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          v-model="busqueda" 
+          type="text" 
+          placeholder="Buscar por ID o cliente"
+        />
       </div>
     </div>
 
-    <!-- Content -->
-    <div class="content-section">
-      <!-- Filters -->
-      <div class="filters-row">
-        <div class="search-box">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input 
-            v-model="busqueda" 
-            type="text" 
-            placeholder="Buscar venta..."
-          />
-        </div>
-        <select v-model="filtroEstado" class="filter-select">
-          <option value="">Todos los estados</option>
-          <option value="pendiente_pago">Pendiente</option>
-          <option value="parcial">Pago parcial</option>
-          <option value="completada">Completada</option>
-          <option value="cancelada">Cancelada</option>
-        </select>
-      </div>
+    <!-- Loading -->
+    <div v-if="loading" class="loading-container">
+      <div class="loading-spinner"></div>
+    </div>
 
-      <!-- Loading -->
-      <div v-if="loading" class="loading-state">
-        <div class="loader"></div>
-        <p>Cargando ventas...</p>
+    <!-- Empty State -->
+    <div v-else-if="ventasFiltradas.length === 0" class="empty-container">
+      <div class="empty-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
       </div>
+      <h3>{{ busqueda || filtroEstado ? 'Sin resultados' : 'Sin ventas' }}</h3>
+      <p>{{ busqueda || filtroEstado ? 'Intenta con otros filtros' : 'Comienza creando tu primera venta' }}</p>
+      <button class="btn-create" @click="nuevaVenta">Crear venta</button>
+    </div>
 
-      <!-- Empty -->
-      <div v-else-if="ventasFiltradas.length === 0" class="empty-state">
-        <div class="empty-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="9" cy="21" r="1"></circle>
-            <circle cx="20" cy="21" r="1"></circle>
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-          </svg>
-        </div>
-        <p>{{ busqueda || filtroEstado ? 'No se encontraron ventas' : 'No hay ventas registradas' }}</p>
-        <button class="btn-empty" @click="nuevaVenta">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Crear primera venta
-        </button>
-      </div>
-
-      <!-- Ventas List -->
-      <div v-else class="ventas-list">
-        <div 
-          v-for="venta in ventasFiltradas" 
-          :key="venta.id" 
-          class="venta-card"
-          @click="verDetalle(venta)"
-        >
-          <div class="venta-header">
-            <div class="venta-id">
-              <span class="id-label">#</span>
-              <span class="id-value">{{ venta.id }}</span>
+    <!-- Ventas List -->
+    <div v-else class="sales-list">
+      <div 
+        v-for="venta in ventasFiltradas" 
+        :key="venta.id" 
+        class="sale-card"
+        @click="verDetalle(venta)"
+      >
+        <div class="sale-main">
+          <div class="sale-info">
+            <div class="sale-number">#{{ venta.id }}</div>
+            <div class="sale-meta">
+              <span v-if="venta.cliente">{{ venta.cliente.nombre }}</span>
+              <span v-else class="meta-empty">Sin cliente</span>
             </div>
-            <span :class="['estado-badge', getEstadoClass(venta.estado)]">
+            <div class="sale-date">{{ formatFechaCompact(venta.fecha_venta) }}</div>
+          </div>
+          
+          <div class="sale-amount">
+            <div class="amount-total">${{ formatPrecio(venta.total) }}</div>
+            <div :class="['sale-status', getEstadoClass(venta.estado)]">
               {{ getEstadoLabel(venta.estado) }}
-            </span>
-          </div>
-          
-          <div class="venta-body">
-            <div class="venta-cliente" v-if="venta.cliente">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-              {{ venta.cliente.nombre }}
-            </div>
-            <div class="venta-fecha">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-              {{ formatFecha(venta.fecha_venta) }}
-            </div>
-            
-            <div class="venta-items" v-if="venta.detalles && venta.detalles.length > 0">
-              <span class="items-count">{{ venta.detalles.length }} artículo(s)</span>
             </div>
           </div>
-          
-          <div class="venta-footer">
-            <div class="venta-totales">
-              <div class="total-row">
-                <span class="total-label">Total:</span>
-                <span class="total-value">${{ formatPrecio(venta.total) }}</span>
-              </div>
-              <div class="total-row pagado" v-if="venta.total_pagado > 0">
-                <span class="total-label">Pagado:</span>
-                <span class="total-value">${{ formatPrecio(venta.total_pagado) }}</span>
-              </div>
-              <div class="total-row pendiente" v-if="venta.saldo_pendiente > 0">
-                <span class="total-label">Pendiente:</span>
-                <span class="total-value">${{ formatPrecio(venta.saldo_pendiente) }}</span>
-              </div>
-            </div>
-            
-            <div class="venta-actions" @click.stop>
-              <button 
-                v-if="venta.estado !== 'completada' && venta.estado !== 'cancelada'"
-                class="action-btn pagar" 
-                @click="abrirPago(venta)"
-                title="Registrar pago"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                  <line x1="1" y1="10" x2="23" y2="10"></line>
-                </svg>
-              </button>
-              <button 
-                v-if="venta.estado !== 'cancelada'"
-                class="action-btn cancel" 
-                @click="cancelarVentaConfirm(venta)"
-                title="Cancelar venta"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="15" y1="9" x2="9" y2="15"></line>
-                  <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-              </button>
-            </div>
-          </div>
+        </div>
+
+        <div v-if="venta.saldo_pendiente > 0" class="sale-pending">
+          <span class="pending-label">Pendiente</span>
+          <span class="pending-amount">${{ formatPrecio(venta.saldo_pendiente) }}</span>
+        </div>
+
+        <div class="sale-actions" @click.stop v-if="venta.estado !== 'completada' && venta.estado !== 'cancelada'">
+          <button class="action-pay" @click="abrirPago(venta)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+              <line x1="1" y1="10" x2="23" y2="10"></line>
+            </svg>
+            Pagar
+          </button>
         </div>
       </div>
     </div>
@@ -226,28 +171,21 @@
                 />
               </div>
               
-              <div class="productos-grid">
+              <div class="productos-scroll">
                 <div 
                   v-for="p in productosDisponibles" 
                   :key="p.id" 
-                  class="producto-tile"
+                  class="producto-card"
                   @click="agregarAlCarrito(p)"
                 >
-                  <div class="tile-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                      <line x1="3" y1="6" x2="21" y2="6"></line>
-                      <path d="M16 10a4 4 0 0 1-8 0"></path>
-                    </svg>
+                  <div class="product-header">
+                    <span class="product-code">{{ p.codigo }}</span>
+                    <span class="product-stock" :class="{ low: p.inventario_actual <= (p.inventario_minimo || 0) }">
+                      {{ p.inventario_actual || 0 }}
+                    </span>
                   </div>
-                  <div class="tile-info">
-                    <span class="tile-codigo">{{ p.codigo }}</span>
-                    <span class="tile-nombre">{{ p.nombre }}</span>
-                    <span class="tile-precio">${{ formatPrecio(p.precio) }}</span>
-                  </div>
-                  <div class="tile-stock" :class="{ bajo: p.inventario_actual <= (p.inventario_minimo || 0) }">
-                    Stock: {{ p.inventario_actual || 0 }}
-                  </div>
+                  <h4 class="product-name">{{ p.nombre }}</h4>
+                  <div class="product-price">${{ formatPrecio(p.precio) }}</div>
                 </div>
               </div>
             </div>
@@ -657,6 +595,25 @@ function formatFecha(fecha: string): string {
   });
 }
 
+function formatFechaCompact(fecha: string): string {
+  if (!fecha) return '';
+  const d = new Date(fecha);
+  const hoy = new Date();
+  const ayer = new Date(hoy);
+  ayer.setDate(ayer.getDate() - 1);
+  
+  const esFechaHoy = d.toDateString() === hoy.toDateString();
+  const esFechaAyer = d.toDateString() === ayer.toDateString();
+  
+  if (esFechaHoy) {
+    return `Hoy ${d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`;
+  } else if (esFechaAyer) {
+    return `Ayer ${d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`;
+  } else {
+    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+  }
+}
+
 function getEstadoClass(estado: string): string {
   if (estado === 'completada') return 'completada';
   if (estado === 'pendiente_pago') return 'pendiente';
@@ -927,28 +884,28 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* ===== Modern Pink/Rose Design - Ventas ===== */
+/* ===== Apple Minimalist Design - Ventas ===== */
 
 .ventas-view {
   min-height: 100vh;
   background: #f5f5f7;
-  padding: 20px;
+  padding: 0;
   padding-bottom: 100px;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
 }
 
-/* Header */
-.page-header {
+/* ===== Header ===== */
+.servicios-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
   padding: 20px;
+  margin: 16px 20px;
   background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%);
   border-radius: 20px;
-  color: white;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
@@ -966,6 +923,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #ffffff;
   backdrop-filter: blur(10px);
 }
 
@@ -973,52 +931,104 @@ onMounted(() => {
   font-size: 22px;
   font-weight: 700;
   margin: 0;
+  color: #ffffff;
+  letter-spacing: -0.02em;
 }
 
 .header-subtitle {
   font-size: 13px;
-  opacity: 0.85;
+  color: rgba(255, 255, 255, 0.85);
   margin: 4px 0 0;
+  font-weight: 400;
 }
 
-.btn-primary {
+.btn-new-servicio {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
   padding: 12px 20px;
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  color: white;
+  color: #ffffff;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  white-space: nowrap;
   backdrop-filter: blur(10px);
 }
 
-.btn-primary:active {
+.btn-new-servicio:active {
   transform: scale(0.96);
+  background: rgba(255, 255, 255, 0.25);
 }
 
-.btn-text {
-  display: none;
+@media (max-width: 480px) {
+  .btn-new-servicio {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
 }
 
-@media (min-width: 480px) {
-  .btn-text { display: inline; }
+/* ===== Stats ===== */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 0 20px 16px;
+  background: transparent;
 }
 
-/* View Tabs */
+.stat-card {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 14px;
+  text-align: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #000000;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.stat-value.accent {
+  color: #007aff;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ===== Tabs ===== */
 .view-tabs {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
+  padding: 0 20px 16px;
+  background: transparent;
 }
 
 .view-tab {
+  flex: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 12px 18px;
   background: white;
@@ -1038,6 +1048,10 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
+.view-tab svg {
+  flex-shrink: 0;
+}
+
 .badge {
   background: white;
   color: #007aff;
@@ -1045,333 +1059,306 @@ onMounted(() => {
   border-radius: 10px;
   font-size: 12px;
   font-weight: 700;
+  margin-left: 4px;
 }
 
-/* Stats Row */
-.stats-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.stat-mini {
-  flex: 1;
+.view-tab.active .badge {
   background: white;
-  padding: 14px 16px;
-  border-radius: 14px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  text-align: center;
-}
-
-.sm-value {
-  display: block;
-  font-size: 20px;
-  font-weight: 700;
   color: #007aff;
 }
 
-.sm-label {
-  font-size: 11px;
-  color: #86868b;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+/* ===== Search ===== */
+.search-section {
+  padding: 0 20px 16px;
+  background: transparent;
 }
 
-/* Content */
-.content-section {
-  background: white;
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-}
-
-.filters-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.search-box {
+.search-input {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 200px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 10px 14px;
-  border: 2px solid transparent;
+  gap: 12px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 12px 16px;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 2px solid transparent;
 }
 
-.search-box:focus-within {
+.search-input:focus-within {
   border-color: #007aff;
-  background: white;
+  box-shadow: 0 2px 12px rgba(0, 122, 255, 0.15);
 }
 
-.search-box svg {
+.search-input svg {
   color: #86868b;
+  flex-shrink: 0;
 }
 
-.search-box input {
+.search-input input {
   flex: 1;
   border: none;
   background: none;
-  font-size: 14px;
-  color: #1d1d1f;
+  font-size: 16px;
+  color: #000000;
   outline: none;
+  font-weight: 400;
 }
 
-.filter-select {
-  padding: 10px 14px;
-  border: 2px solid #e5e5ea;
-  border-radius: 12px;
-  font-size: 14px;
-  color: #1d1d1f;
-  background: white;
-  min-width: 140px;
+.search-input input::placeholder {
+  color: #86868b;
 }
 
-.filter-select:focus {
-  outline: none;
-  border-color: #007aff;
-}
-
-.loading-state,
-.empty-state {
+/* ===== Loading ===== */
+.loading-container {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
-  text-align: center;
+  padding: 100px 20px;
 }
 
-.loader {
-  width: 36px;
-  height: 36px;
-  border: 3px solid #f0f0f0;
-  border-top-color: #007aff;
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #e5e5ea;
+  border-top-color: #000000;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin-bottom: 16px;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
+/* ===== Empty State ===== */
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  text-align: center;
+}
+
 .empty-icon {
   color: #d1d1d6;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
-.empty-state p {
+.empty-container h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.empty-container p {
+  font-size: 15px;
   color: #86868b;
-  margin: 0 0 16px;
+  margin: 0 0 24px;
+  font-weight: 400;
 }
 
-.btn-empty {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: #007aff;
+.btn-create {
+  padding: 12px 32px;
+  background: #000000;
   border: none;
-  border-radius: 12px;
-  color: white;
-  font-size: 14px;
+  border-radius: 24px;
+  color: #ffffff;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Ventas List */
-.ventas-list {
+.btn-create:active {
+  transform: scale(0.96);
+  background: #1c1c1e;
+}
+
+/* ===== Sales List ===== */
+.sales-list {
+  padding: 0 20px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.venta-card {
-  background: #f8f9fa;
+.sale-card {
+  background: #ffffff;
   border-radius: 16px;
-  padding: 16px;
+  padding: 20px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   border: 2px solid transparent;
 }
 
-.venta-card:hover {
+.sale-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   border-color: #007aff;
-  background: white;
 }
 
-.venta-header {
+.sale-main {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
 }
 
-.venta-id {
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
+.sale-info {
+  flex: 1;
 }
 
-.id-label {
-  font-size: 12px;
+.sale-number {
+  font-size: 17px;
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.sale-meta {
+  font-size: 15px;
+  color: #000000;
+  margin-bottom: 4px;
+  font-weight: 400;
+}
+
+.meta-empty {
   color: #86868b;
 }
 
-.id-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1d1d1f;
+.sale-date {
+  font-size: 13px;
+  color: #86868b;
+  font-weight: 400;
 }
 
-.estado-badge {
-  padding: 4px 10px;
-  border-radius: 8px;
+.sale-amount {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.amount-total {
+  font-size: 22px;
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.sale-status {
   font-size: 11px;
   font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-block;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
-.estado-badge.completada {
-  background: rgba(52, 199, 89, 0.15);
+.sale-status.completada {
+  background: rgba(52, 199, 89, 0.12);
   color: #34c759;
 }
 
-.estado-badge.pendiente {
-  background: rgba(255, 149, 0, 0.15);
+.sale-status.pendiente {
+  background: rgba(255, 149, 0, 0.12);
   color: #ff9500;
 }
 
-.estado-badge.parcial {
-  background: rgba(88, 86, 214, 0.15);
+.sale-status.parcial {
+  background: rgba(88, 86, 214, 0.12);
   color: #5856d6;
 }
 
-.estado-badge.cancelada {
-  background: rgba(255, 59, 48, 0.15);
-  color: #ff3b30;
-}
-
-.venta-body {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.venta-cliente,
-.venta-fecha {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #86868b;
-}
-
-.venta-items {
-  font-size: 12px;
-  color: #a0a0a5;
-}
-
-.venta-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  padding-top: 12px;
-  border-top: 1px solid #e5e5ea;
-}
-
-.venta-totales {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.total-row {
-  display: flex;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.total-label {
-  color: #86868b;
-}
-
-.total-value {
-  font-weight: 600;
-  color: #1d1d1f;
-}
-
-.total-row.pendiente .total-value {
-  color: #ff9500;
-}
-
-.total-row.pagado .total-value {
-  color: #34c759;
-}
-
-.venta-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.action-btn {
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.action-btn.pagar {
-  background: #34c759;
-  color: white;
-}
-
-.action-btn.cancel {
+.sale-status.cancelada {
   background: rgba(255, 59, 48, 0.12);
   color: #ff3b30;
 }
 
-.action-btn:active {
-  transform: scale(0.95);
+.sale-pending {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 149, 0, 0.08);
+  border-radius: 10px;
+  margin-bottom: 12px;
 }
 
-/* Modals */
+.pending-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ff9500;
+}
+
+.pending-amount {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ff9500;
+  letter-spacing: -0.01em;
+}
+
+.sale-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-pay {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #000000;
+  border: none;
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-pay:active {
+  transform: scale(0.96);
+  background: #1c1c1e;
+}
+
+/* ===== Modals ===== */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   z-index: 1000;
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { 
+    opacity: 0;
+  }
+  to { 
+    opacity: 1;
+  }
 }
 
 .modal-content {
-  background: white;
+  background: #ffffff;
   width: 100%;
-  border-radius: 24px 24px 0 0;
+  max-width: 100%;
+  border-radius: 20px 20px 0 0;
   overflow: hidden;
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modal-content.modal-fullscreen {
@@ -1380,65 +1367,66 @@ onMounted(() => {
 }
 
 .modal-content.modal-medium {
-  max-height: 85vh;
+  max-height: 90vh;
 }
 
 @keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from { 
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to { 
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: 24px 20px;
   background: #ffffff;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.modal-header.pago-header {
-  background: #ffffff;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.modal-header.detalle-header {
-  background: #ffffff;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #1d1d1f;
-  letter-spacing: -0.3px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #000000;
+  letter-spacing: -0.02em;
 }
 
 .modal-close {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: none;
-  border-radius: 10px;
+  border-radius: 50%;
   background: #f5f5f7;
   color: #86868b;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-close:active {
+  transform: scale(0.9);
+  background: #ebebed;
 }
 
 .modal-body {
-  padding: 24px;
+  padding: 20px;
   overflow-y: auto;
-  max-height: calc(85vh - 80px);
+  max-height: calc(90vh - 80px);
 }
 
-/* POS Layout */
+/* ===== POS Layout ===== */
 .pos-layout {
   display: flex;
-  gap: 20px;
+  flex-direction: column;
   height: calc(95vh - 80px);
   max-height: calc(95vh - 80px);
   overflow: hidden;
@@ -1446,134 +1434,156 @@ onMounted(() => {
 }
 
 .pos-productos {
-  flex: 2;
+  flex: 1;
   display: flex;
   flex-direction: column;
   padding: 20px;
   overflow: hidden;
+  background: #fafafa;
 }
 
 .pos-search {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #f5f5f7;
-  border-radius: 14px;
-  padding: 14px 18px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px 16px;
   margin-bottom: 16px;
-  border: 2px solid transparent;
   transition: all 0.2s ease;
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
 }
 
 .pos-search:focus-within {
-  border-color: #007aff;
-  background: white;
+  border-color: #000000;
 }
 
 .pos-search svg {
   color: #86868b;
+  flex-shrink: 0;
 }
 
 .pos-search input {
   flex: 1;
   border: none;
   background: none;
-  font-size: 15px;
-  color: #1d1d1f;
+  font-size: 16px;
+  color: #000000;
   outline: none;
 }
 
-.productos-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
-  overflow-y: auto;
-  padding-right: 8px;
-}
-
-.producto-tile {
-  background: #f8f9fa;
-  border-radius: 14px;
-  padding: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 2px solid transparent;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.producto-tile:hover {
-  border-color: #007aff;
-  background: white;
-  transform: translateY(-2px);
-}
-
-.tile-icon {
-  width: 48px;
-  height: 48px;
-  background: rgba(0, 122, 255, 0.1);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #007aff;
-}
-
-.tile-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.tile-codigo {
-  font-size: 10px;
-  font-weight: 700;
-  color: #007aff;
-  text-transform: uppercase;
-}
-
-.tile-nombre {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1d1d1f;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.tile-precio {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1d1d1f;
-}
-
-.tile-stock {
-  font-size: 11px;
+.pos-search input::placeholder {
   color: #86868b;
 }
 
-.tile-stock.bajo {
-  color: #ff9500;
+.productos-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 0 16px;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
 }
 
-/* Carrito */
+.productos-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.productos-scroll::-webkit-scrollbar-track {
+  background: #f5f5f7;
+  border-radius: 2px;
+}
+
+.productos-scroll::-webkit-scrollbar-thumb {
+  background: #d1d1d6;
+  border-radius: 2px;
+}
+
+.producto-card {
+  min-width: 180px;
+  max-width: 180px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+.producto-card:active {
+  transform: scale(0.96);
+  border-color: #007aff;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.15);
+}
+
+.product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.product-code {
+  font-size: 12px;
+  font-weight: 700;
+  color: #007aff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.product-stock {
+  font-size: 13px;
+  font-weight: 600;
+  color: #34c759;
+  background: rgba(52, 199, 89, 0.1);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.product-stock.low {
+  color: #ff9500;
+  background: rgba(255, 149, 0, 0.1);
+}
+
+.product-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0 0 12px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 42px;
+}
+
+.product-price {
+  font-size: 22px;
+  font-weight: 700;
+  color: #000000;
+  letter-spacing: -0.02em;
+}
+
+/* ===== Carrito ===== */
 .pos-carrito {
-  flex: 1;
-  background: #f8f9fa;
-  border-radius: 20px 0 0 0;
+  background: #ffffff;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
-  max-width: 350px;
+  max-height: 45vh;
 }
 
 .carrito-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e5e5ea;
+  padding: 16px 20px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
 }
 
 .carrito-header h4 {
@@ -1581,85 +1591,103 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
-  color: #1d1d1f;
+  font-size: 17px;
+  font-weight: 700;
+  color: #000000;
+  letter-spacing: -0.02em;
 }
 
 .carrito-count {
   font-size: 13px;
+  font-weight: 500;
   color: #86868b;
 }
 
 .carrito-items {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 12px 20px;
 }
 
 .carrito-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
-  background: white;
-  border-radius: 12px;
-  margin-bottom: 10px;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
+}
+
+.carrito-item:last-child {
+  border-bottom: none;
 }
 
 .item-info {
-  flex: 1;
   min-width: 0;
 }
 
 .item-nombre {
   display: block;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: #000000;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: 2px;
 }
 
 .item-precio {
-  font-size: 11px;
+  font-size: 13px;
   color: #86868b;
+  font-weight: 400;
 }
 
 .item-controls {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  background: #f5f5f7;
+  border-radius: 8px;
+  padding: 4px;
 }
 
 .qty-btn {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border: none;
-  border-radius: 8px;
-  background: #f0f0f0;
-  color: #1d1d1f;
+  border-radius: 6px;
+  background: transparent;
+  color: #000000;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.qty-btn:active {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .item-qty {
-  width: 24px;
+  min-width: 24px;
   text-align: center;
   font-weight: 600;
+  font-size: 15px;
+  color: #000000;
 }
 
 .item-subtotal {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
-  color: #007aff;
+  color: #000000;
+  letter-spacing: -0.01em;
 }
 
 .item-remove {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: 8px;
   background: rgba(255, 59, 48, 0.1);
@@ -1668,6 +1696,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.item-remove:active {
+  transform: scale(0.9);
 }
 
 .carrito-empty {
@@ -1676,37 +1709,38 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #c7c7cc;
+  color: #d1d1d6;
   gap: 12px;
+  padding: 40px 20px;
 }
 
 .carrito-totales {
   padding: 16px 20px;
-  border-top: 1px solid #e5e5ea;
-  background: white;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.06);
+  background: #fafafa;
 }
 
 .total-line {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: 15px;
   color: #86868b;
   margin-bottom: 8px;
 }
 
 .total-line.total-final {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  color: #1d1d1f;
+  color: #000000;
   margin-bottom: 0;
-}
-
-.total-line.total-final span:last-child {
-  color: #007aff;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.06);
 }
 
 .carrito-actions {
-  padding: 16px 20px;
+  padding: 16px 20px 20px;
+  background: #ffffff;
 }
 
 .btn-venta {
@@ -1716,80 +1750,85 @@ onMounted(() => {
   justify-content: center;
   gap: 8px;
   padding: 16px;
-  background: #34c759;
+  background: #000000;
   border: none;
   border-radius: 14px;
-  color: white;
+  color: #ffffff;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: -0.01em;
 }
 
 .btn-venta:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .btn-venta:not(:disabled):active {
   transform: scale(0.98);
+  background: #1c1c1e;
 }
 
-/* Pago Modal */
+/* ===== Pago Modal ===== */
 .pago-info {
   text-align: center;
-  padding: 16px;
-  background: #f5f5f7;
-  border-radius: 14px;
-  margin-bottom: 20px;
+  padding: 20px;
+  background: #fafafa;
+  border-radius: 12px;
+  margin-bottom: 24px;
 }
 
 .pago-venta-id {
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 500;
   color: #86868b;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .pago-totales {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .pt-row {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: 15px;
   color: #86868b;
 }
 
 .pt-value {
   font-weight: 600;
-  color: #1d1d1f;
+  color: #000000;
 }
 
 .pt-row.pendiente {
-  font-size: 16px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.06);
 }
 
 .pt-row.pendiente .pt-value {
   color: #ff9500;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: 24px;
 }
 
 .form-label {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: #007aff;
-  margin-bottom: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: #000000;
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
 }
 
 .metodos-grid {
@@ -1802,41 +1841,45 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 14px;
-  background: #f5f5f7;
-  border: 2px solid transparent;
+  gap: 8px;
+  padding: 16px;
+  background: #fafafa;
+  border: 1px solid transparent;
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #86868b;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.metodo-btn:active {
+  transform: scale(0.96);
 }
 
 .metodo-btn.active {
-  background: white;
-  border-color: #007aff;
-  color: #007aff;
+  background: #000000;
+  border-color: #000000;
+  color: #ffffff;
 }
 
 .monto-input-container {
   display: flex;
   align-items: center;
-  background: #f5f5f7;
-  border-radius: 14px;
-  border: 2px solid transparent;
+  background: #fafafa;
+  border-radius: 12px;
+  border: 1px solid transparent;
   transition: all 0.2s ease;
 }
 
 .monto-input-container:focus-within {
-  border-color: #007aff;
-  background: white;
+  border-color: #000000;
+  background: #ffffff;
 }
 
 .monto-prefix {
-  padding: 14px 16px;
-  font-size: 20px;
+  padding: 16px 20px;
+  font-size: 24px;
   font-weight: 700;
   color: #86868b;
 }
@@ -1845,132 +1888,160 @@ onMounted(() => {
   flex: 1;
   border: none;
   background: none;
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
-  color: #1d1d1f;
+  color: #000000;
   outline: none;
-  padding: 14px 16px 14px 0;
+  padding: 16px 20px 16px 0;
+  letter-spacing: -0.02em;
 }
 
 .monto-quick-btns {
   display: flex;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .monto-quick-btns button {
-  padding: 8px 16px;
-  background: #e5e5ea;
+  padding: 10px 20px;
+  background: #f5f5f7;
   border: none;
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: 10px;
+  font-size: 13px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: #000000;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.monto-quick-btns button:active {
+  transform: scale(0.96);
+  background: #ebebed;
 }
 
 .cambio-display {
-  margin-top: 12px;
-  padding: 12px;
+  margin-top: 16px;
+  padding: 16px;
   background: rgba(52, 199, 89, 0.1);
-  border-radius: 10px;
+  border-radius: 12px;
   text-align: center;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 500;
   color: #34c759;
 }
 
 .cambio-display strong {
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 700;
+  display: block;
+  margin-top: 4px;
+  letter-spacing: -0.01em;
 }
 
 .form-actions {
   display: flex;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .btn-cancel,
 .btn-submit {
   flex: 1;
-  padding: 14px 20px;
+  padding: 16px;
   border: none;
   border-radius: 14px;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: -0.01em;
 }
 
 .btn-cancel {
   background: #f5f5f7;
-  color: #1d1d1f;
+  color: #000000;
+}
+
+.btn-cancel:active {
+  background: #ebebed;
 }
 
 .btn-submit {
-  background: #34c759;
-  color: white;
-  box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
+  background: #000000;
+  color: #ffffff;
+}
+
+.btn-submit:active {
+  transform: scale(0.98);
+  background: #1c1c1e;
 }
 
 .btn-submit:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* Detalle Modal */
+/* ===== Detalle Modal ===== */
 .detalle-info {
-  background: #f5f5f7;
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 20px;
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
 }
 
 .di-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  padding: 8px 0;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
 }
 
 .di-row:last-child {
-  margin-bottom: 0;
+  border-bottom: none;
 }
 
 .di-label {
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 500;
   color: #86868b;
 }
 
 .di-value {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: #000000;
+}
+
+.detalle-items {
+  margin-bottom: 24px;
 }
 
 .detalle-items h4 {
-  font-size: 14px;
-  color: #007aff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #000000;
   margin: 0 0 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: -0.01em;
 }
 
 .items-list {
-  background: #f5f5f7;
+  background: #fafafa;
   border-radius: 12px;
   overflow: hidden;
 }
 
 .item-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
-  border-bottom: 1px solid #e5e5ea;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
 }
 
 .item-row:last-child {
@@ -1978,65 +2049,85 @@ onMounted(() => {
 }
 
 .ir-info {
-  flex: 1;
   min-width: 0;
 }
 
 .ir-nombre {
   display: block;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: #000000;
+  margin-bottom: 2px;
 }
 
 .ir-tipo {
-  font-size: 11px;
+  font-size: 12px;
   color: #86868b;
   text-transform: capitalize;
+  font-weight: 500;
 }
 
-.ir-qty,
-.ir-precio {
-  font-size: 13px;
+.ir-qty {
+  font-size: 14px;
+  font-weight: 500;
   color: #86868b;
+}
+
+.ir-precio {
+  font-size: 14px;
+  color: #86868b;
+  font-weight: 500;
 }
 
 .ir-subtotal {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
-  color: #1d1d1f;
+  color: #000000;
+  letter-spacing: -0.01em;
 }
 
 .detalle-totales {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #e5e5ea;
+  margin-top: 24px;
+  padding: 20px;
+  background: #fafafa;
+  border-radius: 12px;
 }
 
 .dt-row {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: 15px;
   color: #86868b;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.dt-row:last-child {
+  margin-bottom: 0;
 }
 
 .dt-row.total {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  color: #1d1d1f;
+  color: #000000;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.06);
+  letter-spacing: -0.02em;
 }
 
 .dt-row.pagado span:last-child {
   color: #34c759;
+  font-weight: 700;
 }
 
 .dt-row.pendiente span:last-child {
   color: #ff9500;
+  font-weight: 700;
 }
 
 .detalle-actions {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .btn-pagar-detalle {
@@ -2045,36 +2136,21 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 14px;
-  background: #34c759;
+  padding: 16px;
+  background: #000000;
   border: none;
   border-radius: 14px;
-  color: white;
-  font-size: 15px;
-  font-weight: 600;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: -0.01em;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .pos-layout {
-    flex-direction: column;
-  }
-  
-  .pos-productos {
-    flex: none;
-    height: 50%;
-  }
-  
-  .pos-carrito {
-    flex: none;
-    max-width: 100%;
-    border-radius: 20px 20px 0 0;
-  }
-  
-  .productos-grid {
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  }
+.btn-pagar-detalle:active {
+  transform: scale(0.98);
+  background: #1c1c1e;
 }
 </style>
 
