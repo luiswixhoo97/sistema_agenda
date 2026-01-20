@@ -268,9 +268,9 @@ class DisponibilidadService
     ): array {
         $fechaHoraCarbon = Carbon::parse($fechaHora);
         $fecha = $fechaHoraCarbon->format('Y-m-d');
-        $hora = $fechaHoraCarbon->format('H:i');
+        $hora = $fechaHoraCarbon->format('H:i:s');
         $duracionTotal = $this->calcularDuracionTotal($servicioIds);
-        $horaFin = $fechaHoraCarbon->copy()->addMinutes($duracionTotal)->format('H:i');
+        $horaFin = $fechaHoraCarbon->copy()->addMinutes($duracionTotal)->format('H:i:s');
         
         // Validar fecha
         $validacion = $this->validarFecha($fechaHoraCarbon);
