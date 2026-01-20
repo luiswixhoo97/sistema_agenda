@@ -322,16 +322,6 @@
                 <!-- Acciones -->
                 <div class="detail-actions">
                   <button 
-                    v-if="citaDetalle.estado === 'confirmada'"
-                    class="btn-action-secondary"
-                    @click="cambiarEstado('en_proceso')"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
-                    Iniciar Cita
-                  </button>
-                  <button 
                     v-if="citaDetalle.estado !== 'cancelada' && citaDetalle.estado !== 'completada'"
                     class="btn-action-primary"
                     @click="cambiarEstado('completada')"
@@ -1029,21 +1019,56 @@ async function cargarHorariosReagendar() {
   reagendarData.value.hora = ''
 
   try {
+    // Obtener el empleado_id de la cita (no del usuario actual)
+    const citaEmpleadoId = citaAReagendar.value.empleado_id || citaAReagendar.value.empleado?.id || empleadoId.value
+    
     // Obtener los IDs de los servicios de la cita
-    const serviciosIds = citaAReagendar.value.servicios?.map((s: any) => s.id || s.servicio_id) || []
+    // La estructura puede variar: s.servicio_id (pivot), s.id, s.servicio?.id
+    const serviciosIds = citaAReagendar.value.servicios?.map((s: any) => {
+      // Intentar obtener el ID en diferentes formatos
+      return s.servicio_id || s.id || s.servicio?.id || null
+    }).filter((id: any) => id !== null && id !== undefined) || []
+    
+    console.log('=== Cargar Horarios Reagendar ===')
+    console.log('Cita a reagendar:', citaAReagendar.value)
+    console.log('Empleado de la cita:', citaEmpleadoId)
+    console.log('Servicios de la cita:', citaAReagendar.value.servicios)
+    console.log('IDs de servicios extraídos:', serviciosIds)
+    console.log('Fecha seleccionada:', reagendarData.value.fecha)
     
     if (serviciosIds.length === 0) {
-      console.warn('La cita no tiene servicios')
-      horariosReagendar.value = []
-      return
+      console.warn('La cita no tiene servicios - intentando usar servicio único')
+      // Intentar con servicio único si existe
+      if (citaAReagendar.value.servicio?.id) {
+        serviciosIds.push(citaAReagendar.value.servicio.id)
+      } else if (citaAReagendar.value.servicio_id) {
+        serviciosIds.push(citaAReagendar.value.servicio_id)
+      }
+      
+      if (serviciosIds.length === 0) {
+        console.error('No se pudieron obtener IDs de servicios')
+        horariosReagendar.value = []
+        return
+      }
     }
 
+    console.log('Llamando a obtenerSlots con:', {
+      empleadoId: citaEmpleadoId,
+      fecha: reagendarData.value.fecha,
+      servicios: serviciosIds
+    })
+
     const response = await disponibilidadService.obtenerSlots(
-      empleadoId.value as number,
+      citaEmpleadoId as number,
       reagendarData.value.fecha,
       serviciosIds,
       true // Es empleado, ignorar anticipación mínima
     )
+
+    console.log('Respuesta de slots:', response)
+    console.log('Horario del empleado:', response.horario_empleado)
+    console.log('Mensaje:', response.mensaje)
+    console.log('Slots recibidos:', response.slots?.length || 0)
 
     // Filtrar solo los slots disponibles
     horariosReagendar.value = (response.slots || []).filter((slot: any) => {
@@ -1053,9 +1078,12 @@ async function cargarHorariosReagendar() {
       hora_fin: slot.hora_fin,
       disponible: true
     }))
+    
+    console.log('Horarios disponibles filtrados:', horariosReagendar.value.length)
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error cargando horarios para reagendar:', error)
+    console.error('Error response:', error.response?.data)
     horariosReagendar.value = []
   } finally {
     cargandoHorariosReagendar.value = false
@@ -1450,10 +1478,12 @@ async function cargarMisServicios() {
 }
 
 async function cargarHorariosDisponibles() {
-  console.log('=== Cargar Horarios ===')
+  console.log('=== Cargar Horarios Nueva Cita ===')
   console.log('Fecha:', nuevaCitaData.value.fecha)
   console.log('Servicios seleccionados:', serviciosSeleccionados.value)
-  console.log('Empleado ID:', empleadoId.value)
+  console.log('Empleado ID (authStore.empleado):', authStore.empleado)
+  console.log('Empleado ID (computed):', empleadoId.value)
+  console.log('User ID:', authStore.user?.id)
   
   if (!nuevaCitaData.value.fecha || serviciosSeleccionados.value.length === 0) {
     console.log('Falta fecha o servicios, limpiando horarios')
@@ -1462,7 +1492,7 @@ async function cargarHorariosDisponibles() {
   }
   
   if (!empleadoId.value) {
-    console.error('No hay empleado ID')
+    console.error('No hay empleado ID - authStore.empleado:', authStore.empleado, 'authStore.user:', authStore.user)
     horariosDisponibles.value = []
     return
   }
@@ -1474,7 +1504,8 @@ async function cargarHorariosDisponibles() {
     console.log('Llamando a obtenerSlots con:', {
       empleadoId: empleadoId.value,
       fecha: nuevaCitaData.value.fecha,
-      servicios: serviciosSeleccionados.value
+      servicios: serviciosSeleccionados.value,
+      tipoUsuario: 'empleado'
     })
     
     // obtenerSlots espera un array de IDs de servicios
@@ -1489,10 +1520,19 @@ async function cargarHorariosDisponibles() {
     console.log('Respuesta obtenerSlots:', response)
     const responseData = response as any
     console.log('Horario del empleado:', responseData.horario_empleado)
+    console.log('Mensaje del backend:', responseData.mensaje)
     console.log('Bloqueos:', responseData.bloqueos_count)
     console.log('Citas existentes:', responseData.citas_count)
-    console.log('Slots recibidos:', response.slots)
-    console.log('Detalle de slots:', response.slots.map((s: any) => `${s.hora} - ${s.hora_fin}`))
+    console.log('Slots recibidos:', response.slots?.length || 0)
+    
+    if (response.slots && response.slots.length > 0) {
+      console.log('Detalle de slots:', response.slots.map((s: any) => `${s.hora} - ${s.hora_fin}`))
+    }
+    
+    // Si no hay slots y hay mensaje, mostrar en consola
+    if ((!response.slots || response.slots.length === 0) && responseData.mensaje) {
+      console.warn('Backend mensaje:', responseData.mensaje)
+    }
     
     // Si los slots no tienen propiedad 'disponible', asumimos que todos están disponibles
     // Si tienen la propiedad, filtramos solo los disponibles
@@ -1505,9 +1545,7 @@ async function cargarHorariosDisponibles() {
       return slot.disponible === true
     })
     
-    console.log('Slots disponibles filtrados:', slotsDisponibles)
-    console.log('Horarios disponibles:', slotsDisponibles.map((s: any) => `${s.hora} - ${s.hora_fin}`))
-    console.log('Total slots disponibles:', slotsDisponibles.length)
+    console.log('Total slots disponibles después de filtrar:', slotsDisponibles.length)
     
     // Si hay horario del empleado pero no hay slots disponibles, mostrar mensaje
     if (responseData.horario_empleado && slotsDisponibles.length === 0) {
