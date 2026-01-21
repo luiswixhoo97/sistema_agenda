@@ -122,7 +122,7 @@ class EmpleadoController extends Controller
     {
         $request->validate([
             'nombre' => 'required|string|max:100',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'required|email',
             'telefono' => 'nullable|string|max:20',
             'password' => 'required|string|min:6',
             'foto' => 'nullable|string|max:255',
@@ -135,18 +135,37 @@ class EmpleadoController extends Controller
         try {
             DB::beginTransaction();
 
-            // Obtener rol de empleado
-            $rolEmpleado = \App\Models\Role::where('nombre', 'empleado')->first();
+            // Buscar si el usuario ya existe por email
+            $user = User::where('email', $request->email)->first();
 
-            // Crear usuario
-            $user = User::create([
-                'role_id' => $rolEmpleado->id,
-                'nombre' => $request->nombre,
-                'email' => $request->email,
-                'telefono' => $request->telefono,
-                'password' => Hash::make($request->password),
-                'active' => true,
-            ]);
+            if ($user) {
+                // Verificar si ya es empleado
+                if ($user->empleado()->exists()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Este usuario ya está registrado como empleado',
+                    ], 422);
+                }
+
+                $user->update([
+                    'nombre' => $request->nombre,
+                    'telefono' => $request->telefono,
+                    'password' => Hash::make($request->password),
+                ]);
+            } else {
+                // Obtener rol de empleado para nuevo usuario
+                $rolEmpleado = \App\Models\Role::where('nombre', 'empleado')->first();
+
+                // Crear usuario nuevo
+                $user = User::create([
+                    'role_id' => $rolEmpleado->id,
+                    'nombre' => $request->nombre,
+                    'email' => $request->email,
+                    'telefono' => $request->telefono,
+                    'password' => Hash::make($request->password),
+                    'active' => true,
+                ]);
+            }
 
             // Crear empleado
             $empleado = Empleado::create([
