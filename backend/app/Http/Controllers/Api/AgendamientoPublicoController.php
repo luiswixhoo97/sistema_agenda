@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use App\Models\Cita;
-use App\Models\CitaServicio;
 use App\Models\OtpCode;
 use App\Models\Servicio;
 use App\Models\PlantillaNotificacion;
@@ -308,7 +307,7 @@ class AgendamientoPublicoController extends Controller
 
             // Enviar confirmación por WhatsApp
             // Obtener la cita completa para enviar notificación
-            $cita = Cita::with(['cliente', 'empleado.user', 'servicios.servicio'])->find($citaFormateada['id']);
+            $cita = Cita::with(['cliente', 'empleado.user', 'servicio'])->find($citaFormateada['id']);
             if ($cita) {
                 try {
                     $this->notificacionService->notificarCitaAgendada(
@@ -545,10 +544,10 @@ class AgendamientoPublicoController extends Controller
                 $cita = Cita::create([
                     'cliente_id' => $cliente->id,
                     'empleado_id' => $servicioData['empleado_id'],
+                    'servicio_id' => $servicio->id,
                     'fecha_hora' => $servicioData['fecha_hora'],
                     'duracion_total' => $servicio->duracion,
                     'estado' => Cita::ESTADO_CONFIRMADA, // Citas coordinadas se crean como confirmadas
-                    'precio_total' => $servicio->precio,
                     'precio_final' => $servicio->precio,
                     'token_qr' => $tokenQrCompartido, // Mismo token para todas las citas coordinadas
                     'notas' => $index === 0 && $request->notas 
@@ -556,16 +555,8 @@ class AgendamientoPublicoController extends Controller
                         : 'Cita coordinada ' . ($index + 1) . ' de ' . count($request->servicios),
                 ]);
 
-                // Agregar servicio a la cita
-                CitaServicio::create([
-                    'cita_id' => $cita->id,
-                    'servicio_id' => $servicio->id,
-                    'precio_aplicado' => $servicio->precio,
-                    'orden' => 1,
-                ]);
-
                 // Cargar relaciones
-                $cita->load(['cliente', 'empleado.user', 'servicios.servicio']);
+                $cita->load(['cliente', 'empleado.user', 'servicio']);
 
                 $citasCreadas[] = [
                     'id' => $cita->id,
@@ -580,12 +571,12 @@ class AgendamientoPublicoController extends Controller
                         'id' => $cita->empleado->id,
                         'nombre' => $cita->empleado->user->nombre ?? 'Empleado',
                     ],
-                    'servicios' => $cita->servicios->map(fn($cs) => [
-                        'id' => $cs->servicio->id,
-                        'nombre' => $cs->servicio->nombre,
-                        'precio_aplicado' => $cs->precio_aplicado,
-                        'duracion' => $cs->servicio->duracion,
-                    ]),
+                    'servicios' => [[
+                        'id' => $cita->servicio->id,
+                        'nombre' => $cita->servicio->nombre,
+                        'precio_aplicado' => $cita->precio_final,
+                        'duracion' => $cita->servicio->duracion,
+                    ]],
                 ];
             }
 
@@ -605,7 +596,7 @@ class AgendamientoPublicoController extends Controller
             if (!empty($citasCreadas)) {
                 try {
                     // Obtener la primera cita creada para enviar la notificación
-                    $primeraCita = Cita::with(['cliente', 'empleado.user', 'servicios.servicio'])
+                    $primeraCita = Cita::with(['cliente', 'empleado.user', 'servicio'])
                         ->find($citasCreadas[0]['id']);
                     
                     if ($primeraCita) {

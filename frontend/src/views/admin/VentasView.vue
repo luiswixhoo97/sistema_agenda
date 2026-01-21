@@ -15,13 +15,15 @@
           <p class="header-subtitle">{{ ventas.length }} registradas</p>
         </div>
       </div>
-      <button class="btn-new-servicio" @click="nuevaVenta">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Nueva venta
-      </button>
+      <div class="header-actions">
+        <button class="btn-new-servicio" @click="nuevaVenta">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Nueva venta
+        </button>
+      </div>
     </header>
 
     <!-- Quick Stats -->
@@ -143,253 +145,20 @@
     </div>
 
     <!-- Modal Nueva Venta -->
-    <Teleport to="body">
-      <div v-if="showNuevaVentaModal" class="modal-overlay" @click.self="closeNuevaVentaModal">
-        <div class="modal-content modal-fullscreen">
-          <div class="modal-header">
-            <h3>Nueva Venta</h3>
-            <button class="modal-close" @click="closeNuevaVentaModal">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-          <div class="modal-body pos-layout">
-            <!-- Left: Product Search -->
-            <div class="pos-productos">
-              <div class="pos-search">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input 
-                  v-model="busquedaProducto" 
-                  type="text" 
-                  placeholder="Buscar producto por código o nombre..."
-                  @input="buscarProductos"
-                />
-              </div>
-              
-              <div class="productos-scroll">
-                <div 
-                  v-for="p in productosDisponibles" 
-                  :key="p.id" 
-                  class="producto-card"
-                  @click="agregarAlCarrito(p)"
-                >
-                  <div class="product-header">
-                    <span class="product-code">{{ p.codigo }}</span>
-                    <span class="product-stock" :class="{ low: p.inventario_actual <= (p.inventario_minimo || 0) }">
-                      {{ p.inventario_actual || 0 }}
-                    </span>
-                  </div>
-                  <h4 class="product-name">{{ p.nombre }}</h4>
-                  <div class="product-price">${{ formatPrecio(p.precio) }}</div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Right: Cart -->
-            <div class="pos-carrito">
-              <div class="carrito-header">
-                <h4>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="9" cy="21" r="1"></circle>
-                    <circle cx="20" cy="21" r="1"></circle>
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                  </svg>
-                  Carrito
-                </h4>
-                <span class="carrito-count">{{ carrito.length }} items</span>
-              </div>
-              
-              <div class="carrito-items" v-if="carrito.length > 0">
-                <div 
-                  v-for="(item, index) in carrito" 
-                  :key="index" 
-                  class="carrito-item"
-                >
-                  <div class="item-info">
-                    <span class="item-nombre">{{ item.nombre }}</span>
-                    <span class="item-precio">${{ formatPrecio(item.precio_unitario) }}</span>
-                  </div>
-                  <div class="item-controls">
-                    <button class="qty-btn" @click="cambiarCantidad(index, -1)">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                      </svg>
-                    </button>
-                    <span class="item-qty">{{ item.cantidad }}</span>
-                    <button class="qty-btn" @click="cambiarCantidad(index, 1)">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                      </svg>
-                    </button>
-                  </div>
-                  <div class="item-subtotal">
-                    ${{ formatPrecio(item.cantidad * item.precio_unitario) }}
-                  </div>
-                  <button class="item-remove" @click="quitarDelCarrito(index)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              
-              <div class="carrito-empty" v-else>
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="9" cy="21" r="1"></circle>
-                  <circle cx="20" cy="21" r="1"></circle>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                </svg>
-                <p>Carrito vacío</p>
-              </div>
-              
-              <div class="carrito-totales">
-                <div class="total-line">
-                  <span>Subtotal</span>
-                  <span>${{ formatPrecio(subtotalCarrito) }}</span>
-                </div>
-                <div class="total-line total-final">
-                  <span>Total</span>
-                  <span>${{ formatPrecio(totalCarrito) }}</span>
-                </div>
-              </div>
-              
-              <div class="carrito-actions">
-                <button 
-                  class="btn-venta" 
-                  @click="procesarVenta"
-                  :disabled="carrito.length === 0"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  Finalizar Venta
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <NuevaVentaModal 
+      v-model:visible="showNuevaVentaModal"
+      :cliente-preseleccionado="preselectedClient"
+      :items-preseleccionados="preselectedItems"
+      :citas-ids="activeCitasIds"
+      @venta-created="onVentaCreada"
+    />
 
     <!-- Modal Pago -->
-    <Teleport to="body">
-      <div v-if="showPagoModal" class="modal-overlay" @click.self="closePagoModal">
-        <div class="modal-content modal-medium">
-          <div class="modal-header pago-header">
-            <h3>Registrar Pago</h3>
-            <button class="modal-close" @click="closePagoModal">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="pago-info" v-if="pagoVenta">
-              <div class="pago-venta-id">Venta #{{ pagoVenta.id }}</div>
-              <div class="pago-totales">
-                <div class="pt-row">
-                  <span>Total de venta:</span>
-                  <span class="pt-value">${{ formatPrecio(pagoVenta.total) }}</span>
-                </div>
-                <div class="pt-row">
-                  <span>Ya pagado:</span>
-                  <span class="pt-value">${{ formatPrecio(pagoVenta.total_pagado) }}</span>
-                </div>
-                <div class="pt-row pendiente">
-                  <span>Saldo pendiente:</span>
-                  <span class="pt-value">${{ formatPrecio(pagoVenta.saldo_pendiente) }}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label">Método de pago</label>
-              <div class="metodos-grid">
-                <button 
-                  v-for="m in metodosPago" 
-                  :key="m.id"
-                  :class="['metodo-btn', { active: pagoMetodoId === m.id }]"
-                  @click="pagoMetodoId = m.id; pagoEsEfectivo = m.es_efectivo"
-                >
-                  <svg v-if="m.es_efectivo" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                  </svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                    <line x1="1" y1="10" x2="23" y2="10"></line>
-                  </svg>
-                  {{ m.nombre }}
-                </button>
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label">Monto a pagar</label>
-              <div class="monto-input-container">
-                <span class="monto-prefix">$</span>
-                <input 
-                  v-model.number="pagoMonto" 
-                  type="number" 
-                  step="0.01"
-                  min="0"
-                  :max="pagoVenta?.saldo_pendiente"
-                  class="form-input monto-input"
-                  placeholder="0.00"
-                />
-              </div>
-              <div class="monto-quick-btns">
-                <button @click="pagoMonto = pagoVenta?.saldo_pendiente || 0">Total</button>
-                <button @click="pagoMonto = Math.ceil((pagoVenta?.saldo_pendiente || 0) / 100) * 100">Redondear</button>
-              </div>
-            </div>
-            
-            <div class="form-group" v-if="pagoEsEfectivo">
-              <label class="form-label">Monto recibido</label>
-              <div class="monto-input-container">
-                <span class="monto-prefix">$</span>
-                <input 
-                  v-model.number="pagoMontoRecibido" 
-                  type="number" 
-                  step="0.01"
-                  min="0"
-                  class="form-input monto-input"
-                  placeholder="0.00"
-                />
-              </div>
-              <div class="cambio-display" v-if="pagoCambio > 0">
-                Cambio: <strong>${{ formatPrecio(pagoCambio) }}</strong>
-              </div>
-            </div>
-            
-            <div class="form-actions">
-              <button type="button" class="btn-cancel" @click="closePagoModal">
-                Cancelar
-              </button>
-              <button 
-                type="button" 
-                class="btn-submit"
-                @click="ejecutarPago"
-                :disabled="!pagoMetodoId || !pagoMonto || pagoMonto <= 0"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                Registrar Pago
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <RegistrarPagoModal
+      v-model:visible="showPagoModal"
+      :venta="activeVenta"
+      @pago-registrado="cargarDatos"
+    />
 
     <!-- Modal Detalle Venta -->
     <Teleport to="body">
@@ -486,38 +255,31 @@
 import { ref, computed, onMounted } from 'vue';
 import { 
   getVentas,
-  getProductos,
-  createVenta,
-  cancelarVenta,
-  getMetodosPago,
-  registrarPago
+  getCitasByTokenQR
 } from '@/services/inventarioService';
+import NuevaVentaModal from '@/components/ventas/NuevaVentaModal.vue';
+import RegistrarPagoModal from '@/components/ventas/RegistrarPagoModal.vue';
 import Swal from 'sweetalert2';
 
+// State
 const ventas = ref<any[]>([]);
-const productos = ref<any[]>([]);
-const metodosPago = ref<any[]>([]);
 const loading = ref(true);
 const vistaActiva = ref<'historial' | 'pendientes'>('historial');
 const busqueda = ref('');
 const filtroEstado = ref('');
-const busquedaProducto = ref('');
 
 // Modal states
 const showNuevaVentaModal = ref(false);
 const showPagoModal = ref(false);
 const showDetalleModal = ref(false);
 
-// Cart
-const carrito = ref<any[]>([]);
-const productosDisponibles = ref<any[]>([]);
+// Pre-loading data for sale
+const preselectedItems = ref<any[]>([]);
+const preselectedClient = ref<any>(null);
+const activeCitasIds = ref<number[]>([]);
 
-// Pago
-const pagoVenta = ref<any>(null);
-const pagoMetodoId = ref<number | null>(null);
-const pagoMonto = ref<number>(0);
-const pagoMontoRecibido = ref<number>(0);
-const pagoEsEfectivo = ref(false);
+// Current sale for payment
+const activeVenta = ref<any>(null);
 
 // Detalle
 const detalleVenta = ref<any>(null);
@@ -564,19 +326,6 @@ const totalVentasHoy = computed(() => {
     const fecha = new Date(v.fecha_venta).toISOString().split('T')[0];
     return fecha === hoy;
   }).length;
-});
-
-const subtotalCarrito = computed(() => {
-  return carrito.value.reduce((sum, item) => sum + (item.cantidad * item.precio_unitario), 0);
-});
-
-const totalCarrito = computed(() => subtotalCarrito.value);
-
-const pagoCambio = computed(() => {
-  if (pagoEsEfectivo.value && pagoMontoRecibido.value > pagoMonto.value) {
-    return pagoMontoRecibido.value - pagoMonto.value;
-  }
-  return 0;
 });
 
 function formatPrecio(precio: any): string {
@@ -633,229 +382,29 @@ function getEstadoLabel(estado: string): string {
 async function cargarDatos() {
   loading.value = true;
   try {
-    const [ventasRes, productosRes, metodosRes] = await Promise.all([
-      getVentas(),
-      getProductos(),
-      getMetodosPago()
-    ]);
-    
-    if (ventasRes.success) {
-      ventas.value = ventasRes.data || [];
-    }
-    if (productosRes.success) {
-      productos.value = productosRes.data || [];
-      productosDisponibles.value = productos.value.filter((p: any) => p.active);
-    }
-    if (metodosRes.success) {
-      metodosPago.value = metodosRes.data || [];
+    const res = await getVentas();
+    if (res.success) {
+      ventas.value = res.data || [];
     }
   } catch (error) {
-    console.error('Error cargando datos:', error);
+    console.error('Error cargando ventas:', error);
   } finally {
     loading.value = false;
   }
 }
 
 function nuevaVenta() {
-  carrito.value = [];
-  busquedaProducto.value = '';
-  productosDisponibles.value = productos.value.filter((p: any) => p.active);
+  preselectedItems.value = [];
+  preselectedClient.value = null;
+  activeCitasIds.value = [];
   showNuevaVentaModal.value = true;
 }
 
-function buscarProductos() {
-  const term = busquedaProducto.value.toLowerCase().trim();
-  if (!term) {
-    productosDisponibles.value = productos.value.filter((p: any) => p.active);
-    return;
-  }
-  productosDisponibles.value = productos.value.filter((p: any) => 
-    p.active && (
-      p.codigo.toLowerCase().includes(term) ||
-      p.nombre.toLowerCase().includes(term)
-    )
-  );
-}
 
-function agregarAlCarrito(producto: any) {
-  const existing = carrito.value.find(item => item.producto_id === producto.id);
-  if (existing) {
-    if (existing.cantidad < (producto.inventario_actual || 0)) {
-      existing.cantidad++;
-    } else {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Stock insuficiente',
-        text: `Solo hay ${producto.inventario_actual} unidades disponibles`,
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 2000
-      });
-    }
-  } else {
-    carrito.value.push({
-      tipo: 'producto',
-      producto_id: producto.id,
-      nombre: producto.nombre,
-      precio_unitario: producto.precio,
-      cantidad: 1,
-      stock_disponible: producto.inventario_actual || 0
-    });
-  }
-}
-
-function cambiarCantidad(index: number, delta: number) {
-  const item = carrito.value[index];
-  const newQty = item.cantidad + delta;
-  
-  if (newQty < 1) {
-    quitarDelCarrito(index);
-    return;
-  }
-  
-  if (newQty > item.stock_disponible) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Stock insuficiente',
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 2000
-    });
-    return;
-  }
-  
-  item.cantidad = newQty;
-}
-
-function quitarDelCarrito(index: number) {
-  carrito.value.splice(index, 1);
-}
-
-async function procesarVenta() {
-  if (carrito.value.length === 0) return;
-  
-  try {
-    const detalles = carrito.value.map(item => ({
-      tipo: item.tipo,
-      producto_id: item.producto_id,
-      cantidad: item.cantidad,
-      precio_unitario: item.precio_unitario
-    }));
-    
-    const response = await createVenta({ detalles });
-    
-    if (response.success) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Venta creada',
-        text: `Venta #${response.data.id} creada correctamente`,
-        confirmButtonColor: '#fa709a'
-      });
-      
-      closeNuevaVentaModal();
-      await cargarDatos();
-      
-      // Abrir modal de pago automáticamente
-      abrirPago(response.data);
-    }
-  } catch (error: any) {
-    console.error('Error creando venta:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: error.response?.data?.message || 'Error al crear venta',
-      confirmButtonColor: '#fa709a'
-    });
-  }
-}
 
 function abrirPago(venta: any) {
-  pagoVenta.value = venta;
-  pagoMetodoId.value = null;
-  pagoMonto.value = venta.saldo_pendiente || venta.total;
-  pagoMontoRecibido.value = 0;
-  pagoEsEfectivo.value = false;
+  activeVenta.value = venta;
   showPagoModal.value = true;
-}
-
-async function ejecutarPago() {
-  if (!pagoVenta.value || !pagoMetodoId.value || !pagoMonto.value) return;
-  
-  try {
-    const data: any = {
-      venta_id: pagoVenta.value.id,
-      metodo_pago_id: pagoMetodoId.value,
-      monto: pagoMonto.value
-    };
-    
-    if (pagoEsEfectivo.value && pagoMontoRecibido.value > 0) {
-      data.monto_recibido = pagoMontoRecibido.value;
-    }
-    
-    const response = await registrarPago(data);
-    
-    if (response.success) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Pago registrado',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 2000
-      });
-      
-      closePagoModal();
-      await cargarDatos();
-    }
-  } catch (error: any) {
-    console.error('Error registrando pago:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: error.response?.data?.message || 'Error al registrar pago',
-      confirmButtonColor: '#fa709a'
-    });
-  }
-}
-
-async function cancelarVentaConfirm(venta: any) {
-  const result = await Swal.fire({
-    icon: 'warning',
-    title: '¿Cancelar venta?',
-    text: `Se cancelará la venta #${venta.id}. Esta acción no se puede deshacer.`,
-    showCancelButton: true,
-    confirmButtonColor: '#ff3b30',
-    cancelButtonColor: '#86868b',
-    confirmButtonText: 'Cancelar venta',
-    cancelButtonText: 'No, mantener'
-  });
-  
-  if (!result.isConfirmed) return;
-  
-  try {
-    await cancelarVenta(venta.id, 'Cancelada por administrador');
-    
-    Swal.fire({
-      icon: 'success',
-      title: 'Venta cancelada',
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 2000
-    });
-    
-    await cargarDatos();
-  } catch (error: any) {
-    console.error('Error cancelando venta:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: error.response?.data?.message || 'Error al cancelar venta',
-      confirmButtonColor: '#fa709a'
-    });
-  }
 }
 
 function verDetalle(venta: any) {
@@ -863,14 +412,9 @@ function verDetalle(venta: any) {
   showDetalleModal.value = true;
 }
 
-function closeNuevaVentaModal() {
-  showNuevaVentaModal.value = false;
-  carrito.value = [];
-}
-
-function closePagoModal() {
-  showPagoModal.value = false;
-  pagoVenta.value = null;
+function onVentaCreada(venta: any) {
+  cargarDatos();
+  abrirPago(venta);
 }
 
 function closeDetalleModal() {
@@ -878,9 +422,7 @@ function closeDetalleModal() {
   detalleVenta.value = null;
 }
 
-onMounted(() => {
-  cargarDatos();
-});
+onMounted(cargarDatos);
 </script>
 
 <style scoped>
@@ -1556,6 +1098,7 @@ onMounted(() => {
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;

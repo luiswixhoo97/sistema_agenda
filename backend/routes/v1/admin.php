@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\PlantillaNotificacionController;
         Route::post('/citas/{id}/reagendar', [CitaController::class, 'reagendarAdmin']);
         Route::post('/citas/{id}/cancelar', [CitaController::class, 'cancelarAdmin']);
         Route::post('/citas/scan-qr/{token}', [CitaController::class, 'escanearQr']);
+        Route::get('/citas/token/{token}', [CitaController::class, 'getByTokenQR']);
         
         // Disponibilidad (para reagendar citas, sin restricción de anticipación)
         Route::get('/disponibilidad/slots', [DisponibilidadController::class, 'slotsDisponiblesEmpleado']);

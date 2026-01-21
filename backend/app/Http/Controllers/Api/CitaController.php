@@ -38,7 +38,7 @@ class CitaController extends Controller
             ], 401);
         }
 
-        $query = Cita::with(['empleado.user', 'servicio', 'servicios.servicio'])
+        $query = Cita::with(['empleado.user', 'servicio'])
             ->where('cliente_id', $cliente->id)
             ->whereNull('deleted_at');
 
@@ -90,7 +90,7 @@ class CitaController extends Controller
             ], 401);
         }
 
-        $cita = Cita::with(['empleado.user', 'servicio', 'servicios.servicio', 'fotos', 'promocion'])
+        $cita = Cita::with(['empleado.user', 'servicio', 'fotos', 'promocion'])
             ->where('id', $id)
             ->where('cliente_id', $cliente->id)
             ->first();
@@ -292,7 +292,7 @@ class CitaController extends Controller
 
         // El calendario muestra TODAS las citas del día (sin filtro de 15 min)
         // Excluimos canceladas y reagendadas
-        $citas = Cita::with(['cliente', 'servicio', 'servicios.servicio'])
+        $citas = Cita::with(['cliente', 'servicio'])
             ->where('empleado_id', $empleado->id)
             ->whereDate('fecha_hora', $fecha)
             ->whereNotIn('estado', [Cita::ESTADO_CANCELADA, Cita::ESTADO_REAGENDADA])
@@ -328,7 +328,7 @@ class CitaController extends Controller
         $inicioSemana = $fecha->copy()->startOfWeek();
         $finSemana = $fecha->copy()->endOfWeek();
 
-        $citas = Cita::with(['cliente', 'servicio', 'servicios.servicio'])
+        $citas = Cita::with(['cliente', 'servicio'])
             ->where('empleado_id', $empleado->id)
             ->whereBetween('fecha_hora', [$inicioSemana, $finSemana])
             ->whereNotIn('estado', [Cita::ESTADO_CANCELADA, Cita::ESTADO_REAGENDADA])
@@ -366,7 +366,7 @@ class CitaController extends Controller
             ], 401);
         }
 
-        $query = Cita::with(['cliente', 'servicio', 'servicios.servicio'])
+        $query = Cita::with(['cliente', 'servicio'])
             ->where('empleado_id', $empleado->id);
 
         // Si hay un filtro de estado específico o de fecha, permitir ver reagendadas y canceladas
@@ -591,7 +591,7 @@ class CitaController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Cita::with(['cliente', 'empleado.user', 'servicio', 'servicios.servicio']);
+        $query = Cita::with(['cliente', 'empleado.user', 'servicio']);
 
         // Filtros
         if ($request->has('estado')) {
@@ -694,7 +694,6 @@ class CitaController extends Controller
             'cliente', 
             'empleado.user', 
             'servicio', 
-            'servicios.servicio', 
             'fotos', 
             'notificaciones',
             'calificacion'
@@ -979,6 +978,35 @@ class CitaController extends Controller
             'citas' => $citasCompletadas,
             'total_completadas' => count($citasCompletadas),
             'total_en_grupo' => $citas->count(),
+        ]);
+    }
+
+    /**
+     * Obtener citas por token QR (para pre-llenar venta)
+     * 
+     * GET /api/admin/citas/token/{token}
+     */
+    public function getByTokenQR(string $token): JsonResponse
+    {
+        $citas = Cita::with(['cliente', 'servicio', 'empleado.user'])
+            ->where('token_qr', $token)
+            ->whereNull('deleted_at')
+            ->get();
+
+        if ($citas->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token QR no válido o expirado',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $citas->map(fn($c) => $this->citaService->formatearCita($c)),
+            'cliente' => $citas[0]->cliente ? [
+                'id' => $citas[0]->cliente->id,
+                'nombre' => $citas[0]->cliente->nombre,
+            ] : null
         ]);
     }
 

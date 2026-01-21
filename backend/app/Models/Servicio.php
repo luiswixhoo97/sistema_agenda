@@ -45,10 +45,12 @@ class Servicio extends Model
         return $this->hasMany(Cita::class);
     }
 
+    /*
     public function citasServicios(): HasMany
     {
         return $this->hasMany(CitaServicio::class);
     }
+    */
 
     // Scopes
     public function scopeActive($query)

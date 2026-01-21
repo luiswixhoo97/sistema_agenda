@@ -216,20 +216,27 @@ class NotificacionService
      */
     protected function preparaDatosCita(Cita $cita): array
     {
-        $cita->load(['cliente', 'empleado', 'servicios.servicio']);
+        $cita->load(['cliente', 'empleado', 'servicio']);
         
-        // Obtener nombres de servicios desde la relación
-        if ($cita->servicios->isEmpty()) {
-            // Si no hay servicios en la tabla pivot, usar el servicio principal
-            $serviciosNombres = $cita->servicio->nombre ?? 'Servicio no especificado';
-        } else {
-            $serviciosNombres = $cita->servicios->map(function ($citaServicio) {
-                return $citaServicio->servicio->nombre ?? 'Servicio no especificado';
-            })->implode(', ');
-        }
-        
-        // Usar precio_final de la cita directamente (ya incluye descuentos)
+        // Buscar todas las citas que comparten el mismo token_qr (citas coordinadas)
+        // para listar todos los servicios en el mensaje
+        $serviciosNombres = $cita->servicio->nombre ?? 'Servicio no especificado';
         $precioTotal = $cita->precio_final ?? 0;
+        $duracionTotal = $cita->duracion_total;
+
+        if ($cita->token_qr) {
+            $citasCoordinadas = Cita::with('servicio')
+                ->where('token_qr', $cita->token_qr)
+                ->whereNull('deleted_at')
+                ->get();
+            
+            if ($citasCoordinadas->count() > 1) {
+                $serviciosNombres = $citasCoordinadas->map(fn($c) => $c->servicio->nombre ?? 'Servicio')
+                    ->implode(', ');
+                $precioTotal = $citasCoordinadas->sum('precio_final');
+                $duracionTotal = $citasCoordinadas->sum('duracion_total');
+            }
+        }
         
         // Obtener datos del negocio desde la tabla de configuración
         // Usar las claves que coinciden con el frontend: nombre_negocio, direccion, telefono
@@ -263,7 +270,7 @@ class NotificacionService
             'hora' => $cita->fecha_hora->format('H:i'),
             'servicios' => $serviciosNombres,
             'precio_total' => number_format($precioTotal, 2),
-            'duracion_total' => $cita->duracion_total,
+            'duracion_total' => $duracionTotal,
             'notas' => $cita->notas ?? '',
             'negocio_nombre' => $negocioNombre,
             'negocio_telefono' => $negocioTelefono,
@@ -773,7 +780,7 @@ class NotificacionService
                 $query->where('tipo', 'recordatorio_push')
                     ->where('created_at', '>=', now()->subMinutes(15));
             })
-            ->with(['cliente', 'empleado.user', 'servicios.servicio'])
+            ->with(['cliente', 'empleado.user', 'servicio'])
             ->get();
 
         Log::info("⏰ Verificando recordatorios push", [

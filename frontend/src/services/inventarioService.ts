@@ -65,7 +65,7 @@ export const buscarProductos = async (termino: string) => {
 
 export const createProducto = async (data: any) => {
   const formData = new FormData();
-  
+
   Object.keys(data).forEach(key => {
     if (key === 'foto' && data[key] instanceof File) {
       formData.append('foto', data[key]);
@@ -73,7 +73,7 @@ export const createProducto = async (data: any) => {
       formData.append(key, data[key].toString());
     }
   });
-  
+
   const response = await api.post('/admin/productos', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -84,7 +84,7 @@ export const createProducto = async (data: any) => {
 
 export const updateProducto = async (id: number, data: any) => {
   const formData = new FormData();
-  
+
   Object.keys(data).forEach(key => {
     if (key === 'foto' && data[key] instanceof File) {
       formData.append('foto', data[key]);
@@ -92,7 +92,7 @@ export const updateProducto = async (id: number, data: any) => {
       formData.append(key, data[key].toString());
     }
   });
-  
+
   const response = await api.post(`/admin/productos/${id}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -353,6 +353,22 @@ export const evaluarAnticipo = async (data: {
   return response.data;
 };
 
+/**
+ * Buscar servicios para venta
+ */
+export const buscarServiciosVenta = async (termino: string) => {
+  const response = await api.get('/admin/ventas/servicios/buscar', { params: { termino } });
+  return response.data;
+};
+
+/**
+ * Obtener citas por token QR
+ */
+export const getCitasByTokenQR = async (token: string) => {
+  const response = await api.get(`/admin/citas/token/${token}`);
+  return response.data;
+};
+
 export default {
   // Categorías de Productos
   getCategoriasProductos,
@@ -380,6 +396,8 @@ export default {
   createVenta,
   calcularTotales,
   buscarProductosVenta,
+  buscarServiciosVenta,
+  getCitasByTokenQR,
   updateVenta,
   cancelarVenta,
   // Ventas desde citas

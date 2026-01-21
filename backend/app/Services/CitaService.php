@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Cita;
-use App\Models\CitaServicio;
 use App\Models\Cliente;
 use App\Models\Empleado;
 use App\Models\Servicio;
@@ -49,113 +48,76 @@ class CitaService
             ];
         }
 
-        // Calcular duración y precio
+        // Calcular duración y precio total para la auditoría/respuesta
         $duracionTotal = $this->disponibilidadService->calcularDuracionTotal($servicioIds);
-        $precioBase = $this->disponibilidadService->calcularPrecioTotal($servicioIds, $empleadoId);
         
-        // Aplicar promoción si existe
-        $descuento = 0;
-        if ($promocionId) {
-            $promocion = Promocion::find($promocionId);
-            if ($promocion && $this->promocionEsValida($promocion, $servicioIds)) {
-                $descuento = $promocion->calcularDescuento($precioBase);
-            } else {
-                $promocionId = null; // Invalidar promoción no válida
-            }
-        }
-        
-        $precioFinal = $precioBase - $descuento;
-
         try {
             DB::beginTransaction();
 
-            // Generar token único para QR
+            // Generar token único para QR compartido
             $tokenQr = $this->generarTokenQr();
+            $citasCreadas = [];
+            $currentTime = Carbon::parse($fechaHora);
 
-            // Crear la cita
-            $cita = Cita::create([
-                'cliente_id' => $clienteId,
-                'empleado_id' => $empleadoId,
-                'servicio_id' => $servicioIds[0], // Servicio principal
-                'promocion_id' => $promocionId,
-                'fecha_hora' => $fechaHora,
-                'duracion_total' => $duracionTotal,
-                'estado' => Cita::ESTADO_CONFIRMADA,
-                'token_qr' => $tokenQr,
-                'precio_final' => $precioFinal,
-                'metodo_pago' => 'pendiente',
-                'notas' => $notas,
-            ]);
-
-            // Crear registros de servicios de la cita
             $servicios = Servicio::whereIn('id', $servicioIds)->get();
-            $orden = 1;
-            
+
             foreach ($servicioIds as $servicioId) {
                 $servicio = $servicios->find($servicioId);
-                if ($servicio) {
-                    // Obtener precio (especial del empleado o estándar)
-                    $precioAplicado = $servicio->empleados()
-                        ->where('empleado_id', $empleadoId)
-                        ->first()
-                        ?->pivot
-                        ?->precio_especial ?? $servicio->precio;
-                    
-                    CitaServicio::create([
-                        'cita_id' => $cita->id,
-                        'servicio_id' => $servicioId,
-                        'precio_aplicado' => $precioAplicado,
-                        'orden' => $orden++,
-                    ]);
-                }
-            }
+                if (!$servicio) continue;
 
-            // Incrementar uso de promoción
-            if ($promocionId) {
-                Promocion::find($promocionId)->incrementarUso();
-            }
+                $precioAplicado = $servicio->empleados()
+                    ->where('empleado_id', $empleadoId)
+                    ->first()
+                    ?->pivot
+                    ?->precio_especial ?? $servicio->precio;
 
-            // Registrar auditoría
-            Auditoria::registrar(
-                'crear',
-                'citas',
-                $cita->id,
-                null,
-                $cita->toArray()
-            );
+                $cita = Cita::create([
+                    'cliente_id' => $clienteId,
+                    'empleado_id' => $empleadoId,
+                    'servicio_id' => $servicioId,
+                    'promocion_id' => null,
+                    'fecha_hora' => $currentTime->format('Y-m-d H:i:s'),
+                    'duracion_total' => $servicio->duracion,
+                    'estado' => Cita::ESTADO_CONFIRMADA,
+                    'token_qr' => $tokenQr,
+                    'precio_final' => $precioAplicado,
+                    'metodo_pago' => 'pendiente',
+                    'notas' => $notas,
+                ]);
+
+                Auditoria::registrar('crear', 'citas', $cita->id, null, $cita->toArray());
+                $citasCreadas[] = $cita;
+                $currentTime->addMinutes($servicio->duracion);
+            }
 
             DB::commit();
 
-            // Cargar relaciones
-            $cita->load(['cliente', 'empleado.user', 'servicio', 'servicios.servicio']);
+            $primeraCita = $citasCreadas[0];
+            $primeraCita->load(['cliente', 'empleado.user', 'servicio']);
 
-            // Enviar notificación de confirmación con QR (asíncrono) solo si se solicita
-            // Envolver en try-catch para que no bloquee el agendamiento si falla
             if ($enviarNotificacion) {
                 try {
-                    $this->notificacionService->notificarCitaAgendada($cita);
+                    $this->notificacionService->notificarCitaAgendada($primeraCita);
                 } catch (\Exception $e) {
-                    // Log del error pero no fallar el agendamiento
-                    Log::error('Error enviando notificación de cita agendada (cita ya creada): ' . $e->getMessage(), [
-                        'cita_id' => $cita->id,
-                        'error' => $e->getMessage(),
-                    ]);
+                    Log::error('Error enviando notificación: ' . $e->getMessage());
                 }
             }
 
             return [
                 'success' => true,
-                'message' => 'Cita agendada exitosamente',
-                'cita' => $this->formatearCita($cita),
+                'message' => 'Cita(s) agendada(s) exitosamente',
+                'cita' => $this->formatearCita($primeraCita),
+                'total_citas' => count($citasCreadas),
+                'token_qr' => $tokenQr
             ];
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al agendar cita: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            Log::error('Error al agendar citas: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             
             return [
                 'success' => false,
-                'message' => 'Error al agendar la cita. Por favor, intenta de nuevo.',
+                'message' => 'Error al agendar las citas. Por favor, intenta de nuevo.',
                 'debug' => config('app.debug') ? [
                     'error' => $e->getMessage(),
                     'file' => $e->getFile(),
@@ -192,7 +154,7 @@ class CitaService
         if (isset($datos['fecha_hora']) && $datos['fecha_hora'] !== $cita->fecha_hora->format('Y-m-d H:i:s')) {
             $servicioIds = isset($datos['servicios']) 
                 ? $datos['servicios'] 
-                : $cita->servicios->pluck('servicio_id')->toArray();
+                : [$cita->servicio_id];
 
             $disponibilidad = $this->disponibilidadService->verificarDisponibilidad(
                 $datos['empleado_id'] ?? $cita->empleado_id,
@@ -220,7 +182,7 @@ class CitaService
             if (!empty($actualizaciones)) {
                 // Recalcular duración si cambia fecha/hora
                 if (isset($actualizaciones['fecha_hora'])) {
-                    $servicioIds = $cita->servicios->pluck('servicio_id')->toArray();
+                    $servicioIds = isset($datos['servicios']) ? $datos['servicios'] : [$cita->servicio_id];
                     $actualizaciones['duracion_total'] = $this->disponibilidadService->calcularDuracionTotal($servicioIds);
                 }
 
@@ -238,7 +200,7 @@ class CitaService
 
             DB::commit();
 
-            $cita->load(['cliente', 'empleado.user', 'servicio', 'servicios.servicio']);
+            $cita->load(['cliente', 'empleado.user', 'servicio']);
 
             // Encolar notificaciones
             $this->encolarNotificaciones($cita, 'modificacion');
@@ -381,7 +343,7 @@ class CitaService
             DB::commit();
 
             // Notificar según el nuevo estado
-            $citaActualizada = $cita->fresh()->load(['cliente', 'empleado.user', 'servicio', 'servicios.servicio']);
+            $citaActualizada = $cita->fresh()->load(['cliente', 'empleado.user', 'servicio']);
             
             if ($nuevoEstado === Cita::ESTADO_CONFIRMADA) {
                 $this->encolarNotificaciones($citaActualizada, 'confirmacion');
@@ -419,7 +381,7 @@ class CitaService
             'empleadoId' => $empleadoId,
         ]);
 
-        $query = Cita::with(['cliente', 'empleado', 'servicios.servicio'])->where('id', $citaId);
+        $query = Cita::with(['cliente', 'empleado', 'servicio'])->where('id', $citaId);
         
         // Si es empleado, solo puede reagendar sus propias citas
         if ($empleadoId) {
@@ -446,11 +408,8 @@ class CitaService
             ];
         }
 
-        // Obtener IDs de servicios
-        $servicioIds = $citaOriginal->servicios->pluck('servicio_id')->toArray();
-        if (empty($servicioIds) && $citaOriginal->servicio_id) {
-            $servicioIds = [$citaOriginal->servicio_id];
-        }
+        // Obtener ID de servicio
+        $servicioIds = [$citaOriginal->servicio_id];
 
         // Verificar disponibilidad en la nueva fecha/hora
         Log::info('Verificando disponibilidad', [
@@ -521,16 +480,6 @@ class CitaService
                 'notas' => "Reagendada desde cita #{$citaOriginal->id}" . ($motivo ? " - Motivo: {$motivo}" : ''),
             ]);
 
-            // 3. Copiar los servicios de la cita original a la nueva
-            foreach ($citaOriginal->servicios as $citaServicio) {
-                CitaServicio::create([
-                    'cita_id' => $nuevaCita->id,
-                    'servicio_id' => $citaServicio->servicio_id,
-                    'precio_aplicado' => $citaServicio->precio_aplicado,
-                    'orden' => $citaServicio->orden,
-                ]);
-            }
-
             // 4. Registrar auditoría para la cita original
             Auditoria::registrar(
                 'reagendar',
@@ -552,7 +501,7 @@ class CitaService
             DB::commit();
 
             // Cargar relaciones de la nueva cita
-            $nuevaCita->load(['cliente', 'empleado.user', 'servicio', 'servicios.servicio']);
+            $nuevaCita->load(['cliente', 'empleado.user', 'servicio']);
 
             // Encolar notificaciones de reagendamiento
             $this->encolarNotificaciones($nuevaCita, 'reagendamiento');
@@ -607,7 +556,7 @@ class CitaService
     {
         try {
             // Cargar relaciones necesarias
-            $cita->load(['cliente', 'empleado.user', 'servicio', 'servicios.servicio']);
+            $cita->load(['cliente', 'empleado.user', 'servicio']);
             
             switch ($tipo) {
                 case 'cancelacion':
@@ -686,12 +635,12 @@ class CitaService
                 'nombre' => $cita->empleado->user->nombre,
                 'foto' => $cita->empleado->foto,
             ] : null,
-            'servicios' => $cita->servicios->map(fn($cs) => [
-                'id' => $cs->servicio->id,
-                'nombre' => $cs->servicio->nombre,
-                'precio_aplicado' => $cs->precio_aplicado,
-                'duracion' => $cs->servicio->duracion,
-            ])->toArray(),
+            'servicios' => $cita->servicio ? [[
+                'id' => $cita->servicio->id,
+                'nombre' => $cita->servicio->nombre,
+                'precio_aplicado' => $cita->precio_final,
+                'duracion' => $cita->servicio->duracion,
+            ]] : [],
             'puede_cancelarse' => $cita->puedeCancelarse(),
             'puede_modificarse' => $cita->puedeModificarse(),
         ];

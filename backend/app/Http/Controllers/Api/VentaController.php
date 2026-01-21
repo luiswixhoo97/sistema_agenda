@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Venta;
 use App\Models\VentaDetalle;
 use App\Models\Producto;
+use App\Models\Servicio;
 use App\Models\MovimientoInventario;
 use App\Models\Auditoria;
 use Illuminate\Http\Request;
@@ -97,6 +98,7 @@ class VentaController extends Controller
             'detalles.*.precio_unitario' => 'required|numeric|min:0',
             'detalles.*.descuento' => 'nullable|numeric|min:0',
             'detalles.*.impuesto' => 'nullable|numeric|min:0',
+            'detalles.*.cita_id' => 'nullable|exists:citas,id',
             'descuento_general' => 'nullable|numeric|min:0',
             'impuesto_total' => 'nullable|numeric|min:0',
             'notas' => 'nullable|string',
@@ -155,6 +157,7 @@ class VentaController extends Controller
                     'tipo' => $detalle['tipo'],
                     'producto_id' => $detalle['tipo'] === 'producto' ? $detalle['producto_id'] : null,
                     'servicio_id' => $detalle['tipo'] === 'servicio' ? $detalle['servicio_id'] : null,
+                    'cita_id' => $detalle['cita_id'] ?? null,
                     'cantidad' => $detalle['cantidad'],
                     'precio_unitario' => $detalle['precio_unitario'],
                     'descuento' => $detalle['descuento'] ?? 0,
@@ -233,6 +236,7 @@ class VentaController extends Controller
             'detalles.*.precio_unitario' => 'required_with:detalles|numeric|min:0',
             'detalles.*.descuento' => 'nullable|numeric|min:0',
             'detalles.*.impuesto' => 'nullable|numeric|min:0',
+            'detalles.*.cita_id' => 'nullable|exists:citas,id',
         ]);
 
         DB::beginTransaction();
@@ -268,6 +272,7 @@ class VentaController extends Controller
                         'tipo' => $detalle['tipo'],
                         'producto_id' => $detalle['tipo'] === 'producto' ? $detalle['producto_id'] : null,
                         'servicio_id' => $detalle['tipo'] === 'servicio' ? $detalle['servicio_id'] : null,
+                        'cita_id' => $detalle['cita_id'] ?? null,
                         'cantidad' => $detalle['cantidad'],
                         'precio_unitario' => $detalle['precio_unitario'],
                         'descuento' => $detalle['descuento'] ?? 0,
@@ -411,19 +416,39 @@ class VentaController extends Controller
             ->limit(20)
             ->get();
 
+    }
+
+    /**
+     * Buscar servicios para agregar a venta
+     * 
+     * GET /api/admin/ventas/servicios/buscar
+     */
+    public function buscarServicios(Request $request): JsonResponse
+    {
+        $request->validate([
+            'termino' => 'required|string|min:1',
+        ]);
+
+        $servicios = Servicio::with('categoria')
+            ->where('active', true)
+            ->where(function($query) use ($request) {
+                $query->where('nombre', 'like', '%' . $request->termino . '%')
+                      ->orWhere('descripcion', 'like', '%' . $request->termino . '%');
+            })
+            ->limit(20)
+            ->get();
+
         return response()->json([
             'success' => true,
-            'data' => $productos->map(fn($p) => [
-                'id' => $p->id,
-                'codigo' => $p->codigo,
-                'nombre' => $p->nombre,
-                'precio' => $p->precio,
-                'precio_texto' => '$' . number_format($p->precio, 2),
-                'inventario_actual' => $p->inventario_actual,
-                'tiene_stock' => $p->inventario_actual > 0,
-                'categoria' => $p->categoria ? [
-                    'id' => $p->categoria->id,
-                    'nombre' => $p->categoria->nombre,
+            'data' => $servicios->map(fn($s) => [
+                'id' => $s->id,
+                'nombre' => $s->nombre,
+                'precio' => $s->precio,
+                'precio_texto' => '$' . number_format($s->precio, 2),
+                'duracion' => $s->duracion,
+                'categoria' => $s->categoria ? [
+                    'id' => $s->categoria->id,
+                    'nombre' => $s->categoria->nombre,
                 ] : null,
             ]),
         ]);

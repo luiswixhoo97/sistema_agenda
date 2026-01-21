@@ -60,10 +60,12 @@ class Cita extends Model
         return $this->belongsTo(Promocion::class);
     }
 
+    /* 
     public function servicios(): HasMany
     {
         return $this->hasMany(CitaServicio::class)->orderBy('orden');
     }
+    */
 
     public function fotos(): HasMany
     {
@@ -88,10 +90,7 @@ class Cita extends Model
 
     public function getServiciosNombresAttribute(): string
     {
-        if ($this->servicios->isEmpty()) {
-            return $this->servicio->nombre;
-        }
-        return $this->servicios->map(fn($s) => $s->servicio->nombre)->implode(', ');
+        return $this->servicio?->nombre ?? 'Sin servicio';
     }
 
     // Scopes

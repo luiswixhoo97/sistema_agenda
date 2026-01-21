@@ -8,6 +8,7 @@ use App\Models\Empleado;
 use App\Models\Cliente;
 use App\Models\Categoria;
 use App\Models\Servicio;
+use Database\Seeders\ClientesSeeder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -18,6 +19,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // =====================================================
+        // CLIENTES BASE
+        // =====================================================
+        $this->call(ClientesSeeder::class);
+
         // =====================================================
         // ROLES
         // =====================================================

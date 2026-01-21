@@ -35,7 +35,7 @@ const footerItems = computed(() => {
       { icon: 'fa-calendar-alt', label: 'Calendario', ruta: '/empleado/calendario' },
       { icon: 'fa-list-alt', label: 'Citas', ruta: '/empleado/citas' },
       { icon: 'fa-qrcode', label: 'Escanear', ruta: '/empleado/scan-qr', isCenter: true },
-      { icon: 'fa-user-circle', label: 'Perfil', ruta: '/empleado/perfil' },
+      { icon: 'fa-cash-register', label: 'Ventas', ruta: '/admin/ventas' },
       { icon: 'fa-ellipsis-h', label: 'Más', ruta: '#mas-empleado', isMas: true },
     ]
   } else if (authStore.userType === 'admin') {
@@ -43,7 +43,7 @@ const footerItems = computed(() => {
       { icon: 'fa-chart-line', label: 'Dashboard', ruta: '/admin' },
       { icon: 'fa-calendar', label: 'Citas', ruta: '/admin/citas' },
       { icon: 'fa-qrcode', label: 'Escanear', ruta: '/admin/scan-qr', isCenter: true },
-      { icon: 'fa-cut', label: 'Servicios', ruta: '/admin/servicios' },
+      { icon: 'fa-cash-register', label: 'Ventas', ruta: '/admin/ventas' },
       { icon: 'fa-ellipsis-h', label: 'Más', ruta: '#mas', isMas: true },
     ]
   }
@@ -65,10 +65,10 @@ const menuMasItems = computed(() => {
   return [
     { icon: 'fa-user-friends', label: 'Clientes', ruta: '/admin/clientes' },
     { icon: 'fa-users', label: 'Empleados', ruta: '/admin/empleados' },
+    { icon: 'fa-cut', label: 'Servicios', ruta: '/admin/servicios' },
     { icon: 'fa-folder', label: 'Categorías', ruta: '/admin/categorias' },
     { icon: 'fa-box', label: 'Productos', ruta: '/admin/productos' },
     { icon: 'fa-warehouse', label: 'Inventario', ruta: '/admin/inventario' },
-    { icon: 'fa-cash-register', label: 'Ventas', ruta: '/admin/ventas' },
     { icon: 'fa-gift', label: 'Promociones', ruta: '/admin/promociones' },
     { icon: 'fa-comment-dots', label: 'Mensajes', ruta: '/admin/mensajes' },
     { icon: 'fa-cog', label: 'Configuración', ruta: '/admin/configuracion' },

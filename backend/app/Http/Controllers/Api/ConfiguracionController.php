@@ -49,9 +49,7 @@ class ConfiguracionController extends Controller
             ->sum('precio_final');
 
         // Servicios más populares
-        $serviciosPopulares = DB::table('citas_servicios')
-            ->join('servicios', 'citas_servicios.servicio_id', '=', 'servicios.id')
-            ->join('citas', 'citas_servicios.cita_id', '=', 'citas.id')
+        $serviciosPopulares = Cita::join('servicios', 'citas.servicio_id', '=', 'servicios.id')
             ->whereBetween('citas.fecha_hora', [$inicioMes, $finMes])
             ->where('citas.estado', 'completada')
             ->select('servicios.nombre', DB::raw('COUNT(*) as cantidad'))
@@ -310,16 +308,14 @@ class ConfiguracionController extends Controller
             'hasta' => 'required|date|after_or_equal:desde',
         ]);
 
-        $servicios = DB::table('citas_servicios')
-            ->join('servicios', 'citas_servicios.servicio_id', '=', 'servicios.id')
-            ->join('citas', 'citas_servicios.cita_id', '=', 'citas.id')
+        $servicios = Cita::join('servicios', 'citas.servicio_id', '=', 'servicios.id')
             ->whereBetween('citas.fecha_hora', [$request->desde, $request->hasta . ' 23:59:59'])
             ->where('citas.estado', 'completada')
             ->select(
                 'servicios.id',
                 'servicios.nombre',
                 DB::raw('COUNT(*) as cantidad'),
-                DB::raw('SUM(citas_servicios.precio_aplicado) as ingresos')
+                DB::raw('SUM(citas.precio_final) as ingresos')
             )
             ->groupBy('servicios.id', 'servicios.nombre')
             ->orderByDesc('cantidad')

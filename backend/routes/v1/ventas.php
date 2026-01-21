@@ -12,6 +12,7 @@ Route::prefix('admin')->middleware('tipo:admin')->group(function () {
         Route::post('/', [VentaController::class, 'store']);
         Route::post('/calcular-totales', [VentaController::class, 'calcularTotales']);
         Route::get('/productos/buscar', [VentaController::class, 'buscarProductos']);
+        Route::get('/servicios/buscar', [VentaController::class, 'buscarServicios']);
         Route::get('/{id}', [VentaController::class, 'show']);
         Route::put('/{id}', [VentaController::class, 'update']);
         Route::delete('/{id}', [VentaController::class, 'destroy']);

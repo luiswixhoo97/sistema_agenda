@@ -22,7 +22,7 @@ class VentaCitaController extends Controller
      */
     public function crearDesdeCita(Request $request, int $citaId): JsonResponse
     {
-        $cita = Cita::with(['servicios.servicio', 'cliente', 'empleado'])->find($citaId);
+        $cita = Cita::with(['servicio', 'cliente', 'empleado'])->find($citaId);
 
         if (!$cita) {
             return response()->json([
@@ -49,38 +49,20 @@ class VentaCitaController extends Controller
             $subtotal = 0;
             $detalles = [];
 
-            if ($cita->servicios->count() > 0) {
-                foreach ($cita->servicios as $citaServicio) {
-                    $precio = $citaServicio->precio_aplicado;
-                    $subtotal += $precio;
-                    
-                    $detalles[] = [
-                        'tipo' => VentaDetalle::TIPO_SERVICIO,
-                        'servicio_id' => $citaServicio->servicio_id,
-                        'cita_id' => $cita->id,
-                        'cantidad' => 1,
-                        'precio_unitario' => $precio,
-                        'descuento' => 0,
-                        'impuesto' => 0,
-                        'subtotal_linea' => $precio,
-                    ];
-                }
-            } else {
-                // Si no tiene servicios múltiples, usar el servicio principal
-                $precio = $cita->precio_final ?? $cita->servicio->precio ?? 0;
-                $subtotal = $precio;
-                
-                $detalles[] = [
-                    'tipo' => VentaDetalle::TIPO_SERVICIO,
-                    'servicio_id' => $cita->servicio_id,
-                    'cita_id' => $cita->id,
-                    'cantidad' => 1,
-                    'precio_unitario' => $precio,
-                    'descuento' => 0,
-                    'impuesto' => 0,
-                    'subtotal_linea' => $precio,
-                ];
-            }
+            // Usar el servicio único de la cita
+            $precio = $cita->precio_final ?? $cita->servicio->precio ?? 0;
+            $subtotal = $precio;
+            
+            $detalles[] = [
+                'tipo' => VentaDetalle::TIPO_SERVICIO,
+                'servicio_id' => $cita->servicio_id,
+                'cita_id' => $cita->id,
+                'cantidad' => 1,
+                'precio_unitario' => $precio,
+                'descuento' => 0,
+                'impuesto' => 0,
+                'subtotal_linea' => $precio,
+            ];
 
             // Crear venta
             $venta = Venta::create([
