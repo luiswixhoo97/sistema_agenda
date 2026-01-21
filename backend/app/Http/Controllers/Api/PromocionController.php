@@ -306,6 +306,74 @@ class PromocionController extends Controller
     }
 
     /**
+     * Calcular la mejor promoción disponible para servicios dados
+     * 
+     * POST /api/publico/promociones/calcular-mejor
+     */
+    public function calcularMejorPromocion(Request $request): JsonResponse
+    {
+        $request->validate([
+            'servicios' => 'required|array|min:1',
+            'servicios.*' => 'integer|exists:servicios,id',
+            'total' => 'required|numeric|min:0',
+        ]);
+
+        $promociones = Promocion::disponibles()
+            ->where('active', true)
+            ->get();
+
+        $mejorPromocion = null;
+        $mayorDescuento = 0;
+        $todasLasPromociones = [];
+
+        foreach ($promociones as $promo) {
+            // Verificar si la promoción aplica a TODOS los servicios
+            if ($promo->servicios_aplicables !== null && !empty($promo->servicios_aplicables)) {
+                $todosAplican = true;
+                foreach ($request->servicios as $servicioId) {
+                    if (!in_array($servicioId, $promo->servicios_aplicables)) {
+                        $todosAplican = false;
+                        break;
+                    }
+                }
+                
+                if (!$todosAplican) continue;
+            }
+
+            // Calcular descuento
+            $descuento = 0;
+            if ($promo->descuento_porcentaje) {
+                $descuento = $request->total * ($promo->descuento_porcentaje / 100);
+            } else {
+                $descuento = min($promo->descuento_fijo, $request->total);
+            }
+
+            $todasLasPromociones[] = [
+                'promocion' => $this->formatearPromocion($promo),
+                'descuento' => round($descuento, 2),
+                'ahorro_porcentaje' => $request->total > 0 ? round(($descuento / $request->total) * 100, 1) : 0,
+            ];
+
+            if ($descuento > $mayorDescuento) {
+                $mayorDescuento = $descuento;
+                $mejorPromocion = $promo;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'mejor_promocion' => $mejorPromocion ? $this->formatearPromocion($mejorPromocion) : null,
+                'descuento' => round($mayorDescuento, 2),
+                'total_original' => $request->total,
+                'total_con_descuento' => round($request->total - $mayorDescuento, 2),
+                'ahorro_porcentaje' => $request->total > 0 ? round(($mayorDescuento / $request->total) * 100, 1) : 0,
+                'todas_promociones' => $todasLasPromociones,
+            ],
+        ]);
+    }
+
+    /**
      * Formatear promoción para respuesta
      */
     private function formatearPromocion(Promocion $promocion): array

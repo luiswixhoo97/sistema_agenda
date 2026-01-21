@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, watch, onMounted } from 'vue'
 import { useAgendamiento } from '@/composables/useAgendamiento'
+import AppIcons from './AppIcons.vue'
 
 const { 
   empleados, 
@@ -10,46 +11,33 @@ const {
   cargarDisponibilidadMes
 } = useAgendamiento()
 
-// Verificar si hay más de un servicio seleccionado
 const tieneMultiplesServicios = computed(() => store.serviciosSeleccionados.length > 1)
 
-// Obtener empleados para un servicio específico
 function empleadosParaServicio(servicioId: number) {
   return store.empleadosDisponiblesPorServicio[servicioId] || []
 }
 
-// Verificar si un empleado está seleccionado para un servicio
 function empleadoSeleccionadoParaServicio(servicioId: number, empleadoId: number) {
   const asignacion = store.empleadoAsignadoAServicio(servicioId)
   return asignacion?.empleadoId === empleadoId
 }
 
-// Seleccionar empleado para un servicio específico
 function seleccionarEmpleadoParaServicio(servicioId: number, empleado: any) {
-  // Si ya está seleccionado este empleado, no hacer nada (no permitir deseleccionar)
-  if (empleadoSeleccionadoParaServicio(servicioId, empleado.id)) {
-    return
-  }
+  if (empleadoSeleccionadoParaServicio(servicioId, empleado.id)) return
   store.asignarEmpleadoAServicio(servicioId, empleado)
 }
 
-// Quitar empleado seleccionado para permitir cambiar
 function quitarEmpleadoSeleccionado(servicioId: number) {
   store.quitarEmpleadoDeServicio(servicioId)
 }
 
-// Cargar empleados cuando se activa el modo múltiples
 watch(() => store.modoMultiplesEmpleados, (activo) => {
-  if (activo) {
-    store.cargarEmpleadosPorServicio()
-  }
+  if (activo) store.cargarEmpleadosPorServicio()
 }, { immediate: true })
 
-// Continuar al siguiente paso en modo múltiples
 async function continuarModoMultiples() {
   if (store.todosServiciosTienenEmpleado) {
     store.siguientePaso()
-    // Cargar disponibilidad del mes para el calendario
     await cargarDisponibilidadMes()
   }
 }
@@ -64,231 +52,208 @@ onMounted(() => {
 <template>
   <div class="paso-empleado">
     <!-- Header -->
-    <div class="paso-header">
+    <div class="page-header">
       <div class="header-icon">
-        <i class="fa fa-user-tie"></i>
+        <AppIcons name="users" :size="24" />
       </div>
-      <h2>¿Con quién prefieres?</h2>
+      <h1>¿Con quién prefieres?</h1>
       <p v-if="!store.modoMultiplesEmpleados">Selecciona un profesional</p>
       <p v-else>Selecciona un profesional para cada servicio</p>
     </div>
 
-    <!-- Aviso cuando se auto-activa el modo múltiples -->
-    <div v-if="store.modoMultiplesEmpleados && empleados.length === 0 && tieneMultiplesServicios" class="aviso-multiples">
-      <i class="fa fa-info-circle"></i>
-      <span>Los servicios seleccionados requieren diferentes profesionales. Asigna uno para cada servicio.</span>
+    <!-- Notice for Multiple Mode -->
+    <div v-if="store.modoMultiplesEmpleados && empleados.length === 0 && tieneMultiplesServicios" class="notice">
+      <AppIcons name="info" :size="18" />
+      <span>Los servicios seleccionados requieren diferentes profesionales.</span>
     </div>
 
-    <!-- Toggle modo múltiples empleados (solo si hay más de 1 servicio Y hay empleados que ofrecen todos) -->
-    <div v-if="tieneMultiplesServicios && empleados.length > 0" class="modo-toggle">
+    <!-- Mode Toggle -->
+    <div v-if="tieneMultiplesServicios && empleados.length > 0" class="mode-toggle">
       <button 
-        class="modo-btn"
-        :class="{ 'activo': !store.modoMultiplesEmpleados }"
+        class="mode-btn"
+        :class="{ 'active': !store.modoMultiplesEmpleados }"
         @click="store.modoMultiplesEmpleados && store.toggleModoMultiplesEmpleados()"
       >
-        <i class="fa fa-user"></i>
+        <AppIcons name="user" :size="16" />
         Un profesional
       </button>
       <button 
-        class="modo-btn"
-        :class="{ 'activo': store.modoMultiplesEmpleados }"
+        class="mode-btn"
+        :class="{ 'active': store.modoMultiplesEmpleados }"
         @click="!store.modoMultiplesEmpleados && store.toggleModoMultiplesEmpleados()"
       >
-        <i class="fa fa-users"></i>
-        Profesional por servicio
+        <AppIcons name="users" :size="16" />
+        Por servicio
       </button>
     </div>
 
     <!-- Loading -->
     <div v-if="loadingCatalogo" class="loading-state">
-      <div class="spinner"></div>
+      <AppIcons name="loader" :size="32" class="spinner" />
       <p>Cargando profesionales...</p>
     </div>
 
-    <!-- =============================================== -->
-    <!-- MODO: Un empleado para todos los servicios -->
-    <!-- =============================================== -->
+    <!-- Single Employee Mode -->
     <template v-else-if="!store.modoMultiplesEmpleados">
-      <!-- Sin empleados -->
+      <!-- No Employees -->
       <div v-if="empleados.length === 0" class="empty-state">
-        <i class="fa fa-user-slash"></i>
+        <AppIcons name="user-x" :size="48" />
         <p>No hay profesionales disponibles para los servicios seleccionados</p>
-        <button class="btn-volver" @click="store.pasoAnterior()">
-          <i class="fa fa-arrow-left"></i>
+        <button class="btn-back" @click="store.pasoAnterior()">
+          <AppIcons name="arrow-left" :size="16" />
           Modificar servicios
         </button>
       </div>
 
-      <!-- Lista de empleados -->
-      <div v-else class="empleados-grid">
+      <!-- Employees List -->
+      <div v-else class="employees-list">
         <div 
           v-for="empleado in empleados" 
           :key="empleado.id"
-          class="empleado-card"
+          class="employee-card"
           @click="seleccionarEmpleadoYAvanzar(empleado)"
         >
           <!-- Avatar -->
-          <div class="empleado-avatar">
-            <img 
-              v-if="empleado.foto" 
-              :src="empleado.foto" 
-              :alt="empleado.nombre"
-            />
-            <div v-else class="avatar-placeholder">
-              {{ empleado.nombre.charAt(0).toUpperCase() }}
-            </div>
+          <div class="employee-avatar">
+            <img v-if="empleado.foto" :src="empleado.foto" :alt="empleado.nombre" />
+            <span v-else class="avatar-initial">{{ empleado.nombre.charAt(0) }}</span>
           </div>
 
           <!-- Info -->
-          <div class="empleado-info">
-            <h4>{{ empleado.nombre }}</h4>
+          <div class="employee-info">
+            <h3>{{ empleado.nombre }}</h3>
             
             <!-- Rating -->
-            <div v-if="empleado.promedio_calificacion > 0" class="empleado-rating">
+            <div v-if="empleado.promedio_calificacion > 0" class="employee-rating">
               <div class="stars">
-                <i 
+                <AppIcons 
                   v-for="i in 5" 
                   :key="i" 
-                  class="fa fa-star"
-                  :class="{ 'active': i <= empleado.promedio_calificacion }"
-                ></i>
+                  name="star-filled" 
+                  :size="12"
+                  :class="{ 'filled': i <= empleado.promedio_calificacion }"
+                />
               </div>
               <span>{{ empleado.promedio_calificacion.toFixed(1) }}</span>
             </div>
 
             <!-- Bio -->
-            <p v-if="empleado.bio" class="empleado-bio">{{ empleado.bio }}</p>
+            <p v-if="empleado.bio" class="employee-bio">{{ empleado.bio }}</p>
 
-            <!-- Especialidades -->
-            <p v-if="empleado.especialidades" class="empleado-especialidad">
-              <i class="fa fa-certificate"></i>
+            <!-- Specialty -->
+            <p v-if="empleado.especialidades" class="employee-specialty">
+              <AppIcons name="award" :size="12" />
               {{ empleado.especialidades }}
             </p>
 
-            <!-- Servicios -->
-            <div class="empleado-servicios">
-              <span 
-                v-for="servicio in empleado.servicios.slice(0, 3)" 
-                :key="servicio.id"
-                class="servicio-tag"
-              >
+            <!-- Services Tags -->
+            <div class="employee-services">
+              <span v-for="servicio in empleado.servicios.slice(0, 3)" :key="servicio.id" class="service-tag">
                 {{ servicio.nombre }}
               </span>
-              <span v-if="empleado.servicios.length > 3" class="mas">
+              <span v-if="empleado.servicios.length > 3" class="more-tag">
                 +{{ empleado.servicios.length - 3 }}
               </span>
             </div>
           </div>
 
           <!-- Arrow -->
-          <div class="empleado-arrow">
-            <i class="fa fa-chevron-right"></i>
+          <div class="employee-arrow">
+            <AppIcons name="chevron-right" :size="20" />
           </div>
         </div>
       </div>
     </template>
 
-    <!-- =============================================== -->
-    <!-- MODO: Un empleado diferente por cada servicio -->
-    <!-- =============================================== -->
+    <!-- Multiple Employees Mode -->
     <template v-else>
-      <div class="servicios-empleados-list">
+      <div class="services-assignments">
         <div 
           v-for="servicio in store.serviciosSeleccionados" 
           :key="servicio.id"
-          class="servicio-empleado-item"
+          class="service-assignment"
         >
-          <!-- Header del servicio -->
-          <div class="servicio-header">
-            <div class="servicio-icon">
-              <i class="fa fa-spa"></i>
+          <!-- Service Header -->
+          <div class="assignment-header">
+            <div class="assignment-icon">
+              <AppIcons name="spa" :size="18" />
             </div>
-            <div class="servicio-info">
+            <div class="assignment-info">
               <h4>{{ servicio.nombre }}</h4>
-              <span class="servicio-duracion">
-                <i class="fa fa-clock"></i> {{ servicio.duracion }} min
+              <span class="assignment-duration">
+                <AppIcons name="clock" :size="12" />
+                {{ servicio.duracion }} min
               </span>
             </div>
-            <div class="servicio-precio">${{ servicio.precio }}</div>
+            <div class="assignment-price">${{ servicio.precio }}</div>
           </div>
 
-          <!-- Empleado seleccionado -->
+          <!-- Selected Employee -->
           <div 
             v-if="store.empleadoAsignadoAServicio(servicio.id)"
-            class="empleado-seleccionado"
+            class="selected-employee"
             @click="quitarEmpleadoSeleccionado(servicio.id)"
           >
-            <div class="empleado-mini-avatar">
+            <div class="mini-avatar">
               <img 
                 v-if="store.empleadoAsignadoAServicio(servicio.id)?.empleadoFoto" 
                 :src="store.empleadoAsignadoAServicio(servicio.id)?.empleadoFoto" 
-                :alt="store.empleadoAsignadoAServicio(servicio.id)?.empleadoNombre"
               />
-              <div v-else class="avatar-placeholder-mini">
-                {{ store.empleadoAsignadoAServicio(servicio.id)?.empleadoNombre.charAt(0).toUpperCase() }}
-              </div>
+              <span v-else>{{ store.empleadoAsignadoAServicio(servicio.id)?.empleadoNombre.charAt(0) }}</span>
             </div>
-            <span class="empleado-nombre">
-              {{ store.empleadoAsignadoAServicio(servicio.id)?.empleadoNombre }}
-            </span>
-            <button class="btn-quitar-empleado" @click.stop="quitarEmpleadoSeleccionado(servicio.id)">
-              <i class="fa fa-times"></i>
+            <span class="selected-name">{{ store.empleadoAsignadoAServicio(servicio.id)?.empleadoNombre }}</span>
+            <button class="btn-remove" @click.stop="quitarEmpleadoSeleccionado(servicio.id)">
+              <AppIcons name="x" :size="14" />
             </button>
           </div>
 
-          <!-- Lista de empleados disponibles (solo se muestra si no hay empleado seleccionado) -->
-          <div v-if="!store.empleadoAsignadoAServicio(servicio.id)" class="empleados-mini-grid">
+          <!-- Available Employees Grid -->
+          <div v-if="!store.empleadoAsignadoAServicio(servicio.id)" class="employees-grid">
             <div 
               v-for="empleado in empleadosParaServicio(servicio.id)" 
               :key="empleado.id"
-              class="empleado-mini-card"
+              class="mini-employee-card"
               @click="seleccionarEmpleadoParaServicio(servicio.id, empleado)"
             >
-              <div class="empleado-mini-avatar">
-                <img 
-                  v-if="empleado.foto" 
-                  :src="empleado.foto" 
-                  :alt="empleado.nombre"
-                />
-                <div v-else class="avatar-placeholder-mini">
-                  {{ empleado.nombre.charAt(0).toUpperCase() }}
-                </div>
+              <div class="mini-avatar">
+                <img v-if="empleado.foto" :src="empleado.foto" :alt="empleado.nombre" />
+                <span v-else>{{ empleado.nombre.charAt(0) }}</span>
               </div>
-              <span class="empleado-mini-nombre">{{ empleado.nombre }}</span>
-              <div v-if="empleado.promedio_calificacion > 0" class="empleado-mini-rating">
-                <i class="fa fa-star"></i>
+              <span class="mini-name">{{ empleado.nombre }}</span>
+              <div v-if="empleado.promedio_calificacion > 0" class="mini-rating">
+                <AppIcons name="star-filled" :size="10" />
                 {{ empleado.promedio_calificacion.toFixed(1) }}
               </div>
             </div>
             
-            <!-- Sin empleados -->
-            <div v-if="empleadosParaServicio(servicio.id).length === 0" class="no-empleados">
-              <i class="fa fa-user-slash"></i>
+            <!-- No Employees -->
+            <div v-if="empleadosParaServicio(servicio.id).length === 0" class="no-employees">
+              <AppIcons name="user-x" :size="20" />
               <span>Sin profesionales disponibles</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Botón continuar (modo múltiples) -->
+      <!-- Continue Button -->
       <div class="footer-multiples">
-        <div class="resumen-asignaciones">
-          <span v-if="store.todosServiciosTienenEmpleado" class="completo">
-            <i class="fa fa-check-circle"></i>
+        <div class="assignment-status">
+          <span v-if="store.todosServiciosTienenEmpleado" class="status-complete">
+            <AppIcons name="check-circle" :size="16" />
             Todos los servicios asignados
           </span>
-          <span v-else class="pendiente">
-            <i class="fa fa-exclamation-circle"></i>
+          <span v-else class="status-pending">
+            <AppIcons name="alert-circle" :size="16" />
             {{ store.empleadosPorServicio.length }} de {{ store.serviciosSeleccionados.length }} asignados
           </span>
         </div>
         <button 
-          class="btn-continuar-multiples"
+          class="btn-continue"
           :disabled="!store.todosServiciosTienenEmpleado"
           @click="continuarModoMultiples"
         >
           Continuar
-          <i class="fa fa-chevron-right"></i>
+          <AppIcons name="chevron-right" :size="18" />
         </button>
       </div>
     </template>
@@ -298,138 +263,115 @@ onMounted(() => {
 <style scoped>
 .paso-empleado {
   padding: 20px 16px;
-  padding-bottom: 100px;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  padding-bottom: 120px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Header */
-.paso-header {
+.page-header {
   text-align: center;
-  padding: 24px 0 32px;
+  padding: 20px 0 28px;
 }
 
 .header-icon {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 16px;
   background: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
-}
-
-.header-icon i {
-  font-size: 28px;
+  margin: 0 auto 16px;
   color: white;
 }
 
-.paso-header h2 {
-  font-size: 28px;
+.page-header h1 {
+  font-size: 24px;
   font-weight: 600;
   color: #1d1d1f;
-  margin: 0 0 8px;
-  letter-spacing: -0.5px;
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
 }
 
-.theme-dark .paso-header h2 {
+.theme-dark .page-header h1 {
   color: #f5f5f7;
 }
 
-.paso-header p {
-  font-size: 17px;
+.page-header p {
+  font-size: 15px;
   color: #86868b;
   margin: 0;
-  font-weight: 400;
 }
 
-.theme-dark .paso-header p {
-  color: #a1a1a6;
+.theme-dark .page-header p {
+  color: #98989d;
 }
 
-/* Aviso auto-múltiples */
-.aviso-multiples {
+/* Notice */
+.notice {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(255, 152, 0, 0.15));
-  border: 1px solid rgba(255, 152, 0, 0.3);
+  background: rgba(255, 149, 0, 0.08);
+  border: 1px solid rgba(255, 149, 0, 0.2);
   border-radius: 12px;
-  margin-bottom: 16px;
-  color: #e65100;
-}
-
-.theme-dark .aviso-multiples {
-  color: #ffb74d;
-}
-
-.aviso-multiples i {
-  font-size: 18px;
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-
-.aviso-multiples span {
+  margin-bottom: 20px;
+  color: #cc7700;
   font-size: 13px;
   line-height: 1.4;
 }
 
-/* Toggle modo */
-.modo-toggle {
+.theme-dark .notice {
+  color: #ffb74d;
+}
+
+/* Mode Toggle */
+.mode-toggle {
   display: flex;
   gap: 4px;
   padding: 4px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-radius: 14px;
+  background: rgba(0,0,0,0.04);
+  border-radius: 12px;
   margin-bottom: 24px;
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.theme-dark .modo-toggle {
-  background: rgba(44, 44, 46, 0.8);
-  border-color: rgba(255, 255, 255, 0.1);
+.theme-dark .mode-toggle {
+  background: rgba(255,255,255,0.06);
 }
 
-.modo-btn {
+.mode-btn {
   flex: 1;
-  padding: 10px 16px;
+  padding: 10px 14px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   background: transparent;
   color: #86868b;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s;
+  font-family: inherit;
 }
 
-.theme-dark .modo-btn {
-  color: #a1a1a6;
+.theme-dark .mode-btn {
+  color: #98989d;
 }
 
-.modo-btn.activo {
-  background: #007aff;
-  color: white;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+.mode-btn.active {
+  background: white;
+  color: #1d1d1f;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-.modo-btn:not(.activo):hover {
-  background: rgba(0,0,0,0.05);
-}
-
-.theme-dark .modo-btn:not(.activo):hover {
+.theme-dark .mode-btn.active {
   background: rgba(255,255,255,0.1);
+  color: #f5f5f7;
 }
 
 /* Loading */
@@ -438,45 +380,37 @@ onMounted(() => {
   padding: 60px 20px;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(0, 122, 255, 0.2);
-  border-top-color: #007aff;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 16px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-state p {
-  color: var(--color-text-secondary);
-  font-size: 14px;
-}
-
-/* Empty state */
-.empty-state {
-  text-align: center;
-  padding: 50px 20px;
-}
-
-.empty-state i {
-  font-size: 50px;
-  color: var(--color-border);
+.loading-state .spinner {
+  color: #007aff;
   margin-bottom: 16px;
 }
 
-.empty-state p {
-  color: var(--color-text-secondary);
-  font-size: 14px;
-  margin-bottom: 20px;
+.loading-state p {
+  color: #86868b;
+  font-size: 15px;
 }
 
-.btn-volver {
-  padding: 12px 24px;
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 50px 20px;
+  color: #86868b;
+}
+
+.theme-dark .empty-state {
+  color: #98989d;
+}
+
+.empty-state p {
+  margin: 16px 0 24px;
+  font-size: 15px;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
   background: #007aff;
   color: white;
   border: none;
@@ -484,107 +418,94 @@ onMounted(() => {
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   transition: all 0.2s;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  font-family: inherit;
 }
 
-.btn-volver:hover {
-  background: #0051d5;
+.btn-back:hover {
+  background: #0066d6;
 }
 
-.btn-volver:active {
-  transform: scale(0.98);
-}
-
-/* Empleados grid */
-.empleados-grid {
+/* Employees List */
+.employees-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.empleado-card {
+.employee-card {
   display: flex;
   align-items: flex-start;
   gap: 14px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
   border-radius: 16px;
+  border: 1px solid rgba(0,0,0,0.04);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s;
 }
 
-.theme-dark .empleado-card {
-  background: rgba(28, 28, 30, 0.8);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    0 0 0 0.5px rgba(255, 255, 255, 0.05);
+.theme-dark .employee-card {
+  background: rgba(28, 28, 30, 0.95);
+  border-color: rgba(255,255,255,0.06);
 }
 
-.empleado-card:hover {
+.employee-card:hover {
+  border-color: rgba(0, 122, 255, 0.2);
   transform: translateX(2px);
-  border-color: rgba(0, 122, 255, 0.3);
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.08),
-    0 0 0 0.5px rgba(0, 122, 255, 0.2);
 }
 
-.empleado-card:active {
-  transform: scale(0.98);
+.employee-card:active {
+  transform: scale(0.99);
 }
 
 /* Avatar */
-.empleado-avatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+.employee-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
   overflow: hidden;
   flex-shrink: 0;
+  background: #007aff;
 }
 
-.empleado-avatar img {
+.employee-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.avatar-placeholder {
+.avatar-initial {
   width: 100%;
   height: 100%;
-  background: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
 }
 
 /* Info */
-.empleado-info {
+.employee-info {
   flex: 1;
   min-width: 0;
 }
 
-.empleado-info h4 {
+.employee-info h3 {
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-text);
+  color: #1d1d1f;
   margin: 0 0 4px;
 }
 
+.theme-dark .employee-info h3 {
+  color: #f5f5f7;
+}
+
 /* Rating */
-.empleado-rating {
+.employee-rating {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -596,34 +517,37 @@ onMounted(() => {
   gap: 2px;
 }
 
-.stars i {
-  font-size: 10px;
-  color: #ddd;
+.stars svg {
+  color: #d1d1d6;
 }
 
-.stars i.active {
-  color: #ffc107;
+.stars svg.filled {
+  color: #ffcc00;
 }
 
-.empleado-rating span {
+.employee-rating span {
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: #86868b;
 }
 
 /* Bio */
-.empleado-bio {
-  font-size: 12px;
-  color: var(--color-text-secondary);
+.employee-bio {
+  font-size: 13px;
+  color: #86868b;
   margin: 0 0 6px;
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
-  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* Especialidad */
-.empleado-especialidad {
+.theme-dark .employee-bio {
+  color: #98989d;
+}
+
+/* Specialty */
+.employee-specialty {
   font-size: 12px;
   color: #007aff;
   margin: 0 0 8px;
@@ -633,361 +557,292 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.empleado-especialidad i {
-  font-size: 10px;
-}
-
-/* Servicios */
-.empleado-servicios {
+/* Services */
+.employee-services {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  align-items: center;
 }
 
-.servicio-tag {
+.service-tag {
   font-size: 10px;
   padding: 3px 8px;
-  background: rgba(0,0,0,0.05);
-  border-radius: 8px;
-  color: var(--color-text-secondary);
+  background: rgba(0,0,0,0.04);
+  border-radius: 6px;
+  color: #86868b;
 }
 
-.theme-dark .servicio-tag {
-  background: rgba(255,255,255,0.08);
+.theme-dark .service-tag {
+  background: rgba(255,255,255,0.06);
+  color: #98989d;
 }
 
-.mas {
+.more-tag {
   font-size: 10px;
-  color: var(--color-text-secondary);
+  color: #86868b;
 }
 
 /* Arrow */
-.empleado-arrow {
-  display: flex;
-  align-items: center;
-  color: #86868b;
-  font-size: 16px;
+.employee-arrow {
+  color: #c7c7cc;
   align-self: center;
 }
 
-.theme-dark .empleado-arrow {
-  color: #6e6e73;
+.theme-dark .employee-arrow {
+  color: #48484a;
 }
 
-/* ===================================== */
-/* Estilos para modo múltiples empleados */
-/* ===================================== */
-
-.servicios-empleados-list {
+/* Multiple Employees Mode */
+.services-assignments {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.servicio-empleado-item {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+.service-assignment {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
   border-radius: 16px;
   padding: 18px;
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0,0,0,0.04);
 }
 
-.theme-dark .servicio-empleado-item {
-  background: rgba(28, 28, 30, 0.8);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    0 0 0 0.5px rgba(255, 255, 255, 0.05);
+.theme-dark .service-assignment {
+  background: rgba(28, 28, 30, 0.95);
+  border-color: rgba(255,255,255,0.06);
 }
 
-.servicio-header {
+.assignment-header {
   display: flex;
   align-items: center;
   gap: 12px;
   padding-bottom: 14px;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
   margin-bottom: 14px;
 }
 
-.theme-dark .servicio-header {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
+.theme-dark .assignment-header {
+  border-color: rgba(255,255,255,0.08);
 }
 
-.servicio-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+.assignment-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 18px;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
 }
 
-.servicio-info {
+.assignment-info {
   flex: 1;
 }
 
-.servicio-info h4 {
+.assignment-info h4 {
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text);
+  color: #1d1d1f;
   margin: 0 0 2px;
 }
 
-.servicio-duracion {
+.theme-dark .assignment-info h4 {
+  color: #f5f5f7;
+}
+
+.assignment-duration {
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: #86868b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.servicio-duracion i {
-  font-size: 10px;
-  margin-right: 4px;
+.theme-dark .assignment-duration {
+  color: #98989d;
 }
 
-.servicio-precio {
-  font-size: 17px;
+.assignment-price {
+  font-size: 16px;
   font-weight: 600;
   color: #007aff;
-  letter-spacing: -0.2px;
 }
 
-/* Empleado seleccionado */
-.empleado-seleccionado {
+/* Selected Employee */
+.selected-employee {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 12px;
   background: rgba(52, 199, 89, 0.1);
-  border-radius: 12px;
-  margin-bottom: 14px;
-  border: 0.5px solid rgba(52, 199, 89, 0.2);
+  border-radius: 10px;
+  border: 1px solid rgba(52, 199, 89, 0.2);
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.theme-dark .empleado-seleccionado {
+.theme-dark .selected-employee {
   background: rgba(52, 199, 89, 0.15);
-  border-color: rgba(52, 199, 89, 0.25);
 }
 
-.empleado-seleccionado:hover {
-  background: rgba(52, 199, 89, 0.15);
-  border-color: rgba(52, 199, 89, 0.3);
-}
-
-.theme-dark .empleado-seleccionado:hover {
-  background: rgba(52, 199, 89, 0.2);
-}
-
-.empleado-seleccionado .empleado-nombre {
+.selected-name {
   flex: 1;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: #34c759;
 }
 
-.btn-quitar-empleado {
-  background: rgba(255, 59, 48, 0.1);
-  border: none;
-  border-radius: 8px;
+.btn-remove {
   width: 28px;
   height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 59, 48, 0.1);
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: #ff3b30;
   transition: all 0.2s;
-  flex-shrink: 0;
 }
 
-.btn-quitar-empleado:hover {
+.btn-remove:hover {
   background: rgba(255, 59, 48, 0.2);
-  transform: scale(1.1);
 }
 
-.btn-quitar-empleado i {
-  font-size: 12px;
-}
-
-.check-icon {
-  color: #34c759;
-  font-size: 18px;
-}
-
-/* Mini grid de empleados */
-.empleados-mini-grid {
+/* Employees Grid */
+.employees-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
   gap: 10px;
 }
 
-.empleado-mini-card {
+.mini-employee-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 12px 8px;
-  background: rgba(0, 122, 255, 0.05);
+  background: rgba(0, 122, 255, 0.04);
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 0.5px solid rgba(0, 122, 255, 0.1);
+  transition: all 0.2s;
+  border: 1px solid rgba(0, 122, 255, 0.1);
 }
 
-.theme-dark .empleado-mini-card {
-  background: rgba(0, 122, 255, 0.1);
-  border-color: rgba(0, 122, 255, 0.15);
+.theme-dark .mini-employee-card {
+  background: rgba(0, 122, 255, 0.08);
 }
 
-.empleado-mini-card:hover {
-  background: rgba(0, 122, 255, 0.1);
-  border-color: rgba(0, 122, 255, 0.3);
+.mini-employee-card:hover {
+  background: rgba(0, 122, 255, 0.08);
+  border-color: rgba(0, 122, 255, 0.2);
 }
 
-.theme-dark .empleado-mini-card:hover {
-  background: rgba(0, 122, 255, 0.15);
-}
-
-.empleado-mini-card.seleccionado {
-  background: rgba(0, 122, 255, 0.15);
-  border-color: #007aff;
-  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
-  cursor: default;
-  opacity: 0.9;
-}
-
-.theme-dark .empleado-mini-card.seleccionado {
-  background: rgba(0, 122, 255, 0.2);
-}
-
-.empleado-mini-card.seleccionado:hover {
-  transform: none;
-  background: rgba(0, 122, 255, 0.15);
-  border-color: #007aff;
-}
-
-.theme-dark .empleado-mini-card.seleccionado:hover {
-  background: rgba(0, 122, 255, 0.2);
-}
-
-.empleado-mini-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+.mini-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
   overflow: hidden;
+  background: #007aff;
   margin-bottom: 6px;
 }
 
-.empleado-mini-avatar img {
+.mini-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.avatar-placeholder-mini {
+.mini-avatar span {
   width: 100%;
   height: 100%;
-  background: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
 }
 
-.empleado-mini-nombre {
-  font-size: 12px;
+.mini-name {
+  font-size: 11px;
   font-weight: 600;
-  color: var(--color-text);
+  color: #1d1d1f;
   text-align: center;
   line-height: 1.2;
 }
 
-.empleado-mini-rating {
+.theme-dark .mini-name {
+  color: #f5f5f7;
+}
+
+.mini-rating {
   display: flex;
   align-items: center;
   gap: 3px;
   font-size: 10px;
-  color: #ffc107;
+  color: #ffcc00;
   margin-top: 4px;
 }
 
-.empleado-mini-rating i {
-  font-size: 9px;
-}
-
-.no-empleados {
+.no-employees {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 20px;
-  color: var(--color-text-secondary);
+  color: #86868b;
   font-size: 13px;
 }
 
-.no-empleados i {
-  font-size: 18px;
-  opacity: 0.5;
-}
-
-/* Footer múltiples */
+/* Footer Multiple */
 .footer-multiples {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(0,0,0,0.06);
   display: flex;
   align-items: center;
   gap: 12px;
   z-index: 50;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
 }
 
 .theme-dark .footer-multiples {
-  background: rgba(28, 28, 30, 0.8);
-  border-top-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+  background: rgba(28, 28, 30, 0.95);
+  border-color: rgba(255,255,255,0.08);
 }
 
-.resumen-asignaciones {
+.assignment-status {
   flex: 1;
 }
 
-.resumen-asignaciones span {
+.assignment-status span {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
+  font-weight: 600;
 }
 
-.resumen-asignaciones .completo {
+.status-complete {
   color: #34c759;
-  font-weight: 600;
 }
 
-.resumen-asignaciones .pendiente {
+.status-pending {
   color: #ff9500;
-  font-weight: 600;
 }
 
-.btn-continuar-multiples {
-  padding: 12px 24px;
+.btn-continue {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
   background: #007aff;
   color: white;
   border: none;
@@ -995,27 +850,42 @@ onMounted(() => {
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
-  letter-spacing: -0.2px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+  font-family: inherit;
 }
 
-.btn-continuar-multiples:disabled {
+.btn-continue:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.btn-continuar-multiples:not(:disabled):hover {
-  background: #0051d5;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+.btn-continue:not(:disabled):hover {
+  background: #0066d6;
 }
 
-.btn-continuar-multiples:not(:disabled):active {
-  transform: scale(0.98);
-  background: #0040b3;
+/* Responsive */
+@media (max-width: 380px) {
+  .paso-empleado {
+    padding: 16px 12px;
+  }
+  
+  .header-icon {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .page-header h1 {
+    font-size: 22px;
+  }
+  
+  .employee-avatar {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .mode-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
 }
 </style>

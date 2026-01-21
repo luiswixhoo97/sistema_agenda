@@ -17,6 +17,7 @@ Route::prefix('publico')->group(function () {
     Route::get('/categorias', [CategoriaController::class, 'indexPublico']);
     Route::get('/empleados', [EmpleadoController::class, 'indexPublico']);
     Route::get('/promociones', [PromocionController::class, 'indexPublico']);
+    Route::post('/promociones/calcular-mejor', [PromocionController::class, 'calcularMejorPromocion']);
     Route::get('/cliente/telefono/{telefono}', [ClienteController::class, 'buscarPorTelefonoPublico']);
 
     

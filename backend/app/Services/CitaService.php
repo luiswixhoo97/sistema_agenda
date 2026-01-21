@@ -51,6 +51,27 @@ class CitaService
         // Calcular duración y precio total para la auditoría/respuesta
         $duracionTotal = $this->disponibilidadService->calcularDuracionTotal($servicioIds);
         
+        // ✅ VALIDAR PROMOCIÓN si se proporciona
+        $promocion = null;
+        if ($promocionId) {
+            $promocion = Promocion::find($promocionId);
+            
+            if (!$promocion) {
+                return [
+                    'success' => false,
+                    'message' => 'Promoción no encontrada',
+                ];
+            }
+            
+            // Validar que la promoción sea válida
+            if (!$this->promocionEsValida($promocion, $servicioIds)) {
+                return [
+                    'success' => false,
+                    'message' => 'La promoción no es válida o ha expirado',
+                ];
+            }
+        }
+        
         try {
             DB::beginTransaction();
 
@@ -65,17 +86,33 @@ class CitaService
                 $servicio = $servicios->find($servicioId);
                 if (!$servicio) continue;
 
+                // Calcular precio (primero verificar precio especial del empleado)
                 $precioAplicado = $servicio->empleados()
                     ->where('empleado_id', $empleadoId)
                     ->first()
                     ?->pivot
                     ?->precio_especial ?? $servicio->precio;
+                
+                // ✅ Aplicar descuento de promoción si existe
+                $descuentoAplicado = 0;
+                if ($promocion) {
+                    $descuentoAplicado = $promocion->calcularDescuento($precioAplicado);
+                    $precioAplicado -= $descuentoAplicado;
+                    
+                    Log::info('Aplicando descuento de promoción', [
+                        'promocion_id' => $promocion->id,
+                        'servicio_id' => $servicioId,
+                        'precio_original' => $precioAplicado + $descuentoAplicado,
+                        'descuento' => $descuentoAplicado,
+                        'precio_final' => $precioAplicado,
+                    ]);
+                }
 
                 $cita = Cita::create([
                     'cliente_id' => $clienteId,
                     'empleado_id' => $empleadoId,
                     'servicio_id' => $servicioId,
-                    'promocion_id' => null,
+                    'promocion_id' => $promocionId,  // ✅ GUARDAR PROMOCIÓN!
                     'fecha_hora' => $currentTime->format('Y-m-d H:i:s'),
                     'duracion_total' => $servicio->duracion,
                     'estado' => Cita::ESTADO_CONFIRMADA,
@@ -88,6 +125,16 @@ class CitaService
                 Auditoria::registrar('crear', 'citas', $cita->id, null, $cita->toArray());
                 $citasCreadas[] = $cita;
                 $currentTime->addMinutes($servicio->duracion);
+            }
+            
+            // ✅ INCREMENTAR CONTADOR DE USOS de la promoción
+            if ($promocion) {
+                $promocion->incrementarUso();
+                Log::info('Incrementado contador de usos de promoción', [
+                    'promocion_id' => $promocion->id,
+                    'usos_actuales' => $promocion->usos_actuales,
+                    'usos_maximos' => $promocion->usos_maximos,
+                ]);
             }
 
             DB::commit();
@@ -530,22 +577,58 @@ class CitaService
      */
     private function promocionEsValida(Promocion $promocion, array $servicioIds): bool
     {
+        // ✅ Verificar que esté vigente
         if (!$promocion->estaVigente()) {
+            Log::info('Promoción no vigente', [
+                'promocion_id' => $promocion->id,
+                'fecha_inicio' => $promocion->fecha_inicio,
+                'fecha_fin' => $promocion->fecha_fin,
+                'hoy' => now()->toDateString(),
+            ]);
             return false;
         }
 
+        // ✅ Verificar que tenga usos disponibles
         if (!$promocion->tieneUsosDisponibles()) {
+            Log::info('Promoción sin usos disponibles', [
+                'promocion_id' => $promocion->id,
+                'usos_actuales' => $promocion->usos_actuales,
+                'usos_maximos' => $promocion->usos_maximos,
+            ]);
             return false;
         }
 
-        // Verificar que aplica a al menos uno de los servicios
-        foreach ($servicioIds as $servicioId) {
-            if ($promocion->aplicaAServicio($servicioId)) {
-                return true;
+        // ✅ Verificar que la promoción esté activa
+        if (!$promocion->active) {
+            Log::info('Promoción inactiva', ['promocion_id' => $promocion->id]);
+            return false;
+        }
+
+        // ✅ Verificar que aplica a TODOS los servicios seleccionados
+        if ($promocion->servicios_aplicables !== null && !empty($promocion->servicios_aplicables)) {
+            // La promoción solo aplica a servicios específicos
+            // Verificar que TODOS los servicios seleccionados estén en la lista
+            foreach ($servicioIds as $servicioId) {
+                if (!in_array($servicioId, $promocion->servicios_aplicables)) {
+                    Log::info('Servicio no incluido en promoción', [
+                        'promocion_id' => $promocion->id,
+                        'servicio_id' => $servicioId,
+                        'servicios_aplicables' => $promocion->servicios_aplicables,
+                        'servicios_seleccionados' => $servicioIds,
+                    ]);
+                    return false;
+                }
             }
         }
 
-        return false;
+        // ✅ Promoción válida
+        Log::info('Promoción validada correctamente', [
+            'promocion_id' => $promocion->id,
+            'nombre' => $promocion->nombre,
+            'servicios' => $servicioIds,
+        ]);
+
+        return true;
     }
 
     /**

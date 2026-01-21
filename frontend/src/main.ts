@@ -5,6 +5,9 @@ import './assets/appkit/fonts/css/fontawesome-all.min.css'
 import './assets/base.css'
 import './assets/main.css'
 
+// Apple Design System
+import './styles/apple-design-system.css'
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 

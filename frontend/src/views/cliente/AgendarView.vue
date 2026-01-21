@@ -1,12 +1,25 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, watch, computed, defineAsyncComponent } from 'vue'
 import { useAgendamiento } from '@/composables/useAgendamiento'
 import { useAppkit } from '@/composables/useAppkit'
-import PasoDatosCliente from '@/components/agendamiento/PasoDatosCliente.vue'
-import PasoServicios from '@/components/agendamiento/PasoServicios.vue'
-import PasoEmpleado from '@/components/agendamiento/PasoEmpleado.vue'
-import PasoFechaHora from '@/components/agendamiento/PasoFechaHora.vue'
-import PasoConfirmacion from '@/components/agendamiento/PasoConfirmacion.vue'
+import AppIcons from '@/components/agendamiento/AppIcons.vue'
+
+// Lazy loading de componentes de pasos para mejor rendimiento
+const PasoDatosCliente = defineAsyncComponent(() => 
+  import('@/components/agendamiento/PasoDatosCliente.vue')
+)
+const PasoServicios = defineAsyncComponent(() =>
+  import('@/components/agendamiento/PasoServicios.vue')
+)
+const PasoEmpleado = defineAsyncComponent(() =>
+  import('@/components/agendamiento/PasoEmpleado.vue')
+)
+const PasoFechaHora = defineAsyncComponent(() =>
+  import('@/components/agendamiento/PasoFechaHora.vue')
+)
+const PasoConfirmacion = defineAsyncComponent(() =>
+  import('@/components/agendamiento/PasoConfirmacion.vue')
+)
 
 const { 
   store, 
@@ -31,45 +44,60 @@ watch(() => store.paso, async (nuevoPaso) => {
 })
 
 const pasos = [
-  { numero: 1, titulo: 'Datos', icon: 'fa-user' },
-  { numero: 2, titulo: 'Servicios', icon: 'fa-spa' },
-  { numero: 3, titulo: 'Profesional', icon: 'fa-user-tie' },
-  { numero: 4, titulo: 'Fecha', icon: 'fa-calendar' },
-  { numero: 5, titulo: 'Confirmar', icon: 'fa-check' },
+  { numero: 1, titulo: 'Datos', icon: 'user' },
+  { numero: 2, titulo: 'Servicios', icon: 'spa' },
+  { numero: 3, titulo: 'Profesional', icon: 'briefcase' },
+  { numero: 4, titulo: 'Fecha', icon: 'calendar' },
+  { numero: 5, titulo: 'Confirmar', icon: 'check' },
 ]
+
+// Computed para el porcentaje de progreso
+const progressPercentage = computed(() => {
+  return ((store.paso - 1) / (pasos.length - 1)) * 100
+})
 </script>
 
 <template>
-  <div class="agendar-view">
-    <!-- FAB Toggle Theme -->
-    <button class="theme-fab" @click="toggleTheme" :aria-label="theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'">
-      <i :class="['fa', theme === 'light' ? 'fa-moon' : 'fa-sun']"></i>
+  <div class="agendar-view" :class="{ 'theme-dark': theme === 'dark' }">
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" @click="toggleTheme" :aria-label="theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'">
+      <AppIcons :name="theme === 'light' ? 'moon' : 'sun'" :size="20" />
     </button>
 
-    <!-- Indicador de pasos -->
-    <div class="pasos-container">
-  
-      <div class="pasos-items">
+    <!-- Progress Steps -->
+    <div class="steps-container" role="navigation" aria-label="Indicador de progreso">
+      <!-- Steps -->
+      <div class="steps">
         <div 
           v-for="paso in pasos" 
           :key="paso.numero"
-          class="paso-item"
+          class="step"
           :class="{ 
-            'activo': store.paso === paso.numero,
-            'completado': store.paso > paso.numero 
+            'active': store.paso === paso.numero,
+            'completed': store.paso > paso.numero 
           }"
+          role="listitem"
+          :aria-current="store.paso === paso.numero ? 'step' : undefined"
         >
-          <div class="paso-circulo">
-            <i v-if="store.paso > paso.numero" class="fa fa-check"></i>
-            <i v-else :class="['fa', paso.icon]"></i>
+          <!-- Progress Line (behind icons) -->
+          <div v-if="paso.numero < pasos.length" class="progress-line">
+            <div 
+              class="progress-fill" 
+              :class="{ 'filled': store.paso > paso.numero }"
+            ></div>
           </div>
-          <span class="paso-titulo">{{ paso.titulo }}</span>
+          
+          <div class="step-icon">
+            <AppIcons v-if="store.paso > paso.numero" name="check" :size="16" />
+            <AppIcons v-else :name="paso.icon" :size="16" />
+          </div>
+          <span class="step-label">{{ paso.titulo }}</span>
         </div>
       </div>
     </div>
 
-    <!-- Contenido del paso -->
-    <div class="paso-contenido">
+    <!-- Content -->
+    <div class="content">
       <Transition name="slide" mode="out-in">
         <PasoDatosCliente v-if="store.paso === 1" key="1" />
         <PasoServicios v-else-if="store.paso === 2" key="2" />
@@ -79,44 +107,44 @@ const pasos = [
       </Transition>
     </div>
 
-    <!-- Error toast -->
+    <!-- Error Toast -->
     <Transition name="toast">
       <div v-if="store.error" class="error-toast">
-        <i class="fa fa-exclamation-circle"></i>
+        <AppIcons name="alert-circle" :size="20" />
         <span>{{ store.error }}</span>
-        <button @click="store.clearError()">
-          <i class="fa fa-times"></i>
+        <button @click="store.clearError()" class="toast-close">
+          <AppIcons name="x" :size="16" />
         </button>
       </div>
     </Transition>
 
-    <!-- Footer navegación -->
-    <footer class="agendar-footer" v-if="store.paso < 5">
+    <!-- Footer Navigation -->
+    <footer class="footer" v-if="store.paso < 5" role="navigation" aria-label="Navegación">
       <button 
-        class="btn-nav btn-anterior"
+        class="btn btn-secondary"
         @click="store.pasoAnterior()"
         :disabled="store.paso === 1"
       >
-        <i class="fa fa-chevron-left"></i>
-        Anterior
+        <AppIcons name="chevron-left" :size="18" />
+        <span>Anterior</span>
       </button>
       
-      <div class="footer-resumen" v-if="store.calculoServicio && store.paso > 1">
-        <span class="precio">${{ Number(store.totalPrecio || 0).toFixed(0) }}</span>
-        <span class="duracion">{{ store.calculoServicio.duracion_texto }}</span>
+      <div class="footer-summary" v-if="store.calculoServicio && store.paso > 1">
+        <span class="price">${{ Number(store.totalPrecio || 0).toFixed(0) }}</span>
+        <span class="duration">{{ store.calculoServicio.duracion_texto }}</span>
       </div>
 
       <button 
-        class="btn-nav btn-siguiente"
+        class="btn btn-primary"
         @click="store.siguientePaso()"
         :disabled="!store.puedeAvanzar || store.loading"
       >
-        <span v-if="store.loading">
-          <i class="fa fa-spinner fa-spin"></i>
+        <span v-if="store.loading" class="loading">
+          <AppIcons name="loader" :size="18" />
         </span>
         <span v-else>
           {{ store.paso === 4 ? 'Confirmar' : 'Siguiente' }}
-          <i class="fa fa-chevron-right"></i>
+          <AppIcons name="chevron-right" :size="18" />
         </span>
       </button>
     </footer>
@@ -124,198 +152,197 @@ const pasos = [
 </template>
 
 <style scoped>
+/* ============================================
+   APPLE MINIMAL DESIGN SYSTEM
+   ============================================ */
+
 .agendar-view {
-  width: 100%;
-  min-height: 100%;
-  flex: 1;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: #f5f5f7;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  background: #fafafa;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  color: #1d1d1f;
 }
 
-.theme-dark .agendar-view {
-  background: #000000;
+.theme-dark.agendar-view {
+  background: #000;
+  color: #f5f5f7;
 }
 
-/* Pasos */
-.pasos-container {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  padding: 16px 12px;
-  margin: 25px 16px 0;
-  border-radius: 16px;
-  border: 0.5px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    0 0 0 0.5px rgba(0, 0, 0, 0.06);
-}
-
-.theme-dark .pasos-container {
-  background: rgba(28, 28, 30, 0.95);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    0 0 0 0.5px rgba(255, 255, 255, 0.05);
-}
-
-.pasos-progress {
-  height: 2px;
-  background: rgba(0, 0, 0, 0.08);
-  border-radius: 1px;
-  margin-bottom: 16px;
-  overflow: hidden;
-  position: relative;
-}
-
-.theme-dark .pasos-progress {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.pasos-progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #007aff, #0051d5);
-  border-radius: 1px;
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 6px rgba(0, 122, 255, 0.3);
-}
-
-.pasos-items {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.paso-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
-  opacity: 0.5;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-}
-
-.paso-item.activo {
-  opacity: 1;
-  transform: translateY(-2px);
-}
-
-.paso-item.completado {
-  opacity: 1;
-}
-
-.paso-circulo {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.06);
+/* Theme Toggle */
+.theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
-  color: #86868b;
-  margin-bottom: 8px;
+  cursor: pointer;
+  z-index: 100;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #1d1d1f;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.theme-dark .theme-toggle {
+  background: rgba(44, 44, 46, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #f5f5f7;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-toggle:hover {
+  transform: scale(1.05);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Steps Container */
+.steps-container {
+  padding: 24px 20px;
+  margin: 8px 16px 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+}
+
+.theme-dark .steps-container {
+  background: rgba(28, 28, 30, 0.95);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Steps */
+.steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0;
+  position: relative;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  opacity: 0.35;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  border: 2px solid transparent;
 }
 
-.theme-dark .paso-circulo {
-  background: rgba(255, 255, 255, 0.1);
-  color: #6e6e73;
+.step.active {
+  opacity: 1;
 }
 
-.paso-item.activo .paso-circulo {
+.step.completed {
+  opacity: 0.85;
+}
+
+/* Progress Line (behind icons) */
+.progress-line {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.06);
+  z-index: 0;
+}
+
+.theme-dark .progress-line {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.progress-fill {
+  height: 100%;
+  background: transparent;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-fill.filled {
+  background: #34c759;
+}
+
+.step-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  color: #86868b;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
+}
+
+.theme-dark .step-icon {
+  background: rgba(255, 255, 255, 0.06);
+  color: #98989d;
+}
+
+.step.active .step-icon {
   background: #007aff;
   color: white;
-  box-shadow: 
-    0 3px 10px rgba(0, 122, 255, 0.35),
-    0 0 0 3px rgba(0, 122, 255, 0.1);
-  transform: scale(1.08);
-  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+  z-index: 2;
 }
 
-.paso-item.completado .paso-circulo {
+.step.completed .step-icon {
   background: #34c759;
   color: white;
-  box-shadow: 0 2px 6px rgba(52, 199, 89, 0.3);
+  z-index: 2;
 }
 
-.paso-item.completado .paso-circulo i {
-  font-size: 14px;
-}
-
-.paso-titulo {
+.step-label {
   font-size: 11px;
   font-weight: 500;
   color: #86868b;
-  letter-spacing: -0.1px;
   text-align: center;
-  line-height: 1.3;
-  transition: all 0.3s;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  letter-spacing: 0.01em;
+  position: relative;
+  z-index: 1;
 }
 
-.theme-dark .paso-titulo {
-  color: #a1a1a6;
+.theme-dark .step-label {
+  color: #98989d;
 }
 
-.paso-item.activo .paso-titulo {
+.step.active .step-label {
   color: #007aff;
-  font-weight: 700;
-  font-size: 12px;
-  transform: scale(1.03);
-}
-
-.paso-item.completado .paso-titulo {
-  color: #34c759;
   font-weight: 600;
 }
 
-/* Línea conectora entre pasos */
-.paso-item:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  top: 18px;
-  left: calc(50% + 18px);
-  width: calc(100% - 36px);
-  height: 2px;
-  background: rgba(0, 0, 0, 0.08);
-  z-index: 0;
-  transition: all 0.3s;
+.step.completed .step-label {
+  color: #34c759;
 }
 
-.theme-dark .paso-item:not(:last-child)::after {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.paso-item.completado:not(:last-child)::after {
-  background: #34c759;
-  height: 2px;
-}
-
-.paso-item.activo:not(:last-child)::after {
-  background: linear-gradient(90deg, #34c759, #007aff);
-  height: 2px;
-}
-
-/* Contenido */
-.paso-contenido {
+/* Content */
+.content {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 80px;
+  padding-bottom: 100px;
 }
 
-/* Error toast */
+/* Error Toast */
 .error-toast {
   position: fixed;
   bottom: 100px;
@@ -323,226 +350,235 @@ const pasos = [
   right: 16px;
   background: #ff3b30;
   color: white;
-  padding: 14px 18px;
+  padding: 14px 16px;
   border-radius: 14px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 
-    0 8px 24px rgba(255, 59, 48, 0.3),
-    0 0 0 0.5px rgba(255, 59, 48, 0.2);
-  z-index: 100;
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-}
-
-.error-toast i:first-child {
-  font-size: 18px;
+  box-shadow: 0 8px 32px rgba(255, 59, 48, 0.4);
+  z-index: 200;
 }
 
 .error-toast span {
   flex: 1;
   font-size: 14px;
+  font-weight: 500;
 }
 
-.error-toast button {
-  background: none;
+.toast-close {
+  background: rgba(255, 255, 255, 0.2);
   border: none;
-  color: white;
-  padding: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  opacity: 0.8;
+  color: white;
 }
 
 /* Footer */
-.agendar-footer {
+.footer {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  padding: 16px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 16px 20px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
   display: flex;
   align-items: center;
   gap: 12px;
-  border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   z-index: 50;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
 }
 
-.theme-dark .agendar-footer {
+.theme-dark .footer {
   background: rgba(28, 28, 30, 0.95);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
-.footer-resumen {
+.footer-summary {
   flex: 1;
   text-align: center;
 }
 
-.footer-resumen .precio {
+.footer-summary .price {
   display: block;
   font-size: 20px;
   font-weight: 600;
   color: #007aff;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.02em;
 }
 
-.footer-resumen .duracion {
-  font-size: 13px;
+.footer-summary .duration {
+  font-size: 12px;
   color: #86868b;
-  font-weight: 400;
 }
 
-.theme-dark .footer-resumen .duracion {
-  color: #a1a1a6;
+.theme-dark .footer-summary .duration {
+  color: #98989d;
 }
 
-.btn-nav {
-  padding: 12px 20px;
-  border-radius: 12px;
-  font-size: 15px;
+/* Buttons */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  gap: 6px;
   border: none;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
-  letter-spacing: -0.2px;
+  font-family: inherit;
+  letter-spacing: -0.01em;
 }
 
-.btn-anterior {
-  background: rgba(0, 0, 0, 0.05);
+.btn-secondary {
+  background: rgba(0, 0, 0, 0.04);
   color: #1d1d1f;
 }
 
-.theme-dark .btn-anterior {
-  background: rgba(255, 255, 255, 0.1);
+.theme-dark .btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
   color: #f5f5f7;
 }
 
-.btn-anterior:hover:not(:disabled) {
+.btn-secondary:hover:not(:disabled) {
   background: rgba(0, 0, 0, 0.08);
 }
 
-.theme-dark .btn-anterior:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
+.theme-dark .btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.btn-anterior:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.btn-anterior:disabled {
+.btn-secondary:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
 
-.btn-siguiente {
+.btn-primary {
   background: #007aff;
   color: white;
   flex: 1;
-  justify-content: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
 }
 
-.btn-siguiente:disabled {
+.btn-primary:hover:not(:disabled) {
+  background: #0066d6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.35);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.btn-siguiente:not(:disabled):hover {
-  background: #0051d5;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+.btn .loading svg {
+  animation: spin 1s linear infinite;
 }
 
-.btn-siguiente:not(:disabled):active {
-  transform: scale(0.98);
-  background: #0040b3;
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-/* Transiciones */
-.slide-enter-active,
+/* Transitions */
+.slide-enter-active {
+  animation: slideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .slide-leave-active {
-  transition: all 0.2s ease;
+  animation: slideOut 0.3s cubic-bezier(0.4, 0, 1, 1);
 }
 
-.slide-enter-from {
-  opacity: 0;
-  transform: translateX(20px);
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-.slide-leave-to {
-  opacity: 0;
-  transform: translateX(-20px);
+@keyframes slideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
 }
 
-.toast-enter-active,
+.toast-enter-active {
+  animation: toastIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .toast-leave-active {
-  transition: all 0.3s ease;
+  animation: toastOut 0.25s cubic-bezier(0.4, 0, 1, 1);
 }
 
-.toast-enter-from,
-.toast-leave-to {
-  opacity: 0;
-  transform: translateY(20px);
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-/* Theme FAB */
-.theme-fab {
-  position: fixed;
-  top: 3px;
-  right: 5px;
-  width: 48px;
-  height: 48px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border: 0.5px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.1),
-    0 0 0 0.5px rgba(0, 0, 0, 0.05);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 100;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 20px;
-  color: #007aff;
-  padding: 0;
-  outline: none;
+@keyframes toastOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
 }
 
-.theme-dark .theme-fab {
-  background: rgba(28, 28, 30, 0.95);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.3),
-    0 0 0 0.5px rgba(255, 255, 255, 0.05);
-  color: #ffd60a;
-}
-
-.theme-fab:hover {
-  transform: scale(1.05);
-  box-shadow: 
-    0 6px 20px rgba(0, 0, 0, 0.15),
-    0 0 0 0.5px rgba(0, 0, 0, 0.08);
-}
-
-.theme-dark .theme-fab:hover {
-  box-shadow: 
-    0 6px 20px rgba(0, 0, 0, 0.4),
-    0 0 0 0.5px rgba(255, 255, 255, 0.08);
-}
-
-.theme-fab:active {
-  transform: scale(0.95);
+/* Responsive */
+@media (max-width: 380px) {
+  .steps-container {
+    padding: 20px 16px;
+    margin: 8px 12px 0;
+  }
+  
+  .step-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+  
+  .step-label {
+    font-size: 10px;
+  }
+  
+  .footer {
+    padding: 12px 16px;
+  }
+  
+  .btn {
+    padding: 12px 16px;
+    font-size: 15px;
+  }
 }
 </style>
