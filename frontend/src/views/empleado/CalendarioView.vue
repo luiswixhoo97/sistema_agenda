@@ -277,7 +277,7 @@
                       <span class="info-label">Promoción</span>
                       <div class="promocion-badge-modal">
                         <span class="promocion-nombre">{{ citaSeleccionada.promocion.nombre }}</span>
-                        <span class="promocion-descuento">{{ citaSeleccionada.promocion.descuento }}</span>
+                        <span class="promocion-descuento">{{ citaSeleccionada.promocion.descuento_porcentaje ? `${citaSeleccionada.promocion.descuento_porcentaje}%` : `$${citaSeleccionada.promocion.descuento_fijo}` }}</span>
                       </div>
                     </div>
                   </div>

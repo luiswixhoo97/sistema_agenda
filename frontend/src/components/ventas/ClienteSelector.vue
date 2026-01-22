@@ -21,7 +21,7 @@ const showDropdown = ref(false);
 const selectedCliente = ref<Cliente | null>(null);
 
 const fetchClientes = async () => {
-  loading.ref = true;
+  loading.value = true;
   try {
     const response = await adminService.getClientes();
     clientes.value = response.data || [];
@@ -32,7 +32,9 @@ const fetchClientes = async () => {
     } else if (clientes.value.length > 0) {
       // Por defecto seleccionar el primero (Público General) si no hay valor
       const publicoGeneral = clientes.value.find(c => c.nombre.includes('Público General')) || clientes.value[0];
-      selectCliente(publicoGeneral);
+      if (publicoGeneral) {
+        selectCliente(publicoGeneral);
+      }
     }
   } catch (error) {
     console.error('Error al obtener clientes:', error);

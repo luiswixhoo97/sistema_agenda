@@ -22,8 +22,8 @@ function precioConDescuento(servicio: any): number {
     const promocion = store.promocionInfo
     
     // Verificar que los servicios seleccionados coincidan con los de la promoción
-    const serviciosPromoIds = (promocion.servicios_info?.map((s: any) => Number(s.id)) || []).sort((a, b) => a - b)
-    const serviciosSeleccionadosIds = store.serviciosSeleccionados.map(s => Number(s.id)).sort((a, b) => a - b)
+    const serviciosPromoIds = (promocion.servicios_info?.map((s: any) => Number(s.id)) || []).sort((a: number, b: number) => a - b)
+    const serviciosSeleccionadosIds = store.serviciosSeleccionados.map(s => Number(s.id)).sort((a: number, b: number) => a - b)
     
     // Verificar que todos los servicios de la promoción estén seleccionados
     const todosServiciosCoinciden = serviciosPromoIds.length > 0 && 
