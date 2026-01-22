@@ -13,6 +13,89 @@ const {
 
 const tieneMultiplesServicios = computed(() => store.serviciosSeleccionados.length > 1)
 
+// Calcular precio con descuento para un servicio individual
+function precioConDescuento(servicio: any): number {
+  const precioBase = Number(servicio.precio)
+  
+  // Si hay una promoción seleccionada, aplicar el descuento
+  if (store.promocionSeleccionada && store.promocionInfo) {
+    const promocion = store.promocionInfo
+    
+    // Verificar que los servicios seleccionados coincidan con los de la promoción
+    const serviciosPromoIds = (promocion.servicios_info?.map((s: any) => Number(s.id)) || []).sort((a, b) => a - b)
+    const serviciosSeleccionadosIds = store.serviciosSeleccionados.map(s => Number(s.id)).sort((a, b) => a - b)
+    
+    // Verificar que todos los servicios de la promoción estén seleccionados
+    const todosServiciosCoinciden = serviciosPromoIds.length > 0 && 
+      serviciosPromoIds.every((id: number) => serviciosSeleccionadosIds.includes(id)) &&
+      serviciosSeleccionadosIds.length === serviciosPromoIds.length
+    
+    // Solo aplicar descuento si los servicios coinciden exactamente con la promoción
+    // y el servicio actual está incluido en la promoción
+    if (todosServiciosCoinciden && serviciosPromoIds.includes(Number(servicio.id))) {
+      const promo = promocion as any
+      // Aplicar descuento por porcentaje
+      if (promo.descuento_porcentaje && Number(promo.descuento_porcentaje) > 0) {
+        const descuento = precioBase * (Number(promo.descuento_porcentaje) / 100)
+        const precioFinal = precioBase - descuento
+        console.log('💰 [PasoEmpleado] Aplicando descuento porcentual:', {
+          servicioId: servicio.id,
+          servicioNombre: servicio.nombre,
+          precioBase,
+          descuentoPorcentaje: promo.descuento_porcentaje,
+          descuento,
+          precioFinal,
+          promocionId: store.promocionSeleccionada
+        })
+        return precioFinal
+      } 
+      // Aplicar descuento fijo (distribuir proporcionalmente)
+      else if (promo.descuento_fijo && Number(promo.descuento_fijo) > 0) {
+        const precioTotal = store.serviciosSeleccionados.reduce((sum, s) => sum + Number(s.precio), 0)
+        if (precioTotal > 0) {
+          const proporcion = precioBase / precioTotal
+          const descuento = Number(promo.descuento_fijo) * proporcion
+          const precioFinal = Math.max(0, precioBase - descuento)
+          console.log('💰 [PasoEmpleado] Aplicando descuento fijo:', {
+            servicioId: servicio.id,
+            servicioNombre: servicio.nombre,
+            precioBase,
+            descuentoFijo: promo.descuento_fijo,
+            proporcion,
+            descuento,
+            precioFinal
+          })
+          return precioFinal
+        }
+      }
+    } else {
+      console.log('ℹ️ [PasoEmpleado] No se aplica descuento:', {
+        servicioId: servicio.id,
+        servicioNombre: servicio.nombre,
+        todosServiciosCoinciden,
+        servicioEnPromo: serviciosPromoIds.includes(Number(servicio.id)),
+        serviciosPromo: serviciosPromoIds,
+        serviciosSeleccionados: serviciosSeleccionadosIds,
+        promocionId: store.promocionSeleccionada,
+        tienePromocionInfo: !!store.promocionInfo
+      })
+    }
+  } else {
+    console.log('ℹ️ [PasoEmpleado] No hay promoción activa:', {
+      servicioId: servicio.id,
+      promocionSeleccionada: store.promocionSeleccionada,
+      tienePromocionInfo: !!store.promocionInfo
+    })
+  }
+  
+  return precioBase
+}
+
+// Computed para verificar si hay promoción activa
+const tienePromocionActiva = computed(() => {
+  return store.promocionSeleccionada !== null && store.promocionInfo !== null
+})
+
 function empleadosParaServicio(servicioId: number) {
   return store.empleadosDisponiblesPorServicio[servicioId] || []
 }
@@ -185,7 +268,20 @@ onMounted(() => {
                 {{ servicio.duracion }} min
               </span>
             </div>
-            <div class="assignment-price">${{ servicio.precio }}</div>
+            <div class="assignment-price">
+              <template v-if="tienePromocionActiva">
+                <template v-if="precioConDescuento(servicio) < Number(servicio.precio)">
+                  <span class="price-original">${{ Number(servicio.precio).toFixed(0) }}</span>
+                  <span class="price-final">${{ Number(precioConDescuento(servicio)).toFixed(0) }}</span>
+                </template>
+                <template v-else>
+                  ${{ Number(servicio.precio).toFixed(0) }}
+                </template>
+              </template>
+              <template v-else>
+                ${{ Number(servicio.precio).toFixed(0) }}
+              </template>
+            </div>
           </div>
 
           <!-- Selected Employee -->
@@ -664,6 +760,27 @@ onMounted(() => {
 }
 
 .assignment-price {
+  font-size: 16px;
+  font-weight: 600;
+  color: #007aff;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.assignment-price .price-original {
+  font-size: 12px;
+  font-weight: 400;
+  color: #86868b;
+  text-decoration: line-through;
+}
+
+.theme-dark .assignment-price .price-original {
+  color: #98989d;
+}
+
+.assignment-price .price-final {
   font-size: 16px;
   font-weight: 600;
   color: #007aff;

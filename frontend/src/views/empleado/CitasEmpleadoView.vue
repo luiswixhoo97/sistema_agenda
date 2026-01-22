@@ -93,6 +93,9 @@
               <span :class="['cita-status', proximaCita.estado]">
                 {{ estadoTexto(proximaCita.estado) }}
               </span>
+              <span v-if="proximaCita.promocion" class="promocion-badge-status">
+                Promoción
+              </span>
             </div>
             
             <div class="cita-info-grid">
@@ -132,6 +135,9 @@
               <span :class="['cita-status', cita.estado]">
                 {{ estadoTexto(cita.estado) }}
               </span>
+              <span v-if="cita.promocion" class="promocion-badge-status">
+                Promoción
+              </span>
             </div>
             
             <div class="cita-info-grid">
@@ -169,9 +175,19 @@
         <div v-if="citaDetalle" class="modal-overlay" @click="citaDetalle = null">
           <div class="modal-content" @click.stop>
             <div class="modal-header">
-              <div>
+              <div class="modal-header-content">
                 <h3>Detalle de Cita</h3>
-                <p class="modal-subtitle">Cita #{{ citaDetalle.id }}</p>
+                <div class="modal-subtitle-row">
+                  <p class="modal-subtitle">Cita #{{ citaDetalle.id }}</p>
+                  <div class="modal-header-badges">
+                    <span :class="['status-badge-large', citaDetalle.estado]">
+                      {{ estadoTexto(citaDetalle.estado) }}
+                    </span>
+                    <span v-if="citaDetalle.promocion" class="promocion-badge-status">
+                      Promoción
+                    </span>
+                  </div>
+                </div>
               </div>
               <button class="modal-close" @click="citaDetalle = null">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -183,13 +199,6 @@
             <div class="modal-body">
               <!-- Vista Detalle -->
               <div class="cita-detail">
-                <!-- Estado Badge -->
-                <div class="detail-status-badge">
-                  <span :class="['status-badge-large', citaDetalle.estado]">
-                    {{ estadoTexto(citaDetalle.estado) }}
-                  </span>
-                </div>
-
                 <!-- Información Principal -->
                 <div class="detail-section">
                   <div class="section-title">
@@ -289,7 +298,7 @@
                         <span class="servicio-nombre">{{ servicio.nombre }}</span>
                         <span class="servicio-duracion">{{ servicio.duracion || servicio.duracion_minutos }} min</span>
                       </div>
-                      <span class="servicio-precio">${{ formatPrecio(servicio.precio || servicio.precio_aplicado) }}</span>
+                      <span class="servicio-precio">${{ formatPrecio(servicio.precio_aplicado || servicio.precio) }}</span>
                     </div>
                   </div>
                 </div>
@@ -1332,7 +1341,7 @@ function getServiciosList(cita: any): any[] {
     return cita.servicios.map((s: any) => ({
       nombre: s.nombre || s.servicio?.nombre || 'Sin nombre',
       duracion: s.duracion || s.duracion_minutos || s.servicio?.duracion_minutos || 0,
-      precio: s.precio || s.precio_aplicado || s.servicio?.precio || 0,
+      precio: s.precio_aplicado || s.precio || s.servicio?.precio || 0,
     }));
   }
   if (cita.servicio) {
@@ -2039,6 +2048,18 @@ onMounted(() => {
   color: #ff9500;
 }
 
+.promocion-badge-status {
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+  background: rgba(118, 75, 162, 0.12);
+  color: #764ba2;
+  letter-spacing: 0.2px;
+}
+
 .cita-info-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -2095,11 +2116,17 @@ onMounted(() => {
 
 .cita-card-footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 8px;
   padding: 14px 20px;
   background: #f8f9fa;
   border-top: 1px solid #f0f0f0;
+}
+
+.cita-card-footer > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .cita-price {
@@ -2175,6 +2202,13 @@ onMounted(() => {
   background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
 }
 
+.modal-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
 .modal-header h3 {
   margin: 0;
   font-size: 20px;
@@ -2183,11 +2217,25 @@ onMounted(() => {
   letter-spacing: -0.3px;
 }
 
+.modal-subtitle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .modal-subtitle {
-  font-size: 13px;
+  font-size: 15px;
   color: #86868b;
-  margin: 4px 0 0;
+  margin: 0;
   font-weight: 400;
+}
+
+.modal-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .modal-close {

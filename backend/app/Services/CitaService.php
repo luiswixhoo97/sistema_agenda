@@ -30,8 +30,17 @@ class CitaService
         $empleadoId = $datos['empleado_id'];
         $servicioIds = $datos['servicios'];
         $fechaHora = $datos['fecha_hora'];
-        $promocionId = $datos['promocion_id'] ?? null;
+        $promocionId = isset($datos['promocion_id']) && $datos['promocion_id'] !== null && $datos['promocion_id'] !== '' 
+            ? (int)$datos['promocion_id'] 
+            : null;
         $notas = $datos['notas'] ?? null;
+        
+        Log::info('🔍 CitaService->agendar recibido', [
+            'promocion_id' => $promocionId,
+            'empleado_id' => $empleadoId,
+            'servicios' => $servicioIds,
+            'datos_promocion_id_raw' => $datos['promocion_id'] ?? 'no definido',
+        ]);
 
         // Verificar disponibilidad (con bloqueo para evitar race condition)
         $disponibilidad = $this->disponibilidadService->verificarDisponibilidad(
@@ -53,23 +62,38 @@ class CitaService
         
         // ✅ VALIDAR PROMOCIÓN si se proporciona
         $promocion = null;
-        if ($promocionId) {
+        if ($promocionId && $promocionId > 0) {
+            Log::info('🔍 Buscando promoción', ['promocion_id' => $promocionId]);
+            
             $promocion = Promocion::find($promocionId);
             
             if (!$promocion) {
+                Log::warning('⚠️ Promoción no encontrada', ['promocion_id' => $promocionId]);
                 return [
                     'success' => false,
                     'message' => 'Promoción no encontrada',
                 ];
             }
             
+            Log::info('✅ Promoción encontrada', [
+                'promocion_id' => $promocion->id,
+                'nombre' => $promocion->nombre,
+                'descuento_porcentaje' => $promocion->descuento_porcentaje,
+                'descuento_fijo' => $promocion->descuento_fijo,
+            ]);
+            
             // Validar que la promoción sea válida
             if (!$this->promocionEsValida($promocion, $servicioIds)) {
+                Log::warning('⚠️ Promoción no válida', ['promocion_id' => $promocionId]);
                 return [
                     'success' => false,
                     'message' => 'La promoción no es válida o ha expirado',
                 ];
             }
+            
+            Log::info('✅ Promoción validada correctamente', ['promocion_id' => $promocionId]);
+        } else {
+            Log::info('ℹ️ No hay promoción para esta cita', ['promocion_id' => $promocionId]);
         }
         
         try {
@@ -82,29 +106,61 @@ class CitaService
 
             $servicios = Servicio::whereIn('id', $servicioIds)->get();
 
+            // Paso 1: Calcular precios base de todos los servicios
+            $preciosBase = [];
             foreach ($servicioIds as $servicioId) {
                 $servicio = $servicios->find($servicioId);
                 if (!$servicio) continue;
 
-                // Calcular precio (primero verificar precio especial del empleado)
-                $precioAplicado = $servicio->empleados()
+                // Calcular precio base (verificar precio especial del empleado)
+                $precioBase = $servicio->empleados()
                     ->where('empleado_id', $empleadoId)
                     ->first()
                     ?->pivot
                     ?->precio_especial ?? $servicio->precio;
                 
-                // ✅ Aplicar descuento de promoción si existe
-                $descuentoAplicado = 0;
+                $preciosBase[$servicioId] = $precioBase;
+            }
+
+            // Paso 2: Calcular descuentos según tipo de promoción
+            $descuentosAplicados = [];
+            if ($promocion) {
+                if ($promocion->descuento_porcentaje) {
+                    // Descuento porcentual: aplicar el mismo porcentaje a cada servicio
+                    foreach ($preciosBase as $servicioId => $precioBase) {
+                        $descuento = $precioBase * ($promocion->descuento_porcentaje / 100);
+                        $descuentosAplicados[$servicioId] = $descuento;
+                    }
+                } elseif ($promocion->descuento_fijo) {
+                    // Descuento fijo: distribuir proporcionalmente según precio de cada servicio
+                    $precioTotal = array_sum($preciosBase);
+                    if ($precioTotal > 0) {
+                        foreach ($preciosBase as $servicioId => $precioBase) {
+                            $proporcion = $precioBase / $precioTotal;
+                            $descuento = $promocion->descuento_fijo * $proporcion;
+                            $descuentosAplicados[$servicioId] = $descuento;
+                        }
+                    }
+                }
+            }
+
+            // Paso 3: Crear citas con precios finales calculados
+            foreach ($servicioIds as $servicioId) {
+                $servicio = $servicios->find($servicioId);
+                if (!$servicio) continue;
+
+                $precioBase = $preciosBase[$servicioId] ?? $servicio->precio;
+                $descuentoAplicado = $descuentosAplicados[$servicioId] ?? 0;
+                $precioFinal = round($precioBase - $descuentoAplicado, 2);
+
                 if ($promocion) {
-                    $descuentoAplicado = $promocion->calcularDescuento($precioAplicado);
-                    $precioAplicado -= $descuentoAplicado;
-                    
                     Log::info('Aplicando descuento de promoción', [
                         'promocion_id' => $promocion->id,
                         'servicio_id' => $servicioId,
-                        'precio_original' => $precioAplicado + $descuentoAplicado,
+                        'precio_base' => $precioBase,
                         'descuento' => $descuentoAplicado,
-                        'precio_final' => $precioAplicado,
+                        'precio_final' => $precioFinal,
+                        'tipo_descuento' => $promocion->descuento_porcentaje ? 'porcentual' : 'fijo',
                     ]);
                 }
 
@@ -117,7 +173,7 @@ class CitaService
                     'duracion_total' => $servicio->duracion,
                     'estado' => Cita::ESTADO_CONFIRMADA,
                     'token_qr' => $tokenQr,
-                    'precio_final' => $precioAplicado,
+                    'precio_final' => $precioFinal,
                     'metodo_pago' => 'pendiente',
                     'notas' => $notas,
                 ]);
@@ -575,7 +631,7 @@ class CitaService
     /**
      * Verificar si una promoción es válida para los servicios
      */
-    private function promocionEsValida(Promocion $promocion, array $servicioIds): bool
+    public function promocionEsValida(Promocion $promocion, array $servicioIds): bool
     {
         // ✅ Verificar que esté vigente
         if (!$promocion->estaVigente()) {
@@ -696,6 +752,23 @@ class CitaService
      */
     public function formatearCita(Cita $cita): array
     {
+        // Cargar promoción si existe
+        $promocionInfo = null;
+        if ($cita->promocion_id) {
+            $promocion = $cita->promocion ?? Promocion::find($cita->promocion_id);
+            if ($promocion) {
+                $promocionInfo = [
+                    'id' => $promocion->id,
+                    'nombre' => $promocion->nombre,
+                    'descuento' => $promocion->descuento_porcentaje 
+                        ? "{$promocion->descuento_porcentaje}%" 
+                        : "\${$promocion->descuento_fijo}",
+                    'descuento_porcentaje' => $promocion->descuento_porcentaje,
+                    'descuento_fijo' => $promocion->descuento_fijo,
+                ];
+            }
+        }
+
         return [
             'id' => $cita->id,
             'fecha_hora' => $cita->fecha_hora->format('Y-m-d H:i'),
@@ -724,6 +797,7 @@ class CitaService
                 'precio_aplicado' => $cita->precio_final,
                 'duracion' => $cita->servicio->duracion,
             ]] : [],
+            'promocion' => $promocionInfo,
             'puede_cancelarse' => $cita->puedeCancelarse(),
             'puede_modificarse' => $cita->puedeModificarse(),
         ];

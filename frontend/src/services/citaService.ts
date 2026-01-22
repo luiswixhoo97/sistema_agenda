@@ -96,6 +96,7 @@ export interface AgendarMultiplesRequest {
   tokens_reserva?: string[]
   servicios: ServicioCitaMultiple[]
   notas?: string
+  promocion_id?: number
   anticipo_transferencia?: boolean
   anticipo_pagado?: boolean
 }

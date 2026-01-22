@@ -286,9 +286,17 @@ class AgendamientoPublicoController extends Controller
                 'notas' => $request->notas,
             ];
             
-            if ($request->has('promocion_id')) {
-                $datosCita['promocion_id'] = $request->promocion_id;
+            // Agregar promocion_id si existe (puede ser null)
+            if ($request->filled('promocion_id') || $request->has('promocion_id')) {
+                $datosCita['promocion_id'] = $request->input('promocion_id');
             }
+            
+            Log::info('📋 Datos de cita para agendar', [
+                'promocion_id' => $datosCita['promocion_id'] ?? null,
+                'empleado_id' => $datosCita['empleado_id'],
+                'servicios' => $datosCita['servicios'],
+                'request_promocion_id' => $request->input('promocion_id'),
+            ]);
 
             // No enviar notificación desde CitaService, la enviaremos después con los datos de anticipo
             $resultado = $this->citaService->agendar($datosCita, $cliente->id, true, false);
@@ -369,6 +377,7 @@ class AgendamientoPublicoController extends Controller
             'tokens_reserva' => 'nullable|array',
             'tokens_reserva.*' => 'string',
             'notas' => 'nullable|string|max:500',
+            'promocion_id' => 'nullable|integer|exists:promociones,id',
             'anticipo_transferencia' => 'nullable|boolean',
             'anticipo_pagado' => 'nullable|boolean',
         ]);
@@ -513,6 +522,29 @@ class AgendamientoPublicoController extends Controller
             }
         }
 
+        // ✅ VALIDAR PROMOCIÓN si se proporciona
+        $promocion = null;
+        $promocionId = $request->input('promocion_id');
+        if ($promocionId) {
+            $promocion = \App\Models\Promocion::find($promocionId);
+            
+            if (!$promocion) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Promoción no encontrada',
+                ], 422);
+            }
+
+            // Validar que la promoción sea válida para todos los servicios
+            $servicioIds = array_column($request->servicios, 'servicio_id');
+            if (!$this->citaService->promocionEsValida($promocion, $servicioIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La promoción no es válida o ha expirado',
+                ], 422);
+            }
+        }
+
         try {
             DB::beginTransaction();
 
@@ -532,7 +564,48 @@ class AgendamientoPublicoController extends Controller
             // Esto permite que un solo QR marque todas las citas relacionadas como completadas
             $tokenQrCompartido = $this->generarTokenQr();
 
-            // Crear cada cita
+            // Paso 1: Calcular precios base de todos los servicios
+            $preciosBase = [];
+            foreach ($request->servicios as $servicioData) {
+                $servicio = Servicio::find($servicioData['servicio_id']);
+                if (!$servicio) continue;
+
+                // Calcular precio base (verificar precio especial del empleado)
+                $precioBase = $servicio->empleados()
+                    ->where('empleado_id', $servicioData['empleado_id'])
+                    ->first()
+                    ?->pivot
+                    ?->precio_especial ?? $servicio->precio;
+                
+                $preciosBase[$servicioData['servicio_id']] = [
+                    'precio' => $precioBase,
+                    'empleado_id' => $servicioData['empleado_id'],
+                ];
+            }
+
+            // Paso 2: Calcular descuentos según tipo de promoción
+            $descuentosAplicados = [];
+            if ($promocion) {
+                if ($promocion->descuento_porcentaje) {
+                    // Descuento porcentual: aplicar el mismo porcentaje a cada servicio
+                    foreach ($preciosBase as $servicioId => $data) {
+                        $descuento = $data['precio'] * ($promocion->descuento_porcentaje / 100);
+                        $descuentosAplicados[$servicioId] = $descuento;
+                    }
+                } elseif ($promocion->descuento_fijo) {
+                    // Descuento fijo: distribuir proporcionalmente según precio de cada servicio
+                    $precioTotal = array_sum(array_column($preciosBase, 'precio'));
+                    if ($precioTotal > 0) {
+                        foreach ($preciosBase as $servicioId => $data) {
+                            $proporcion = $data['precio'] / $precioTotal;
+                            $descuento = $promocion->descuento_fijo * $proporcion;
+                            $descuentosAplicados[$servicioId] = $descuento;
+                        }
+                    }
+                }
+            }
+
+            // Paso 3: Crear cada cita con precio final calculado
             foreach ($request->servicios as $index => $servicioData) {
                 $servicio = Servicio::find($servicioData['servicio_id']);
                 
@@ -540,15 +613,32 @@ class AgendamientoPublicoController extends Controller
                     throw new \Exception("Servicio no encontrado: {$servicioData['servicio_id']}");
                 }
 
+                $precioBase = $preciosBase[$servicioData['servicio_id']]['precio'] ?? $servicio->precio;
+                $descuentoAplicado = $descuentosAplicados[$servicioData['servicio_id']] ?? 0;
+                $precioFinal = round($precioBase - $descuentoAplicado, 2);
+
+                if ($promocion) {
+                    Log::info('Aplicando descuento de promoción en cita coordinada', [
+                        'promocion_id' => $promocion->id,
+                        'servicio_id' => $servicioData['servicio_id'],
+                        'empleado_id' => $servicioData['empleado_id'],
+                        'precio_base' => $precioBase,
+                        'descuento' => $descuentoAplicado,
+                        'precio_final' => $precioFinal,
+                        'tipo_descuento' => $promocion->descuento_porcentaje ? 'porcentual' : 'fijo',
+                    ]);
+                }
+
                 // Crear cita con el mismo token QR compartido
                 $cita = Cita::create([
                     'cliente_id' => $cliente->id,
                     'empleado_id' => $servicioData['empleado_id'],
                     'servicio_id' => $servicio->id,
+                    'promocion_id' => $promocionId, // ✅ GUARDAR PROMOCIÓN!
                     'fecha_hora' => $servicioData['fecha_hora'],
                     'duracion_total' => $servicio->duracion,
                     'estado' => Cita::ESTADO_CONFIRMADA, // Citas coordinadas se crean como confirmadas
-                    'precio_final' => $servicio->precio,
+                    'precio_final' => $precioFinal,
                     'token_qr' => $tokenQrCompartido, // Mismo token para todas las citas coordinadas
                     'notas' => $index === 0 && $request->notas 
                         ? $request->notas . ' (Cita coordinada ' . ($index + 1) . ' de ' . count($request->servicios) . ')'
@@ -578,6 +668,16 @@ class AgendamientoPublicoController extends Controller
                         'duracion' => $cita->servicio->duracion,
                     ]],
                 ];
+            }
+
+            // ✅ INCREMENTAR CONTADOR DE USOS de la promoción (una sola vez)
+            if ($promocion) {
+                $promocion->incrementarUso();
+                Log::info('Incrementado contador de usos de promoción en citas coordinadas', [
+                    'promocion_id' => $promocion->id,
+                    'usos_actuales' => $promocion->usos_actuales,
+                    'usos_maximos' => $promocion->usos_maximos,
+                ]);
             }
 
             // Eliminar OTP usado

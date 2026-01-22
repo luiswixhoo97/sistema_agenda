@@ -180,32 +180,13 @@ async function cargarPromociones() {
   try {
     const data = await catalogoService.obtenerPromociones()
     const promos = data || []
-    if (promos.length > 0) {
-      promociones.value = promos
-    } else {
-      promociones.value = [
-        {
-          id: 0,
-          nombre: 'Oferta Especial',
-          descripcion: 'Aprovecha nuestros servicios con descuentos increíbles.',
-          descuento: '20% OFF',
-          dias_restantes: 7,
-          imagen: null
-        }
-      ]
-    }
+    // Solo mostrar promociones reales de la BD (con id > 0)
+    promociones.value = promos.filter((p: any) => p.id && p.id > 0)
+    // Si no hay promociones, simplemente dejar el array vacío
+    // NO crear promociones mock porque no funcionarán en el backend
   } catch (error) {
     console.error('Error cargando promociones:', error)
-    promociones.value = [
-      {
-        id: 0,
-        nombre: 'Oferta Especial',
-        descripcion: 'Aprovecha nuestros servicios con descuentos increíbles.',
-        descuento: '20% OFF',
-        dias_restantes: 7,
-        imagen: null
-      }
-    ]
+    promociones.value = []
   }
 }
 
@@ -242,7 +223,21 @@ async function seleccionarPromocion(promo: any) {
       store.seleccionarPromocion(null)
       store.serviciosSeleccionados = []
     } else {
-      store.seleccionarPromocion(promo.id, promo)
+      // Asegurar que la promoción tenga todos los campos necesarios
+      const promocionCompleta = {
+        ...promo,
+        descuento_porcentaje: promo.descuento_porcentaje ? Number(promo.descuento_porcentaje) : null,
+        descuento_fijo: promo.descuento_fijo ? Number(promo.descuento_fijo) : null,
+      }
+      
+      store.seleccionarPromocion(promo.id, promocionCompleta)
+      
+      // Actualizar el índice del carrusel para mostrar la promoción seleccionada
+      const indicePromocion = promociones.value.findIndex((p: any) => p.id === promo.id)
+      if (indicePromocion !== -1) {
+        indiceActual.value = indicePromocion
+        reiniciarAutoPlay()
+      }
       
       if (promo.servicios_info && promo.servicios_info.length > 0) {
         store.serviciosSeleccionados = []

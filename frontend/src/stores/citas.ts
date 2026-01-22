@@ -143,8 +143,10 @@ export const useCitasStore = defineStore('citas', () => {
       const promocion = promocionInfo.value
       
       // Verificar que los servicios seleccionados coincidan con los de la promoción
-      const serviciosPromoIds = promocion.servicios_info?.map((s: any) => s.id) || []
-      const serviciosSeleccionadosIds = serviciosSeleccionados.value.map(s => s.id)
+      const serviciosPromoIds = (promocion.servicios_info?.map((s: any) => Number(s.id)) || []).sort((a, b) => a - b)
+      const serviciosSeleccionadosIds = serviciosSeleccionados.value.map(s => Number(s.id)).sort((a, b) => a - b)
+      
+      // Verificar que todos los servicios de la promoción estén seleccionados
       const todosServiciosCoinciden = serviciosPromoIds.length > 0 && 
         serviciosPromoIds.every((id: number) => serviciosSeleccionadosIds.includes(id)) &&
         serviciosSeleccionadosIds.length === serviciosPromoIds.length
@@ -152,11 +154,36 @@ export const useCitasStore = defineStore('citas', () => {
       // Solo aplicar descuento si los servicios coinciden exactamente con la promoción
       if (todosServiciosCoinciden) {
         const promo = promocion as any
-        if (promo.descuento_porcentaje) {
-          return precioBase * (1 - promo.descuento_porcentaje / 100)
-        } else if (promo.descuento_fijo) {
-          return Math.max(0, precioBase - Number(promo.descuento_fijo))
+        // Aplicar descuento por porcentaje
+        if (promo.descuento_porcentaje && Number(promo.descuento_porcentaje) > 0) {
+          const descuento = precioBase * (Number(promo.descuento_porcentaje) / 100)
+          const precioConDescuento = precioBase - descuento
+          console.log('💰 Aplicando descuento porcentual:', {
+            precioBase,
+            descuentoPorcentaje: promo.descuento_porcentaje,
+            descuento,
+            precioConDescuento
+          })
+          return precioConDescuento
+        } 
+        // Aplicar descuento fijo
+        else if (promo.descuento_fijo && Number(promo.descuento_fijo) > 0) {
+          const precioConDescuento = Math.max(0, precioBase - Number(promo.descuento_fijo))
+          console.log('💰 Aplicando descuento fijo:', {
+            precioBase,
+            descuentoFijo: promo.descuento_fijo,
+            precioConDescuento
+          })
+          return precioConDescuento
+        } else {
+          console.warn('⚠️ Promoción seleccionada pero sin descuento válido:', promo)
         }
+      } else {
+        console.log('ℹ️ Servicios no coinciden exactamente:', {
+          serviciosPromo: serviciosPromoIds,
+          serviciosSeleccionados: serviciosSeleccionadosIds,
+          coinciden: todosServiciosCoinciden
+        })
       }
     }
     
@@ -880,7 +907,10 @@ export const useCitasStore = defineStore('citas', () => {
         servicios: servicioIds.value,
         fecha_hora: fechaHoraCompleta.value,
         notas: notas.value || undefined,
-        promocion_id: promocionSeleccionada.value || undefined,
+        // Solo enviar promocion_id si existe y es válido
+        promocion_id: (promocionSeleccionada.value && promocionSeleccionada.value > 0) 
+          ? promocionSeleccionada.value 
+          : undefined,
         token_reserva: reservaTemporal.value.token || undefined,
         // Anticipo
         anticipo_transferencia: (anticipoInfo.value.requiere_anticipo && metodoPagoAnticipo.value === 'transferencia') ? true : undefined,
@@ -889,6 +919,11 @@ export const useCitasStore = defineStore('citas', () => {
       }
 
       console.log('📅 Agendando cita (público):', request)
+      console.log('🔍 Info promoción:', {
+        promocionSeleccionada: promocionSeleccionada.value,
+        promocionInfo: promocionInfo.value,
+        promocion_id_enviado: request.promocion_id
+      })
 
       const response = await citaService.agendarPublico(request)
 
@@ -960,6 +995,10 @@ export const useCitasStore = defineStore('citas', () => {
         servicios: serviciosRequest,
         notas: notas.value || undefined,
         tokens_reserva: reservaTemporal.value.tokens.length > 0 ? reservaTemporal.value.tokens : undefined,
+        // Promoción
+        promocion_id: (promocionSeleccionada.value && promocionSeleccionada.value > 0) 
+          ? promocionSeleccionada.value 
+          : undefined,
         // Anticipo
         anticipo_transferencia: (anticipoInfo.value.requiere_anticipo && metodoPagoAnticipo.value === 'transferencia') ? true : undefined,
         anticipo_pagado: (anticipoInfo.value.requiere_anticipo && metodoPagoAnticipo.value === 'pasarela' && anticipoPagado.value) ? true : undefined,
@@ -967,6 +1006,11 @@ export const useCitasStore = defineStore('citas', () => {
       }
 
       console.log('📅 Agendando citas múltiples:', request)
+      console.log('🔍 Info promoción múltiples:', {
+        promocionSeleccionada: promocionSeleccionada.value,
+        promocionInfo: promocionInfo.value,
+        promocion_id_enviado: request.promocion_id
+      })
 
       const response = await citaService.agendarMultiples(request)
 

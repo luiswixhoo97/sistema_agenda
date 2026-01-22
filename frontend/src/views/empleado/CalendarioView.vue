@@ -267,6 +267,21 @@
                     </div>
                   </div>
 
+                  <!-- Badge de promoción -->
+                  <div v-if="citaSeleccionada.promocion" class="info-item promocion-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                      <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                    </svg>
+                    <div class="info-content">
+                      <span class="info-label">Promoción</span>
+                      <div class="promocion-badge-modal">
+                        <span class="promocion-nombre">{{ citaSeleccionada.promocion.nombre }}</span>
+                        <span class="promocion-descuento">{{ citaSeleccionada.promocion.descuento }}</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="info-item">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <circle cx="12" cy="12" r="10"></circle>
@@ -1305,6 +1320,40 @@ onMounted(() => {
   flex: 1;
   min-width: 0;
   gap: 4px;
+}
+
+.promocion-item {
+  background: rgba(255, 149, 0, 0.08);
+  border: 1px solid rgba(255, 149, 0, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.promocion-badge-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.promocion-nombre {
+  font-weight: 600;
+  color: #cc7700;
+  font-size: 14px;
+}
+
+.promocion-descuento {
+  font-size: 12px;
+  color: #86868b;
+  font-weight: 500;
+}
+
+.theme-dark .promocion-item {
+  background: rgba(255, 149, 0, 0.12);
+  border-color: rgba(255, 149, 0, 0.3);
+}
+
+.theme-dark .promocion-nombre {
+  color: #ffb74d;
 }
 
 .info-label {
