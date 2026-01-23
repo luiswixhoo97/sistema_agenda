@@ -16,5 +16,6 @@ Route::prefix('admin')->middleware('tipo:admin')->group(function () {
         Route::get('/{id}', [VentaController::class, 'show']);
         Route::put('/{id}', [VentaController::class, 'update']);
         Route::delete('/{id}', [VentaController::class, 'destroy']);
+        Route::delete('/{id}/detalles/{detalleId}', [VentaController::class, 'eliminarDetalle']);
     });
 });

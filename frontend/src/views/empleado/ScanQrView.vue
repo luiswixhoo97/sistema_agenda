@@ -15,34 +15,34 @@
         <div class="denied-icon">
           <i class="fa fa-camera-slash"></i>
         </div>
-        <h2>Permiso de cámara requerido</h2>
-        <p>Para escanear códigos QR necesitamos acceso a tu cámara.</p>
+        <h2>Permiso de c?mara requerido</h2>
+        <p>Para escanear c?digos QR necesitamos acceso a tu c?mara.</p>
         <button class="btn-permission" @click="solicitarPermisos">
           <i class="fa fa-lock-open"></i>
-          Habilitar cámara
+          Habilitar c?mara
         </button>
         <p class="permission-hint">
-          Si el permiso fue denegado, ve a <strong>Configuración > {{ isNative ? 'Apps > [Esta app] > Permisos' : 'Privacidad > Cámara' }}</strong>
+          Si el permiso fue denegado, ve a <strong>Configuraci?n > {{ isNative ? 'Apps > [Esta app] > Permisos' : 'Privacidad > C?mara' }}</strong>
         </p>
       </div>
     </div>
 
-      <!-- Escáner -->
+      <!-- Esc?ner -->
       <div v-else class="scanner-container">
-        <!-- Placeholder solo se muestra si no se ha iniciado automáticamente y no hay resultado -->
+        <!-- Placeholder solo se muestra si no se ha iniciado autom?ticamente y no hay resultado -->
         <div v-if="!autoIniciado && !scanning && !resultado && !iniciandoEscaner" class="scanner-placeholder">
           <div class="placeholder-icon">
             <i class="fa fa-qrcode"></i>
           </div>
-          <h2>Escanear código QR</h2>
-          <p>Escanea el código QR del cliente para marcar su cita como completada</p>
+          <h2>Escanear c?digo QR</h2>
+          <p>Escanea el c?digo QR del cliente para marcar su cita como completada</p>
           <button class="btn-scan" @click="iniciarEscaner" :disabled="iniciandoEscaner">
             <i :class="iniciandoEscaner ? 'fa fa-spinner fa-spin' : 'fa fa-camera'"></i>
             {{ iniciandoEscaner ? 'Iniciando...' : 'Escanear QR' }}
           </button>
           <p v-if="isNative" class="scan-native-hint">
             <i class="fa fa-info-circle"></i>
-            Se abrirá la cámara en pantalla completa
+            Se abrir? la c?mara en pantalla completa
           </p>
         </div>
 
@@ -59,7 +59,7 @@
             <div class="scan-line"></div>
           </div>
         </div>
-        <p class="scan-hint" v-if="scanning && !isNative">Apunta hacia el código QR</p>
+        <p class="scan-hint" v-if="scanning && !isNative">Apunta hacia el c?digo QR</p>
         <button class="btn-cancel" @click="detenerEscaner" v-if="scanning && !isNative">
           <i class="fa fa-times"></i>
           Cancelar
@@ -69,7 +69,7 @@
       <!-- Indicador de escaneo nativo -->
       <div v-if="iniciandoEscaner && isNative && !scanning" class="scanner-loading">
         <div class="spinner"></div>
-        <p>Abriendo cámara...</p>
+        <p>Abriendo c?mara...</p>
       </div>
 
       <!-- Resultado exitoso -->
@@ -77,7 +77,7 @@
         <div class="resultado-icon">
           <i class="fa fa-check-circle"></i>
         </div>
-        <h2>¡Cita completada!</h2>
+        <h2>?Cita completada!</h2>
         <div class="cita-details">
           <div class="detail-item">
             <i class="fa fa-user"></i>
@@ -126,21 +126,21 @@
     <div v-if="!scanning && !resultado && !permisoDenegado && !autoIniciado" class="instrucciones">
       <h3><i class="fa fa-info-circle"></i> Instrucciones</h3>
       <ul>
-        <li>Pide al cliente que muestre el código QR de su cita</li>
-        <li>Apunta la cámara hacia el código QR</li>
-        <li>La cita se marcará como completada automáticamente</li>
+        <li>Pide al cliente que muestre el c?digo QR de su cita</li>
+        <li>Apunta la c?mara hacia el c?digo QR</li>
+        <li>La cita se marcar? como completada autom?ticamente</li>
       </ul>
     </div>
 
     <!-- Entrada manual de token -->
     <div v-if="!scanning && !resultado && !autoIniciado" class="manual-entry">
       <h3><i class="fa fa-keyboard"></i> Entrada manual</h3>
-      <p>Si no puedes escanear, ingresa el código manualmente:</p>
+      <p>Si no puedes escanear, ingresa el c?digo manualmente:</p>
       <div class="input-group">
         <input 
           v-model="tokenManual" 
           type="text" 
-          placeholder="Código de la cita..."
+          placeholder="C?digo de la cita..."
           @keyup.enter="procesarTokenManual"
         />
         <button 
@@ -204,19 +204,19 @@ const errorOcurrido = ref(false)
 const mostrarModalPago = ref(false)
 const ventaParaPago = ref<any>(null)
 
-// Métodos
+// M?todos
 const irAlDashboard = async () => {
-  // Detener el escáner si está activo
+  // Detener el esc?ner si est? activo
   await stopQrScanner()
   
-  // Marcar que hubo un error para evitar reiniciar automáticamente si se vuelve a esta vista
+  // Marcar que hubo un error para evitar reiniciar autom?ticamente si se vuelve a esta vista
   errorOcurrido.value = true
   
   // Resetear estados
   iniciandoEscaner.value = false
   autoIniciado.value = false
   
-  // Redirigir al dashboard según el tipo de usuario
+  // Redirigir al dashboard seg?n el tipo de usuario
   if (authStore.userType === 'admin') {
     router.push({ name: 'admin-dashboard' })
   } else if (authStore.userType === 'empleado') {
@@ -239,7 +239,7 @@ const solicitarPermisos = async () => {
     Swal.fire({
       icon: 'warning',
       title: 'Permiso requerido',
-      text: 'Debes habilitar el permiso de cámara en la configuración de tu dispositivo.',
+      text: 'Debes habilitar el permiso de c?mara en la configuraci?n de tu dispositivo.',
       confirmButtonColor: '#667eea'
     })
   }
@@ -252,27 +252,27 @@ const iniciarEscaner = async () => {
   // Timeout de seguridad para evitar estado de carga infinito
   const safetyTimeout = setTimeout(async () => {
     if (iniciandoEscaner.value) {
-      console.warn('⚠️ Safety timeout: La cámara tardó más de 8 segundos')
+      console.warn('?? Safety timeout: La c?mara tard? m?s de 8 segundos')
       iniciandoEscaner.value = false
       autoIniciado.value = false
       
-      // Detener el escáner si está activo
+      // Detener el esc?ner si est? activo
       await stopQrScanner()
       
-      // Marcar que hubo un error para evitar reiniciar automáticamente
+      // Marcar que hubo un error para evitar reiniciar autom?ticamente
       errorOcurrido.value = true
       
       if (!scanning.value) {
         await Swal.fire({
           icon: 'error',
           title: 'Tiempo de espera agotado',
-          html: 'La cámara tardó demasiado en responder.<br><br><strong>Intenta:</strong><br>• Cerrar otras apps que usen la cámara<br>• Reiniciar la aplicación<br>• Reiniciar tu dispositivo',
+          html: 'La c?mara tard? demasiado en responder.<br><br><strong>Intenta:</strong><br>? Cerrar otras apps que usen la c?mara<br>? Reiniciar la aplicaci?n<br>? Reiniciar tu dispositivo',
           confirmButtonColor: '#667eea',
           allowOutsideClick: true,
           allowEscapeKey: true
         })
         
-        // Después de cerrar el error, volver al dashboard
+        // Despu?s de cerrar el error, volver al dashboard
         irAlDashboard()
       }
     }
@@ -288,14 +288,14 @@ const iniciarEscaner = async () => {
       onScanError
     )
     
-    // Si el escáner nativo falló en dispositivo móvil, intentar con web scanner
+    // Si el esc?ner nativo fall? en dispositivo m?vil, intentar con web scanner
     if (!success && isNative && scannerError.value) {
       const errorMsg = scannerError.value
       // Solo usar fallback si NO es error de permisos
       if (!errorMsg.includes('Permiso') && !errorMsg.includes('Permission') && !errorMsg.includes('denegado')) {
-        console.log('🔄 Intentando con escáner web como alternativa...')
+        console.log('?? Intentando con esc?ner web como alternativa...')
         
-        // Mostrar notificación al usuario
+        // Mostrar notificaci?n al usuario
         const Toast = Swal.mixin({
           toast: true,
           position: 'top',
@@ -306,7 +306,7 @@ const iniciarEscaner = async () => {
         
         Toast.fire({
           icon: 'info',
-          title: 'Usando escáner alternativo...'
+          title: 'Usando esc?ner alternativo...'
         })
         
         // Limpiar error y reintentar con web scanner
@@ -315,7 +315,7 @@ const iniciarEscaner = async () => {
         // Dar tiempo para que el mensaje se muestre
         await new Promise(resolve => setTimeout(resolve, 500))
         
-        // Intentar de nuevo - el composable debería usar web scanner como fallback
+        // Intentar de nuevo - el composable deber?a usar web scanner como fallback
         success = await startScanner(
           'qr-reader',
           onScanSuccess,
@@ -328,19 +328,19 @@ const iniciarEscaner = async () => {
     clearTimeout(safetyTimeout)
     
     if (!success) {
-      // Detener el escáner si está activo
+      // Detener el esc?ner si est? activo
       await stopQrScanner()
       
-      // Verificar si el usuario canceló el escaneo (X o gesto atrás)
+      // Verificar si el usuario cancel? el escaneo (X o gesto atr?s)
       if (wasCancelled.value) {
-        console.log('📱 Usuario canceló el escaneo, redirigiendo al dashboard...')
+        console.log('?? Usuario cancel? el escaneo, redirigiendo al dashboard...')
         // No mostrar error, simplemente redirigir
         errorOcurrido.value = true
         irAlDashboard()
         return
       }
       
-      // Marcar que hubo un error para evitar reiniciar automáticamente
+      // Marcar que hubo un error para evitar reiniciar autom?ticamente
       errorOcurrido.value = true
       
       if (scannerError.value?.includes('Permiso') || 
@@ -348,26 +348,26 @@ const iniciarEscaner = async () => {
           scannerError.value?.includes('Permission')) {
         permisoDenegado.value = true
       } else if (scannerError.value) {
-        // Solo mostrar error si realmente hay un error (no cancelación)
+        // Solo mostrar error si realmente hay un error (no cancelaci?n)
         const errorText = scannerError.value
         const errorLines = errorText.split('\n')
         
         const result = await Swal.fire({
           icon: 'error',
-          title: 'Error de cámara',
+          title: 'Error de c?mara',
           html: errorLines.join('<br>'),
           confirmButtonColor: '#667eea',
           footer: isNative 
-            ? '<small>Si el problema persiste, ve a Configuración > Apps > [Esta app] > Permisos y verifica que la cámara esté habilitada</small>'
+            ? '<small>Si el problema persiste, ve a Configuraci?n > Apps > [Esta app] > Permisos y verifica que la c?mara est? habilitada</small>'
             : undefined,
           allowOutsideClick: true,
           allowEscapeKey: true
         })
         
-        // Después de cerrar el error (ya sea con OK, X, o Escape), volver al dashboard
+        // Despu?s de cerrar el error (ya sea con OK, X, o Escape), volver al dashboard
         irAlDashboard()
       } else {
-        // Sin error específico pero tampoco éxito - probablemente cancelación no detectada
+        // Sin error espec?fico pero tampoco ?xito - probablemente cancelaci?n no detectada
         // Redirigir silenciosamente
         irAlDashboard()
       }
@@ -376,22 +376,22 @@ const iniciarEscaner = async () => {
     console.error('Error inesperado:', e)
     clearTimeout(safetyTimeout)
     
-    // Detener el escáner si está activo
+    // Detener el esc?ner si est? activo
     await stopQrScanner()
     
-    // Marcar que hubo un error para evitar reiniciar automáticamente
+    // Marcar que hubo un error para evitar reiniciar autom?ticamente
     errorOcurrido.value = true
     
     await Swal.fire({
       icon: 'error',
-      title: 'Error de cámara',
-      text: 'Ocurrió un error inesperado al iniciar la cámara',
+      title: 'Error de c?mara',
+      text: 'Ocurri? un error inesperado al iniciar la c?mara',
       confirmButtonColor: '#667eea',
       allowOutsideClick: true,
       allowEscapeKey: true
     })
     
-    // Después de cerrar el error, volver al dashboard
+    // Despu?s de cerrar el error, volver al dashboard
     irAlDashboard()
   } finally {
     // Asegurar que el estado se resetee
@@ -414,7 +414,7 @@ const onScanSuccess = async (decodedText: string) => {
       navigator.vibrate([100, 50, 100])
     }
   } catch (e) {
-    // Ignorar error de vibración
+    // Ignorar error de vibraci?n
   }
   
   // Extraer el token del URL escaneado
@@ -425,7 +425,7 @@ const onScanSuccess = async (decodedText: string) => {
   } else {
     resultado.value = {
       success: false,
-      message: 'Código QR no válido. Asegúrate de escanear el QR de una cita.'
+      message: 'C?digo QR no v?lido. Aseg?rate de escanear el QR de una cita.'
     }
   }
 }
@@ -439,19 +439,19 @@ const onScanError = async (errorMessage: string) => {
     iniciandoEscaner.value = false
     autoIniciado.value = false
     
-    // Marcar que hubo un error para evitar reiniciar automáticamente
+    // Marcar que hubo un error para evitar reiniciar autom?ticamente
     errorOcurrido.value = true
     
     await Swal.fire({
       icon: 'error',
       title: 'Error de escaneo',
-      text: errorMessage || 'Error al escanear el código QR',
+      text: errorMessage || 'Error al escanear el c?digo QR',
       confirmButtonColor: '#667eea',
       allowOutsideClick: true,
       allowEscapeKey: true
     })
     
-    // Volver al dashboard después del error
+    // Volver al dashboard despu?s del error
     irAlDashboard()
   }
 }
@@ -460,11 +460,11 @@ const procesarToken = async (token: string) => {
   procesando.value = true
   
   try {
-    // Verificar que el usuario esté autenticado
+    // Verificar que el usuario est? autenticado
     if (!authStore.isAuthenticated || !authStore.token) {
       resultado.value = {
         success: false,
-        message: 'No estás autenticado. Por favor inicia sesión nuevamente.'
+        message: 'No est?s autenticado. Por favor inicia sesi?n nuevamente.'
       }
       return
     }
@@ -473,17 +473,17 @@ const procesarToken = async (token: string) => {
     if (!authStore.userType || (authStore.userType !== 'admin' && authStore.userType !== 'empleado')) {
       resultado.value = {
         success: false,
-        message: 'Solo empleados y administradores pueden escanear códigos QR. Tu tipo de usuario: ' + (authStore.userType || 'no definido')
+        message: 'Solo empleados y administradores pueden escanear c?digos QR. Tu tipo de usuario: ' + (authStore.userType || 'no definido')
       }
       return
     }
 
-    // Determinar endpoint según tipo de usuario
+    // Determinar endpoint seg?n tipo de usuario
     const endpoint = authStore.userType === 'admin' 
       ? `/admin/citas/scan-qr/${token}`
       : `/empleado/citas/scan-qr/${token}`
     
-    console.log('🔍 Escaneando QR:', { token, endpoint, userType: authStore.userType })
+    console.log('?? Escaneando QR:', { token, endpoint, userType: authStore.userType })
     
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
@@ -495,24 +495,24 @@ const procesarToken = async (token: string) => {
     })
     
     const data = await response.json()
-    console.log('📥 Respuesta del servidor:', { status: response.status, data })
+    console.log('?? Respuesta del servidor:', { status: response.status, data })
     
-    // Manejar diferentes códigos de estado HTTP
+    // Manejar diferentes c?digos de estado HTTP
     if (!response.ok) {
       // Error del servidor (403, 404, 422, etc.)
       let mensajeError = data.message || `Error ${response.status}: ${response.statusText}`
       
-      // Si es error de permisos, mostrar mensaje más claro
+      // Si es error de permisos, mostrar mensaje m?s claro
       if (response.status === 403) {
         if (data.message?.includes('permisos') || data.message?.includes('No tienes permisos')) {
-          mensajeError = 'No tienes permisos para escanear QR. Solo empleados y administradores pueden usar esta función. Verifica que tu cuenta esté correctamente configurada.'
+          mensajeError = 'No tienes permisos para escanear QR. Solo empleados y administradores pueden usar esta funci?n. Verifica que tu cuenta est? correctamente configurada.'
         } else if (data.message?.includes('asignada')) {
-          mensajeError = 'Esta cita no está asignada a ti. Solo puedes escanear QR de tus propias citas.'
+          mensajeError = 'Esta cita no est? asignada a ti. Solo puedes escanear QR de tus propias citas.'
         }
       } else if (response.status === 401) {
-        mensajeError = 'Sesión expirada. Por favor inicia sesión nuevamente.'
+        mensajeError = 'Sesi?n expirada. Por favor inicia sesi?n nuevamente.'
       } else if (response.status === 404) {
-        mensajeError = 'Código QR no válido o cita no encontrada. Verifica que el código sea correcto.'
+        mensajeError = 'C?digo QR no v?lido o cita no encontrada. Verifica que el c?digo sea correcto.'
       }
       
       resultado.value = {
@@ -528,7 +528,7 @@ const procesarToken = async (token: string) => {
     resultado.value = data
     
     if (data.success) {
-      // Vibración de éxito
+      // Vibraci?n de ?xito
       try {
         if (isNative) {
           await Haptics.impact({ style: ImpactStyle.Heavy })
@@ -537,20 +537,31 @@ const procesarToken = async (token: string) => {
       
       // Verificar si hay venta para procesar pago
       if (data.venta) {
+        // Si la venta es parcial (tiene anticipo), redirigir a vista de venta para editar
+        if (data.venta.estado === 'parcial' || data.venta.requiere_anticipo) {
+          // Redirigir a vista de venta para editar y pagar
+          router.push({ 
+            name: 'admin-ventas',
+            query: { venta_id: data.venta.id }
+          })
+          return
+        }
+        
+        // Si es venta nueva sin anticipo, mostrar modal de pago directamente
         ventaParaPago.value = data.venta
         mostrarModalPago.value = true
         
-        // No mostramos alerta de éxito todavía, dejamos que el usuario procese el pago
+        // No mostramos alerta de ?xito todav?a, dejamos que el usuario procese el pago
         return
       }
       
-      // Mostrar mensaje de éxito si no hay venta (flujo antiguo o venta ya pagada)
+      // Mostrar mensaje de ?xito si no hay venta (flujo antiguo o venta ya pagada)
       Swal.fire({
         icon: 'success',
-        title: '¡Cita completada!',
+        title: '?Cita completada!',
         html: `
           <p>La cita se ha marcado como <strong>completada</strong> exitosamente.</p>
-          <p class="mt-2"><small>Esta cita ahora aparecerá en el dashboard y contará en las estadísticas.</small></p>
+          <p class="mt-2"><small>Esta cita ahora aparecer? en el dashboard y contar? en las estad?sticas.</small></p>
         `,
         confirmButtonColor: '#667eea',
         timer: 4000,
@@ -560,14 +571,14 @@ const procesarToken = async (token: string) => {
       // Si success es false pero no hay error HTTP
       resultado.value = {
         success: false,
-        message: data.message || 'Error al procesar el código QR'
+        message: data.message || 'Error al procesar el c?digo QR'
       }
     }
   } catch (error: any) {
-    console.error('❌ Error procesando QR:', error)
+    console.error('? Error procesando QR:', error)
     resultado.value = {
       success: false,
-      message: 'Error de conexión. Verifica tu internet e intenta de nuevo.'
+      message: 'Error de conexi?n. Verifica tu internet e intenta de nuevo.'
     }
   } finally {
     procesando.value = false
@@ -586,17 +597,17 @@ const resetear = () => {
   tokenManual.value = ''
 }
 
-// Lifecycle - Iniciar automáticamente al montar
+// Lifecycle - Iniciar autom?ticamente al montar
 onMounted(async () => {
-  // Listener para el botón de atrás de Android
+  // Listener para el bot?n de atr?s de Android
   const backButtonListener = await App.addListener('backButton', () => {
     irAlDashboard()
   })
   
-  // Guardar el listener para limpiarlo después
+  // Guardar el listener para limpiarlo despu?s
   ;(window as any).__qrBackButtonListener = backButtonListener
   
-  // Si ya hubo un error, no intentar iniciar automáticamente
+  // Si ya hubo un error, no intentar iniciar autom?ticamente
   if (errorOcurrido.value) {
     return
   }
@@ -605,7 +616,7 @@ onMounted(async () => {
   const hasPermission = await checkPermissions()
   
   if (hasPermission) {
-    // Iniciar escáner automáticamente
+    // Iniciar esc?ner autom?ticamente
     autoIniciado.value = true
     await iniciarEscaner()
   } else {
@@ -621,7 +632,7 @@ onMounted(async () => {
 })
 
 onUnmounted(async () => {
-  // Limpiar el listener del botón de atrás
+  // Limpiar el listener del bot?n de atr?s
   if ((window as any).__qrBackButtonListener) {
     await (window as any).__qrBackButtonListener.remove()
     delete (window as any).__qrBackButtonListener
@@ -632,8 +643,8 @@ onUnmounted(async () => {
 
 const onModalPagoClose = () => {
   mostrarModalPago.value = false
-  // Si se cierra el modal sin pagar, quizás deberíamos preguntar o simplemente dejarlo así.
-  // La cita ya está completada y la venta generada (pero pendiente).
+  // Si se cierra el modal sin pagar, quiz?s deber?amos preguntar o simplemente dejarlo as?.
+  // La cita ya est? completada y la venta generada (pero pendiente).
   
   // Opcional: mostrar resumen final
   if (resultado.value) {
@@ -645,7 +656,7 @@ const onPagoRegistrado = () => {
   // El pago fue exitoso
   Swal.fire({
     icon: 'success',
-    title: '¡Pago registrado!',
+    title: '?Pago registrado!',
     text: 'El servicio ha sido completado y pagado.',
     confirmButtonColor: '#667eea',
     timer: 3000
@@ -858,7 +869,7 @@ const onPagoRegistrado = () => {
 .scanner-active {
   position: relative;
   background: #000;
-  min-height: 350px; /* Asegurar altura mínima incluso cuando está oculto */
+  min-height: 350px; /* Asegurar altura m?nima incluso cuando est? oculto */
 }
 
 .qr-reader-container,

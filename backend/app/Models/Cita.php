@@ -25,6 +25,9 @@ class Cita extends Model
         'metodo_pago',
         'notas',
         'active',
+        'requiere_anticipo',
+        'monto_anticipo_requerido',
+        'venta_id',
     ];
 
     protected $casts = [
@@ -32,6 +35,8 @@ class Cita extends Model
         'duracion_total' => 'integer',
         'precio_final' => 'decimal:2',
         'active' => 'boolean',
+        'requiere_anticipo' => 'boolean',
+        'monto_anticipo_requerido' => 'decimal:2',
     ];
 
     const ESTADO_CONFIRMADA = 'confirmada';
@@ -58,6 +63,11 @@ class Cita extends Model
     public function promocion(): BelongsTo
     {
         return $this->belongsTo(Promocion::class);
+    }
+
+    public function venta(): BelongsTo
+    {
+        return $this->belongsTo(Venta::class, 'venta_id');
     }
 
     /* 

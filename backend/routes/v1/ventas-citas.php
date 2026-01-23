@@ -9,7 +9,14 @@ use App\Http\Controllers\Api\VentaCitaController;
 Route::prefix('admin')->middleware('tipo:admin')->group(function () {
     Route::prefix('ventas-citas')->group(function () {
         Route::post('/crear-desde-cita/{cita_id}', [VentaCitaController::class, 'crearDesdeCita']);
+        Route::post('/crear-parcial', [VentaCitaController::class, 'crearVentaParcialConAnticipo']);
         Route::post('/{venta_id}/productos', [VentaCitaController::class, 'agregarProductos']);
         Route::post('/{venta_id}/finalizar', [VentaCitaController::class, 'finalizar']);
+    });
+});
+
+Route::prefix('empleado')->middleware('tipo:empleado')->group(function () {
+    Route::prefix('ventas-citas')->group(function () {
+        Route::post('/crear-parcial', [VentaCitaController::class, 'crearVentaParcialConAnticipo']);
     });
 });

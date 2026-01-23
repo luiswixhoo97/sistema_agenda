@@ -412,10 +412,28 @@ class VentaController extends Controller
 
         $productos = Producto::with('categoria')
             ->where('active', true)
-            ->buscar($request->termino)
+            ->where(function($query) use ($request) {
+                $query->where('nombre', 'like', '%' . $request->termino . '%')
+                      ->orWhere('codigo', 'like', '%' . $request->termino . '%');
+            })
             ->limit(20)
             ->get();
 
+        return response()->json([
+            'success' => true,
+            'data' => $productos->map(fn($p) => [
+                'id' => $p->id,
+                'codigo' => $p->codigo,
+                'nombre' => $p->nombre,
+                'precio' => $p->precio,
+                'precio_texto' => '$' . number_format($p->precio, 2),
+                'inventario_actual' => $p->inventario_actual,
+                'categoria' => $p->categoria ? [
+                    'id' => $p->categoria->id,
+                    'nombre' => $p->categoria->nombre,
+                ] : null,
+            ]),
+        ]);
     }
 
     /**
@@ -452,6 +470,96 @@ class VentaController extends Controller
                 ] : null,
             ]),
         ]);
+    }
+
+    /**
+     * Eliminar detalle de venta
+     * 
+     * DELETE /api/admin/ventas/{id}/detalles/{detalleId}
+     */
+    public function eliminarDetalle(int $id, int $detalleId): JsonResponse
+    {
+        $venta = Venta::with('detalles')->find($id);
+
+        if (!$venta) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Venta no encontrada',
+            ], 404);
+        }
+
+        if (!$venta->puedeModificarse()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se puede modificar una venta completada o cancelada',
+            ], 422);
+        }
+
+        $detalle = VentaDetalle::where('id', $detalleId)
+            ->where('venta_id', $id)
+            ->first();
+
+        if (!$detalle) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Detalle no encontrado',
+            ], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Si es producto, revertir inventario
+            if ($detalle->tipo === VentaDetalle::TIPO_PRODUCTO && $detalle->producto) {
+                $producto = $detalle->producto;
+                $producto->inventario_actual += $detalle->cantidad;
+                $producto->save();
+
+                // Crear movimiento de reversión
+                MovimientoInventario::create([
+                    'producto_id' => $producto->id,
+                    'tipo' => MovimientoInventario::TIPO_ENTRADA_MANUAL,
+                    'cantidad' => $detalle->cantidad,
+                    'motivo' => 'Reversión por eliminación de detalle de venta #' . $venta->id,
+                    'referencia_id' => $venta->id,
+                    'referencia_tipo' => 'venta_modificada',
+                    'user_id' => auth()->id(),
+                    'created_at' => now(),
+                ]);
+            }
+
+            // Eliminar detalle
+            $subtotalEliminado = $detalle->subtotal_linea;
+            $detalle->delete();
+
+            // Recalcular totales
+            $nuevoSubtotal = $venta->subtotal - $subtotalEliminado;
+            $nuevoTotal = $nuevoSubtotal - $venta->descuento_general + $venta->impuesto_total;
+            
+            $venta->subtotal = $nuevoSubtotal;
+            $venta->total = $nuevoTotal;
+            $venta->actualizarSaldo(); // Esto recalcula total_pagado y saldo_pendiente
+
+            Auditoria::registrar('actualizar', 'ventas', $venta->id, null, $venta->toArray());
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Detalle eliminado correctamente',
+                'data' => [
+                    'venta_id' => $venta->id,
+                    'nuevo_total' => $venta->total,
+                    'saldo_pendiente' => $venta->saldo_pendiente,
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar detalle: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

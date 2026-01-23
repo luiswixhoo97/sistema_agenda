@@ -218,9 +218,14 @@
                   <span class="id-label">Cita #</span>
                   <span class="id-value">{{ editingCita.id }}</span>
                 </div>
-                <span :class="['status-badge-large', editingCita.estado]">
-                  {{ estadoLabel(editingCita.estado) }}
-                </span>
+                <div class="header-badges">
+                  <span :class="['status-badge-large', editingCita.estado]">
+                    {{ estadoLabel(editingCita.estado) }}
+                  </span>
+                  <span v-if="editingCita.requiere_anticipo && !editingCita.venta_id" class="anticipo-badge-status">
+                    Requiere Anticipo
+                  </span>
+                </div>
               </div>
 
               <!-- Información Principal -->
@@ -324,6 +329,15 @@
                   <span class="total-label">Total</span>
                   <span class="total-value">${{ formatPrecio(editingCita.precio_final || editingCita.precio_total) }}</span>
                 </div>
+                <div v-if="editingCita.requiere_anticipo" class="anticipo-info">
+                  <div class="anticipo-row">
+                    <span class="anticipo-label">Anticipo requerido:</span>
+                    <span class="anticipo-value">${{ formatPrecio(editingCita.monto_anticipo_requerido || 0) }}</span>
+                  </div>
+                  <div v-if="editingCita.venta_id" class="anticipo-row success">
+                    <span class="anticipo-label">Venta parcial creada</span>
+                  </div>
+                </div>
               </div>
 
               <!-- Notas -->
@@ -339,6 +353,14 @@
 
               <!-- Acciones -->
               <div class="detail-actions">
+                <button 
+                  v-if="editingCita.requiere_anticipo && !editingCita.venta_id"
+                  class="btn-action-anticipo"
+                  @click="abrirModalCrearVentaParcial"
+                >
+                  <i class="fa fa-money-bill-wave"></i>
+                  Crear Venta Parcial
+                </button>
                 <button 
                   v-if="editingCita.estado !== 'cancelada' && editingCita.estado !== 'completada'"
                   class="btn-action-primary"
@@ -827,6 +849,92 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- Modal Crear Venta Parcial -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="mostrarModalVentaParcial" class="modal-overlay" @click="cerrarModalVentaParcial">
+          <div class="modal-content" @click.stop>
+            <div class="modal-header">
+              <h3>Crear Venta Parcial</h3>
+              <button class="modal-close" @click="cerrarModalVentaParcial">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div v-if="editingCita" class="venta-parcial-form">
+                <div class="info-alert">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <div>
+                    <strong>Anticipo requerido:</strong> ${{ formatPrecio(editingCita.monto_anticipo_requerido || 0) }}
+                    <br>
+                    <small>Ingresa el monto que recibiste del cliente por transferencia</small>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    Monto recibido <span class="required">*</span>
+                  </label>
+                  <input 
+                    v-model.number="montoAnticipoRecibido"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    :max="editingCita.precio_final || editingCita.precio_total || 0"
+                    class="form-input"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    Método de pago <span class="required">*</span>
+                  </label>
+                  <select v-model.number="metodoPagoSeleccionado" class="form-input" required>
+                    <option :value="null">Selecciona método de pago</option>
+                    <option v-for="metodo in metodosPago" :key="metodo.id" :value="metodo.id">
+                      {{ metodo.nombre }}
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    Notas (opcional)
+                  </label>
+                  <textarea 
+                    v-model="notasVentaParcial"
+                    class="form-input"
+                    rows="3"
+                    placeholder="Notas sobre el anticipo recibido..."
+                  ></textarea>
+                </div>
+                <div class="modal-actions">
+                  <button type="button" class="btn-cancel" @click="cerrarModalVentaParcial">
+                    Cancelar
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn-submit" 
+                    @click="crearVentaParcial"
+                    :disabled="!puedeCrearVentaParcial || creandoVentaParcial"
+                  >
+                    <span v-if="creandoVentaParcial">Creando...</span>
+                    <span v-else>Crear Venta Parcial</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -845,6 +953,7 @@ import {
   cancelarCitaAdmin
 } from '@/services/adminService';
 import disponibilidadService from '@/services/disponibilidadService';
+import api from '@/services/api';
 import Swal from 'sweetalert2';
 
 const citas = ref<any[]>([]);
@@ -907,6 +1016,14 @@ const reagendarData = ref({
   hora: '',
   motivo: '',
 });
+
+// Venta parcial
+const mostrarModalVentaParcial = ref(false);
+const montoAnticipoRecibido = ref<number>(0);
+const metodoPagoSeleccionado = ref<number | null>(null);
+const notasVentaParcial = ref('');
+const metodosPago = ref<any[]>([]);
+const creandoVentaParcial = ref(false);
 
 let searchTimeout: ReturnType<typeof setTimeout>;
 
@@ -1373,6 +1490,92 @@ function resetForm() {
     telefono: '',
     email: '',
   };
+}
+
+// ===== VENTA PARCIAL =====
+
+const puedeCrearVentaParcial = computed(() => {
+  return montoAnticipoRecibido.value > 0 && metodoPagoSeleccionado.value !== null
+})
+
+async function cargarMetodosPago() {
+  try {
+    const response = await api.get('/admin/metodos-pago', { params: { activo: true } })
+    if (response.data.success) {
+      metodosPago.value = response.data.data || []
+    }
+  } catch (error) {
+    console.error('Error cargando métodos de pago:', error)
+  }
+}
+
+function abrirModalCrearVentaParcial() {
+  if (!editingCita.value) return
+  
+  montoAnticipoRecibido.value = editingCita.value.monto_anticipo_requerido || 0
+  metodoPagoSeleccionado.value = null
+  notasVentaParcial.value = ''
+  mostrarModalVentaParcial.value = true
+  
+  // Cargar métodos de pago si no están cargados
+  if (metodosPago.value.length === 0) {
+    cargarMetodosPago()
+  }
+}
+
+function cerrarModalVentaParcial() {
+  mostrarModalVentaParcial.value = false
+  montoAnticipoRecibido.value = 0
+  metodoPagoSeleccionado.value = null
+  notasVentaParcial.value = ''
+}
+
+async function crearVentaParcial() {
+  if (!editingCita.value || !puedeCrearVentaParcial.value) return
+  
+  creandoVentaParcial.value = true
+  try {
+    const response = await api.post('/admin/ventas-citas/crear-parcial', {
+      cita_id: editingCita.value.id,
+      monto_anticipo: montoAnticipoRecibido.value,
+      metodo_pago_id: metodoPagoSeleccionado.value,
+      notas: notasVentaParcial.value || undefined,
+    })
+    
+    if (response.data.success) {
+      await Swal.fire({
+        icon: 'success',
+        title: '¡Venta parcial creada!',
+        text: 'La venta parcial se ha creado correctamente',
+        confirmButtonColor: '#4caf50',
+        timer: 2000,
+        showConfirmButton: true
+      })
+      
+      cerrarModalVentaParcial()
+      await cargarCitas()
+      
+      // Actualizar editingCita si está abierto
+      if (editingCita.value) {
+        const citaActualizada = citas.value.find(c => c.id === editingCita.value?.id)
+        if (citaActualizada) {
+          editingCita.value = citaActualizada
+        }
+      }
+    } else {
+      throw new Error(response.data.message || 'Error al crear venta parcial')
+    }
+  } catch (error: any) {
+    console.error('Error creando venta parcial:', error)
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: error.response?.data?.message || error.message || 'No se pudo crear la venta parcial',
+      confirmButtonColor: '#ec407a'
+    })
+  } finally {
+    creandoVentaParcial.value = false
+  }
 }
 
 async function cargarClientes() {
@@ -1935,7 +2138,8 @@ function onDateFocus(event: Event) {
   });
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await cargarMetodosPago();
   cargarCitas();
   cargarClientes();
   cargarEmpleados();
@@ -2668,6 +2872,12 @@ onMounted(() => {
   letter-spacing: -0.5px;
 }
 
+.header-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .status-badge-large {
   padding: 10px 18px;
   border-radius: 20px;
@@ -2678,6 +2888,19 @@ onMounted(() => {
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
   color: white;
+}
+
+.anticipo-badge-status {
+  background: rgba(255, 149, 0, 0.2);
+  color: #ff9500;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
 }
 
 .detail-section {
@@ -2856,6 +3079,78 @@ onMounted(() => {
   letter-spacing: -1px;
 }
 
+.anticipo-info {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.anticipo-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.anticipo-row:last-child {
+  margin-bottom: 0;
+}
+
+.anticipo-label {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.anticipo-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.anticipo-row.success {
+  padding: 8px 12px;
+  background: rgba(52, 199, 89, 0.2);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.anticipo-row.success .anticipo-label {
+  color: #34c759;
+  font-weight: 600;
+}
+
+.venta-parcial-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.info-alert {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255, 149, 0, 0.1);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  border-radius: 12px;
+  color: #ff9500;
+}
+
+.info-alert svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.info-alert strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.info-alert small {
+  display: block;
+  opacity: 0.8;
+  font-size: 12px;
+}
+
 .notas-content {
   padding: 16px;
   background: white;
@@ -2877,7 +3172,8 @@ onMounted(() => {
 .btn-action-primary,
 .btn-action-secondary,
 .btn-action-danger,
-.btn-action-reagendar {
+.btn-action-reagendar,
+.btn-action-anticipo {
   width: 100%;
   padding: 16px;
   border: none;
@@ -2891,6 +3187,22 @@ onMounted(() => {
   gap: 10px;
   transition: all 0.2s ease;
   letter-spacing: -0.1px;
+}
+
+.btn-action-anticipo {
+  background: #ff9500;
+  color: white;
+  margin-bottom: 12px;
+}
+
+.btn-action-anticipo:active {
+  transform: scale(0.98);
+  background: #e68900;
+}
+
+.btn-action-anticipo:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-action-primary {

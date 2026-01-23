@@ -9,6 +9,7 @@ use App\Models\Servicio;
 use App\Models\Promocion;
 use App\Models\Notificacion;
 use App\Models\Auditoria;
+use App\Models\ReglaAnticipo;
 use App\Services\NotificacionService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -144,6 +145,10 @@ class CitaService
                 }
             }
 
+            // Paso 2.5: Calcular anticipo requerido
+            $precioTotalCitas = array_sum($preciosBase) - array_sum($descuentosAplicados);
+            $anticipoInfo = $this->calcularAnticipoRequerido($precioTotalCitas, $fechaHora, $servicioIds);
+
             // Paso 3: Crear citas con precios finales calculados
             foreach ($servicioIds as $servicioId) {
                 $servicio = $servicios->find($servicioId);
@@ -176,6 +181,8 @@ class CitaService
                     'precio_final' => $precioFinal,
                     'metodo_pago' => 'pendiente',
                     'notas' => $notas,
+                    'requiere_anticipo' => $anticipoInfo['requiere_anticipo'],
+                    'monto_anticipo_requerido' => $anticipoInfo['monto_anticipo'],
                 ]);
 
                 Auditoria::registrar('crear', 'citas', $cita->id, null, $cita->toArray());
@@ -736,6 +743,61 @@ class CitaService
     }
 
     /**
+     * Calcular anticipo requerido para una cita
+     * 
+     * @param float $total Total de la venta
+     * @param string $fechaCita Fecha de la cita
+     * @param array $servicioIds IDs de los servicios
+     * @return array ['requiere_anticipo' => bool, 'monto_anticipo' => float]
+     */
+    protected function calcularAnticipoRequerido(float $total, string $fechaCita, array $servicioIds): array
+    {
+        $fechaVenta = Carbon::parse($fechaCita);
+
+        // Obtener reglas activas ordenadas por prioridad
+        $reglas = ReglaAnticipo::activas()
+            ->ordenadasPorPrioridad()
+            ->with(['reglaFecha', 'reglaMonto', 'reglasServicio'])
+            ->get();
+
+        $mayorAnticipo = 0;
+
+        foreach ($reglas as $regla) {
+            $aplica = false;
+
+            // Evaluar según tipo de regla
+            if ($regla->tipo_regla === 'fecha' && $regla->reglaFecha) {
+                $aplica = $regla->reglaFecha->aplicaEnFecha($fechaVenta);
+            } elseif ($regla->tipo_regla === 'monto' && $regla->reglaMonto) {
+                $aplica = $regla->reglaMonto->aplicaAMonto($total);
+            } elseif ($regla->tipo_regla === 'servicio') {
+                $serviciosRegla = $regla->reglasServicio->pluck('servicio_id')->toArray();
+                $aplica = !empty(array_intersect($servicioIds, $serviciosRegla));
+            }
+
+            if ($aplica) {
+                // Calcular anticipo según tipo de cálculo
+                $anticipo = 0;
+                if ($regla->tipo_calculo === 'porcentaje') {
+                    $anticipo = $total * ($regla->valor_calculo / 100);
+                } else {
+                    $anticipo = $regla->valor_calculo;
+                }
+
+                // Seleccionar la regla que requiera mayor anticipo
+                if ($anticipo > $mayorAnticipo) {
+                    $mayorAnticipo = $anticipo;
+                }
+            }
+        }
+
+        return [
+            'requiere_anticipo' => $mayorAnticipo > 0,
+            'monto_anticipo' => round($mayorAnticipo, 2),
+        ];
+    }
+
+    /**
      * Generar token único para QR de la cita
      */
     protected function generarTokenQr(): string
@@ -781,6 +843,9 @@ class CitaService
             'precio_final' => $cita->precio_final,
             'metodo_pago' => $cita->metodo_pago,
             'notas' => $cita->notas,
+            'requiere_anticipo' => $cita->requiere_anticipo ?? false,
+            'monto_anticipo_requerido' => $cita->monto_anticipo_requerido ?? 0,
+            'venta_id' => $cita->venta_id,
             'cliente' => $cita->cliente ? [
                 'id' => $cita->cliente->id,
                 'nombre' => $cita->cliente->nombre,

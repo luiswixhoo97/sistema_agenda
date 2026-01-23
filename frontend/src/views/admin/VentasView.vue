@@ -252,7 +252,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { 
   getVentas,
   getCitasByTokenQR
@@ -422,7 +423,30 @@ function closeDetalleModal() {
   detalleVenta.value = null;
 }
 
-onMounted(cargarDatos);
+const route = useRoute();
+
+// Abrir venta específica si viene en query params
+watch(() => route.query.venta_id, async (ventaId) => {
+  if (ventaId && ventas.value.length > 0) {
+    const venta = ventas.value.find(v => v.id === Number(ventaId));
+    if (venta) {
+      verDetalle(venta);
+    }
+  }
+}, { immediate: true });
+
+onMounted(async () => {
+  await cargarDatos();
+  
+  // Después de cargar, verificar si hay venta_id en query
+  if (route.query.venta_id) {
+    const ventaId = Number(route.query.venta_id);
+    const venta = ventas.value.find(v => v.id === ventaId);
+    if (venta) {
+      verDetalle(venta);
+    }
+  }
+});
 </script>
 
 <style scoped>

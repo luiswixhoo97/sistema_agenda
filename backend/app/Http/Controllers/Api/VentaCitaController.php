@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Cita;
 use App\Models\Venta;
 use App\Models\VentaDetalle;
+use App\Models\VentaPago;
+use App\Models\MetodoPago;
 use App\Models\Producto;
 use App\Models\MovimientoInventario;
 use App\Models\Auditoria;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class VentaCitaController extends Controller
 {
@@ -218,6 +221,191 @@ class VentaCitaController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al agregar productos: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Crear venta parcial con anticipo desde cita(s)
+     * 
+     * POST /api/admin/ventas-citas/crear-parcial
+     * POST /api/empleado/ventas-citas/crear-parcial
+     */
+    public function crearVentaParcialConAnticipo(Request $request): JsonResponse
+    {
+        $request->validate([
+            'cita_id' => 'nullable|integer|exists:citas,id',
+            'token_qr' => 'nullable|string',
+            'monto_anticipo' => 'required|numeric|min:0',
+            'metodo_pago_id' => 'required|integer|exists:metodos_pago,id',
+            'notas' => 'nullable|string|max:500',
+        ]);
+
+        // Validar que se proporcione cita_id o token_qr
+        if (!$request->has('cita_id') && !$request->has('token_qr')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Debe proporcionar cita_id o token_qr',
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Buscar citas coordinadas
+            $citas = collect();
+            if ($request->has('cita_id')) {
+                $cita = Cita::find($request->cita_id);
+                if (!$cita) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Cita no encontrada',
+                    ], 404);
+                }
+                
+                // Si es empleado, verificar que sea su cita
+                $user = auth()->user();
+                if ($user->isEmpleado() && !$user->isAdmin()) {
+                    $empleado = $user->empleado;
+                    if ($cita->empleado_id !== $empleado->id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'No tienes permisos para crear venta parcial de esta cita',
+                        ], 403);
+                    }
+                }
+
+                // Buscar todas las citas coordinadas (mismo token_qr)
+                $citas = Cita::where('token_qr', $cita->token_qr)
+                    ->whereNull('deleted_at')
+                    ->get();
+            } else {
+                // Buscar por token_qr
+                $citas = Cita::where('token_qr', $request->token_qr)
+                    ->whereNull('deleted_at')
+                    ->get();
+            }
+
+            if ($citas->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontraron citas',
+                ], 404);
+            }
+
+            // Verificar que las citas requieran anticipo
+            $citaPrincipal = $citas->first();
+            if (!$citaPrincipal->requiere_anticipo) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta cita no requiere anticipo',
+                ], 422);
+            }
+
+            // Verificar que no exista ya una venta parcial
+            $citasConVenta = $citas->filter(fn($c) => $c->venta_id !== null);
+            if ($citasConVenta->isNotEmpty()) {
+                $ventaExistente = Venta::find($citasConVenta->first()->venta_id);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya existe una venta parcial para estas citas',
+                    'venta_id' => $ventaExistente->id,
+                ], 422);
+            }
+
+            // Calcular total de servicios de todas las citas
+            $subtotal = $citas->sum('precio_final');
+            $total = $subtotal;
+
+            // Validar que el monto del anticipo no exceda el total
+            if ($request->monto_anticipo > $total) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El monto del anticipo no puede exceder el total de la venta',
+                ], 422);
+            }
+
+            // Crear venta parcial
+            $venta = Venta::create([
+                'cliente_id' => $citaPrincipal->cliente_id,
+                'fecha_venta' => $citaPrincipal->fecha_hora,
+                'subtotal' => $subtotal,
+                'descuento_general' => 0,
+                'impuesto_total' => 0,
+                'total' => $total,
+                'total_pagado' => 0, // Se actualizará al crear el pago
+                'saldo_pendiente' => $total, // Se actualizará al crear el pago
+                'estado' => Venta::ESTADO_PARCIAL,
+                'requiere_anticipo' => true,
+                'monto_anticipo_requerido' => $citaPrincipal->monto_anticipo_requerido,
+                'monto_anticipo_pagado' => $request->monto_anticipo, // Para trazabilidad
+                'notas' => $request->notas ?? "Venta parcial creada desde citas con anticipo. Citas: " . $citas->pluck('id')->implode(', '),
+            ]);
+
+            // Crear detalles de venta para cada cita
+            foreach ($citas as $cita) {
+                VentaDetalle::create([
+                    'venta_id' => $venta->id,
+                    'tipo' => VentaDetalle::TIPO_SERVICIO,
+                    'servicio_id' => $cita->servicio_id,
+                    'cita_id' => $cita->id,
+                    'promocion_id' => $cita->promocion_id,
+                    'cantidad' => 1,
+                    'precio_unitario' => $cita->precio_final,
+                    'descuento' => 0,
+                    'impuesto' => 0,
+                    'subtotal_linea' => $cita->precio_final,
+                ]);
+
+                // Relacionar cita con venta
+                $cita->venta_id = $venta->id;
+                $cita->save();
+            }
+
+            // Crear pago del anticipo
+            $metodoPago = MetodoPago::findOrFail($request->metodo_pago_id);
+            $ventaPago = VentaPago::create([
+                'venta_id' => $venta->id,
+                'metodo_pago_id' => $request->metodo_pago_id,
+                'monto' => $request->monto_anticipo,
+                'estado_pago' => VentaPago::ESTADO_APROBADO, // Ya fue recibido
+                'notas' => 'Anticipo recibido por transferencia',
+                'user_id' => auth()->id(),
+            ]);
+
+            // Actualizar saldo de la venta
+            $venta->actualizarSaldo();
+
+            Auditoria::registrar('crear', 'ventas', $venta->id, null, $venta->toArray());
+
+            DB::commit();
+
+            Log::info("Venta parcial creada con anticipo", [
+                'venta_id' => $venta->id,
+                'citas' => $citas->pluck('id')->toArray(),
+                'monto_anticipo' => $request->monto_anticipo,
+                'total' => $total,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Venta parcial creada correctamente',
+                'data' => [
+                    'venta_id' => $venta->id,
+                    'total' => $venta->total,
+                    'monto_anticipo_pagado' => $request->monto_anticipo,
+                    'saldo_pendiente' => $venta->saldo_pendiente,
+                    'citas_relacionadas' => $citas->pluck('id')->toArray(),
+                ],
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear venta parcial: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear venta parcial: ' . $e->getMessage(),
             ], 500);
         }
     }

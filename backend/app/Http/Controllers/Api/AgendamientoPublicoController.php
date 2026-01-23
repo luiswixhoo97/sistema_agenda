@@ -8,6 +8,7 @@ use App\Models\Cita;
 use App\Models\OtpCode;
 use App\Models\Servicio;
 use App\Models\PlantillaNotificacion;
+use App\Models\ReglaAnticipo;
 use App\Services\DisponibilidadService;
 use App\Services\CitaService;
 use App\Services\WhatsAppService;
@@ -318,11 +319,17 @@ class AgendamientoPublicoController extends Controller
             $cita = Cita::with(['cliente', 'empleado.user', 'servicio'])->find($citaFormateada['id']);
             if ($cita) {
                 try {
+                    // Determinar si requiere anticipo y el monto
+                    $requiereAnticipo = $cita->requiere_anticipo ?? false;
+                    $montoAnticipo = $requiereAnticipo 
+                        ? ($cita->monto_anticipo_requerido ?? $request->input('monto_anticipo', 0))
+                        : null;
+                    
                     $this->notificacionService->notificarCitaAgendada(
                         $cita,
-                        $request->boolean('anticipo_transferencia', false),
-                        $request->boolean('anticipo_pagado', false),
-                        $request->input('monto_anticipo') // Monto del anticipo para incluir en el mensaje
+                        $requiereAnticipo && $request->boolean('anticipo_transferencia', false),
+                        $requiereAnticipo && $request->boolean('anticipo_pagado', false),
+                        $montoAnticipo
                     );
                 } catch (\Exception $e) {
                     // Log del error pero no fallar el agendamiento
@@ -605,6 +612,12 @@ class AgendamientoPublicoController extends Controller
                 }
             }
 
+            // Paso 2.5: Calcular anticipo requerido
+            $precioTotalCitas = array_sum(array_column($preciosBase, 'precio')) - array_sum($descuentosAplicados);
+            $servicioIds = array_column($request->servicios, 'servicio_id');
+            $fechaPrimeraCita = \Carbon\Carbon::parse($request->servicios[0]['fecha_hora']);
+            $anticipoInfo = $this->calcularAnticipoRequerido($precioTotalCitas, $fechaPrimeraCita->format('Y-m-d H:i:s'), $servicioIds);
+
             // Paso 3: Crear cada cita con precio final calculado
             foreach ($request->servicios as $index => $servicioData) {
                 $servicio = Servicio::find($servicioData['servicio_id']);
@@ -640,6 +653,8 @@ class AgendamientoPublicoController extends Controller
                     'estado' => Cita::ESTADO_CONFIRMADA, // Citas coordinadas se crean como confirmadas
                     'precio_final' => $precioFinal,
                     'token_qr' => $tokenQrCompartido, // Mismo token para todas las citas coordinadas
+                    'requiere_anticipo' => $anticipoInfo['requiere_anticipo'],
+                    'monto_anticipo_requerido' => $anticipoInfo['monto_anticipo'],
                     'notas' => $index === 0 && $request->notas 
                         ? $request->notas . ' (Cita coordinada ' . ($index + 1) . ' de ' . count($request->servicios) . ')'
                         : 'Cita coordinada ' . ($index + 1) . ' de ' . count($request->servicios),
@@ -706,11 +721,17 @@ class AgendamientoPublicoController extends Controller
                             'token_qr' => $primeraCita->token_qr,
                         ]);
                         
+                        // Determinar si requiere anticipo y el monto
+                        $requiereAnticipo = $primeraCita->requiere_anticipo ?? false;
+                        $montoAnticipo = $requiereAnticipo 
+                            ? ($primeraCita->monto_anticipo_requerido ?? $request->input('monto_anticipo', 0))
+                            : null;
+                        
                         $this->notificacionService->notificarCitaAgendada(
                             $primeraCita,
-                            $request->boolean('anticipo_transferencia', false),
-                            $request->boolean('anticipo_pagado', false),
-                            $request->input('monto_anticipo') // Monto del anticipo para incluir en el mensaje
+                            $requiereAnticipo && $request->boolean('anticipo_transferencia', false),
+                            $requiereAnticipo && $request->boolean('anticipo_pagado', false),
+                            $montoAnticipo
                         );
                     }
                 } catch (\Exception $e) {
@@ -799,6 +820,61 @@ class AgendamientoPublicoController extends Controller
              . "Tu código es: *{$codigo}*\n\n"
              . "⏱️ Válido por {$minutosExpiracion} minutos.\n\n"
              . "⚠️ No compartas este código con nadie.";
+    }
+
+    /**
+     * Calcular anticipo requerido para una cita
+     * 
+     * @param float $total Total de la venta
+     * @param string $fechaCita Fecha de la cita
+     * @param array $servicioIds IDs de los servicios
+     * @return array ['requiere_anticipo' => bool, 'monto_anticipo' => float]
+     */
+    private function calcularAnticipoRequerido(float $total, string $fechaCita, array $servicioIds): array
+    {
+        $fechaVenta = \Carbon\Carbon::parse($fechaCita);
+
+        // Obtener reglas activas ordenadas por prioridad
+        $reglas = ReglaAnticipo::activas()
+            ->ordenadasPorPrioridad()
+            ->with(['reglaFecha', 'reglaMonto', 'reglasServicio'])
+            ->get();
+
+        $mayorAnticipo = 0;
+
+        foreach ($reglas as $regla) {
+            $aplica = false;
+
+            // Evaluar según tipo de regla
+            if ($regla->tipo_regla === 'fecha' && $regla->reglaFecha) {
+                $aplica = $regla->reglaFecha->aplicaEnFecha($fechaVenta);
+            } elseif ($regla->tipo_regla === 'monto' && $regla->reglaMonto) {
+                $aplica = $regla->reglaMonto->aplicaAMonto($total);
+            } elseif ($regla->tipo_regla === 'servicio') {
+                $serviciosRegla = $regla->reglasServicio->pluck('servicio_id')->toArray();
+                $aplica = !empty(array_intersect($servicioIds, $serviciosRegla));
+            }
+
+            if ($aplica) {
+                // Calcular anticipo según tipo de cálculo
+                $anticipo = 0;
+                if ($regla->tipo_calculo === 'porcentaje') {
+                    $anticipo = $total * ($regla->valor_calculo / 100);
+                } else {
+                    $anticipo = $regla->valor_calculo;
+                }
+
+                // Seleccionar la regla que requiera mayor anticipo
+                if ($anticipo > $mayorAnticipo) {
+                    $mayorAnticipo = $anticipo;
+                }
+            }
+        }
+
+        return [
+            'requiere_anticipo' => $mayorAnticipo > 0,
+            'monto_anticipo' => round($mayorAnticipo, 2),
+        ];
     }
 }
 

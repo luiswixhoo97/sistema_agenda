@@ -36,10 +36,14 @@ class NotificacionService
         
         $datos = $this->preparaDatosCita($cita);
         
+        // Verificar si la cita requiere anticipo (usar campo de la cita o parámetro)
+        $requiereAnticipo = $cita->requiere_anticipo ?? false;
+        $montoAnticipoRequerido = $montoAnticipo ?? ($cita->monto_anticipo_requerido ?? 0);
+        
         // Si requiere anticipo por transferencia, agregar datos de cuenta bancaria
-        if ($anticipoTransferencia) {
+        if ($requiereAnticipo && $anticipoTransferencia) {
             $datos['anticipo_requerido'] = true;
-            $datos['monto_anticipo'] = $montoAnticipo ?? 0;
+            $datos['monto_anticipo'] = $montoAnticipoRequerido;
             $datosCuenta = $this->obtenerDatosCuentaBancaria();
             $datos['datos_cuenta'] = $datosCuenta;
             
@@ -49,12 +53,17 @@ class NotificacionService
                 'numero_cuenta' => $datosCuenta['numero_cuenta'],
                 'clabe' => $datosCuenta['clabe'] ?? 'no configurado',
                 'titular' => $datosCuenta['titular'],
-                'monto_anticipo' => $montoAnticipo,
+                'monto_anticipo' => $montoAnticipoRequerido,
             ]);
-        } elseif ($anticipoPagado) {
+        } elseif ($requiereAnticipo && $anticipoPagado) {
             // Si el anticipo ya fue pagado por pasarela, no agregar datos de cuenta
             $datos['anticipo_requerido'] = true;
             $datos['anticipo_pagado'] = true;
+            $datos['monto_anticipo'] = $montoAnticipoRequerido;
+        } elseif ($requiereAnticipo) {
+            // Si requiere anticipo pero no se especifica método, incluir info básica
+            $datos['anticipo_requerido'] = true;
+            $datos['monto_anticipo'] = $montoAnticipoRequerido;
         }
         
         // Generar QR code para la cita

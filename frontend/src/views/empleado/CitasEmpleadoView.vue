@@ -138,6 +138,9 @@
               <span v-if="cita.promocion" class="promocion-badge-status">
                 Promoción
               </span>
+              <span v-if="cita.requiere_anticipo && !cita.venta_id" class="anticipo-badge-status">
+                Requiere Anticipo
+              </span>
             </div>
             
             <div class="cita-info-grid">
@@ -185,6 +188,9 @@
                     </span>
                     <span v-if="citaDetalle.promocion" class="promocion-badge-status">
                       Promoción
+                    </span>
+                    <span v-if="citaDetalle.requiere_anticipo && !citaDetalle.venta_id" class="anticipo-badge-status">
+                      Requiere Anticipo
                     </span>
                   </div>
                 </div>
@@ -309,6 +315,15 @@
                     <span class="total-label">Total</span>
                     <span class="total-value">${{ formatPrecio((citaDetalle as any).precio_final || (citaDetalle as any).precio_total || 0) }}</span>
                   </div>
+                  <div v-if="citaDetalle.requiere_anticipo" class="anticipo-info">
+                    <div class="anticipo-row">
+                      <span class="anticipo-label">Anticipo requerido:</span>
+                      <span class="anticipo-value">${{ formatPrecio(citaDetalle.monto_anticipo_requerido || 0) }}</span>
+                    </div>
+                    <div v-if="citaDetalle.venta_id" class="anticipo-row success">
+                      <span class="anticipo-label">Venta parcial creada</span>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Notas -->
@@ -330,6 +345,17 @@
 
                 <!-- Acciones -->
                 <div class="detail-actions">
+                  <button 
+                    v-if="citaDetalle.requiere_anticipo && !citaDetalle.venta_id"
+                    class="btn-action-anticipo"
+                    @click="abrirModalCrearVentaParcial"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="1" x2="12" y2="23"></line>
+                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    Crear Venta Parcial
+                  </button>
                   <button 
                     v-if="citaDetalle.estado !== 'cancelada' && citaDetalle.estado !== 'completada'"
                     class="btn-action-primary"
@@ -377,6 +403,92 @@
                     </svg>
                     WhatsApp
                   </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Modal Crear Venta Parcial -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="mostrarModalVentaParcial" class="modal-overlay" @click="cerrarModalVentaParcial">
+          <div class="modal-content" @click.stop>
+            <div class="modal-header">
+              <h3>Crear Venta Parcial</h3>
+              <button class="modal-close" @click="cerrarModalVentaParcial">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div v-if="citaDetalle" class="venta-parcial-form">
+                <div class="info-alert">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <div>
+                    <strong>Anticipo requerido:</strong> ${{ formatPrecio(citaDetalle.monto_anticipo_requerido || 0) }}
+                    <br>
+                    <small>Ingresa el monto que recibiste del cliente por transferencia</small>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    Monto recibido <span class="required">*</span>
+                  </label>
+                  <input 
+                    v-model="montoAnticipoRecibido"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    :max="(citaDetalle as any).precio_final || (citaDetalle as any).precio_total || 0"
+                    class="form-input"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    Método de pago <span class="required">*</span>
+                  </label>
+                  <select v-model="metodoPagoSeleccionado" class="form-input" required>
+                    <option value="">Selecciona método de pago</option>
+                    <option v-for="metodo in metodosPago" :key="metodo.id" :value="metodo.id">
+                      {{ metodo.nombre }}
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    Notas (opcional)
+                  </label>
+                  <textarea 
+                    v-model="notasVentaParcial"
+                    class="form-input"
+                    rows="3"
+                    placeholder="Notas sobre el anticipo recibido..."
+                  ></textarea>
+                </div>
+                <div class="modal-actions">
+                  <button type="button" class="btn-cancel" @click="cerrarModalVentaParcial">
+                    Cancelar
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn-submit" 
+                    @click="crearVentaParcial"
+                    :disabled="!puedeCrearVentaParcial || creandoVentaParcial"
+                  >
+                    <span v-if="creandoVentaParcial">Creando...</span>
+                    <span v-else>Crear Venta Parcial</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -864,6 +976,14 @@ const reagendarData = ref({
   hora: '',
   motivo: '',
 })
+
+// Venta parcial
+const mostrarModalVentaParcial = ref(false)
+const montoAnticipoRecibido = ref<number>(0)
+const metodoPagoSeleccionado = ref<number | null>(null)
+const notasVentaParcial = ref('')
+const metodosPago = ref<any[]>([])
+const creandoVentaParcial = ref(false)
 
 const empleadoNombre = computed(() => authStore.user?.nombre || 'Empleado')
 const empleadoId = computed(() => {
@@ -1731,10 +1851,106 @@ async function guardarCita() {
   }
 }
 
+// ===== VENTA PARCIAL =====
+
+const puedeCrearVentaParcial = computed(() => {
+  return montoAnticipoRecibido.value > 0 && metodoPagoSeleccionado.value !== null
+})
+
+async function cargarMetodosPago() {
+  try {
+    const response = await api.get('/empleado/metodos-pago')
+    if (response.data.success) {
+      metodosPago.value = response.data.data || []
+    }
+  } catch (error) {
+    console.error('Error cargando métodos de pago:', error)
+    // Fallback: intentar desde admin si es admin
+    try {
+      const response = await api.get('/admin/metodos-pago', { params: { activo: true } })
+      if (response.data.success) {
+        metodosPago.value = response.data.data || []
+      }
+    } catch (e) {
+      console.error('Error cargando métodos de pago desde admin:', e)
+    }
+  }
+}
+
+function abrirModalCrearVentaParcial() {
+  if (!citaDetalle.value) return
+  
+  montoAnticipoRecibido.value = citaDetalle.value.monto_anticipo_requerido || 0
+  metodoPagoSeleccionado.value = null
+  notasVentaParcial.value = ''
+  mostrarModalVentaParcial.value = true
+  
+  // Cargar métodos de pago si no están cargados
+  if (metodosPago.value.length === 0) {
+    cargarMetodosPago()
+  }
+}
+
+function cerrarModalVentaParcial() {
+  mostrarModalVentaParcial.value = false
+  montoAnticipoRecibido.value = 0
+  metodoPagoSeleccionado.value = null
+  notasVentaParcial.value = ''
+}
+
+async function crearVentaParcial() {
+  if (!citaDetalle.value || !puedeCrearVentaParcial.value) return
+  
+  creandoVentaParcial.value = true
+  try {
+    const response = await api.post('/empleado/ventas-citas/crear-parcial', {
+      cita_id: citaDetalle.value.id,
+      monto_anticipo: montoAnticipoRecibido.value,
+      metodo_pago_id: metodoPagoSeleccionado.value,
+      notas: notasVentaParcial.value || undefined,
+    })
+    
+    if (response.data.success) {
+      await Swal.fire({
+        icon: 'success',
+        title: '¡Venta parcial creada!',
+        text: 'La venta parcial se ha creado correctamente',
+        confirmButtonColor: '#4caf50',
+        timer: 2000,
+        showConfirmButton: true
+      })
+      
+      cerrarModalVentaParcial()
+      await cargarCitas()
+      
+      // Actualizar citaDetalle si está abierto
+      if (citaDetalle.value) {
+        const citaActualizada = citas.value.find(c => c.id === citaDetalle.value?.id)
+        if (citaActualizada) {
+          citaDetalle.value = citaActualizada
+        }
+      }
+    } else {
+      throw new Error(response.data.message || 'Error al crear venta parcial')
+    }
+  } catch (error: any) {
+    console.error('Error creando venta parcial:', error)
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: error.response?.data?.message || error.message || 'No se pudo crear la venta parcial',
+      confirmButtonColor: '#ec407a'
+    })
+  } finally {
+    creandoVentaParcial.value = false
+  }
+}
+
 onMounted(() => {
   const today = new Date()
   filtroFecha.value = today.toISOString().split('T')[0] || ''
   cargarCitas()
+  cargarMetodosPago()
 })
 </script>
 
@@ -2046,6 +2262,18 @@ onMounted(() => {
 .cita-status.reagendada {
   background: rgba(255, 149, 0, 0.12);
   color: #ff9500;
+}
+
+.anticipo-badge-status {
+  background: rgba(255, 149, 0, 0.12);
+  color: #ff9500;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .promocion-badge-status {
@@ -2492,6 +2720,79 @@ onMounted(() => {
   letter-spacing: -1px;
 }
 
+.anticipo-info {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.anticipo-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.anticipo-row:last-child {
+  margin-bottom: 0;
+}
+
+.anticipo-label {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.anticipo-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.anticipo-row.success {
+  padding: 8px 12px;
+  background: rgba(52, 199, 89, 0.2);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.anticipo-row.success .anticipo-label {
+  color: #34c759;
+  font-weight: 600;
+}
+
+.venta-parcial-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.info-alert {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255, 149, 0, 0.1);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  border-radius: 12px;
+  color: #ff9500;
+}
+
+.info-alert svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.info-alert strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.info-alert small {
+  display: block;
+  opacity: 0.8;
+  font-size: 12px;
+}
+}
+
 .notas-content {
   padding: 16px;
   background: #f8f9fa;
@@ -2520,7 +2821,8 @@ onMounted(() => {
 .btn-action-secondary,
 .btn-action-whatsapp,
 .btn-action-reagendar,
-.btn-action-cancel {
+.btn-action-cancel,
+.btn-action-anticipo {
   width: 100%;
   padding: 16px;
   border: none;
@@ -2535,6 +2837,22 @@ onMounted(() => {
   transition: all 0.2s;
   letter-spacing: 0.2px;
   text-decoration: none;
+}
+
+.btn-action-anticipo {
+  background: #ff9500;
+  color: white;
+  margin-bottom: 12px;
+}
+
+.btn-action-anticipo:active {
+  transform: scale(0.98);
+  background: #e68900;
+}
+
+.btn-action-anticipo:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-action-primary {

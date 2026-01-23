@@ -14,12 +14,17 @@ class MetodoPagoController extends Controller
      * Listar métodos de pago activos
      * 
      * GET /api/admin/metodos-pago
+     * GET /api/empleado/metodos-pago
      */
     public function index(Request $request): JsonResponse
     {
         $query = MetodoPago::query();
 
-        if ($request->has('activo')) {
+        // Si es empleado, solo mostrar métodos activos
+        $user = auth()->user();
+        if ($user && $user->isEmpleado() && !$user->isAdmin()) {
+            $query->where('activo', true);
+        } elseif ($request->has('activo')) {
             $query->where('activo', $request->boolean('activo'));
         }
 

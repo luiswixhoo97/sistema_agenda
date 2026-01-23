@@ -874,7 +874,7 @@ class CitaController extends Controller
      */
     public function getByTokenQR(string $token): JsonResponse
     {
-        $citas = Cita::with(['cliente', 'servicio', 'empleado.user'])
+        $citas = Cita::with(['cliente', 'servicio', 'empleado.user', 'venta'])
             ->where('token_qr', $token)
             ->whereNull('deleted_at')
             ->get();
@@ -886,13 +886,31 @@ class CitaController extends Controller
             ], 404);
         }
 
+        $citaPrincipal = $citas->first();
+        $venta = null;
+        
+        // Si existe venta parcial, cargarla con relaciones
+        if ($citaPrincipal->venta_id) {
+            $venta = \App\Models\Venta::with(['detalles.servicio', 'detalles.producto', 'pagos.metodoPago'])
+                ->find($citaPrincipal->venta_id);
+        }
+
         return response()->json([
             'success' => true,
             'data' => $citas->map(fn($c) => $this->citaService->formatearCita($c)),
             'cliente' => $citas[0]->cliente ? [
                 'id' => $citas[0]->cliente->id,
                 'nombre' => $citas[0]->cliente->nombre,
-            ] : null
+            ] : null,
+            'requiere_anticipo' => $citaPrincipal->requiere_anticipo ?? false,
+            'monto_anticipo_requerido' => $citaPrincipal->monto_anticipo_requerido ?? 0,
+            'venta_parcial' => $venta ? [
+                'id' => $venta->id,
+                'total' => $venta->total,
+                'total_pagado' => $venta->total_pagado,
+                'saldo_pendiente' => $venta->saldo_pendiente,
+                'estado' => $venta->estado,
+            ] : null,
         ]);
     }
 

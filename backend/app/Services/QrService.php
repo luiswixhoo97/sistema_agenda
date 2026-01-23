@@ -136,15 +136,31 @@ class QrService
         }
 
         // 4. Generar o Recuperar Venta
-        // Buscar si alguna de estas citas ya tiene un detalle de venta
-        $ventaDetalle = \App\Models\VentaDetalle::whereIn('cita_id', $citas->pluck('id'))->first();
+        // Buscar si alguna de estas citas ya tiene una venta parcial relacionada (por venta_id)
         $venta = null;
-
-        if ($ventaDetalle) {
-            $venta = $ventaDetalle->venta;
+        $citasConVenta = $citas->filter(fn($c) => $c->venta_id !== null);
+        
+        if ($citasConVenta->isNotEmpty()) {
+            // Ya existe una venta parcial para estas citas
+            $venta = \App\Models\Venta::find($citasConVenta->first()->venta_id);
+            
+            if ($venta) {
+                Log::info("Venta parcial encontrada para citas coordinadas", [
+                    'venta_id' => $venta->id,
+                    'token_qr' => $token,
+                    'citas_relacionadas' => $citasConVenta->pluck('id')->toArray(),
+                ]);
+            }
         } else {
-            // Crear nueva venta
-            $venta = $this->generarVentaDesdeCitas($citas, $citas[0]->cliente_id);
+            // Buscar si existe venta por VentaDetalle (para compatibilidad con flujo anterior)
+            $ventaDetalle = \App\Models\VentaDetalle::whereIn('cita_id', $citas->pluck('id'))->first();
+            
+            if ($ventaDetalle) {
+                $venta = $ventaDetalle->venta;
+            } else {
+                // Crear nueva venta (Caso 1: sin anticipo)
+                $venta = $this->generarVentaDesdeCitas($citas, $citas[0]->cliente_id);
+            }
         }
         
         // Recargar venta con relaciones necesarias para el frontend
