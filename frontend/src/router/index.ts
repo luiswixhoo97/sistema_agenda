@@ -197,27 +197,32 @@ router.beforeEach(async (to, from, next) => {
       return next({ name: loginRoute, query: { redirect: to.fullPath } })
     }
 
-    // Verificar tipo de usuario
-    const tipoRequerido = to.meta.tipo as string | undefined
-    if (tipoRequerido) {
-      const tipoUsuario = authStore.userType
+      // Verificar tipo de usuario
+      const tipoRequerido = to.meta.tipo as string | undefined
+      if (tipoRequerido) {
+        const tipoUsuario = authStore.userType
 
-      // Admin puede acceder a rutas de empleado
-      if (tipoRequerido === 'empleado' && tipoUsuario === 'admin') {
-        return next()
-      }
+        // Admin puede acceder a rutas de empleado
+        if (tipoRequerido === 'empleado' && tipoUsuario === 'admin') {
+          return next()
+        }
 
-      if (tipoUsuario !== tipoRequerido) {
-        // Redirigir según tipo de usuario
-        if (tipoUsuario === 'cliente') {
-          return next({ name: 'agendar' })
-        } else if (tipoUsuario === 'empleado') {
-          return next({ name: 'empleado-calendario' })
-        } else if (tipoUsuario === 'admin') {
-          return next({ name: 'admin-dashboard' })
+        // Permitir empleados acceder a ventas (caso especial)
+        if (to.name === 'admin-ventas' && tipoUsuario === 'empleado') {
+          return next()
+        }
+
+        if (tipoUsuario !== tipoRequerido) {
+          // Redirigir según tipo de usuario
+          if (tipoUsuario === 'cliente') {
+            return next({ name: 'agendar' })
+          } else if (tipoUsuario === 'empleado') {
+            return next({ name: 'empleado-calendario' })
+          } else if (tipoUsuario === 'admin') {
+            return next({ name: 'admin-dashboard' })
+          }
         }
       }
-    }
   }
 
   // Rutas para invitados (login) - no redirigir automáticamente

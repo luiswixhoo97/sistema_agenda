@@ -667,4 +667,85 @@ class VentaController extends Controller
 
         return $data;
     }
+
+    /**
+     * Listar ventas para empleados (filtradas por citas asignadas)
+     * 
+     * GET /api/empleado/ventas
+     */
+    public function indexEmpleado(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        $empleadoId = $user->empleado->id;
+
+        $query = Venta::whereHas('detalles.cita', function($query) use ($empleadoId) {
+            $query->where('empleado_id', $empleadoId);
+        })
+        ->with(['cliente', 'detalles.servicio', 'detalles.cita.empleado']);
+
+        // Filtros
+        if ($request->has('cliente_id')) {
+            $query->where('cliente_id', $request->cliente_id);
+        }
+        if ($request->has('estado')) {
+            $query->where('estado', $request->estado);
+        }
+        if ($request->has('fecha_inicio')) {
+            $query->where('fecha_venta', '>=', $request->fecha_inicio);
+        }
+        if ($request->has('fecha_fin')) {
+            $query->where('fecha_venta', '<=', $request->fecha_fin);
+        }
+
+        $ventas = $query->orderBy('fecha_venta', 'desc')
+            ->paginate($request->get('per_page', 20));
+
+        return response()->json([
+            'success' => true,
+            'data' => $ventas->map(fn($v) => $this->formatearVenta($v)),
+            'pagination' => [
+                'current_page' => $ventas->currentPage(),
+                'last_page' => $ventas->lastPage(),
+                'total' => $ventas->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Ver venta para empleados (con validación de acceso)
+     * 
+     * GET /api/empleado/ventas/{id}
+     */
+    public function showEmpleado(int $id): JsonResponse
+    {
+        $user = auth()->user();
+        $empleadoId = $user->empleado->id;
+
+        $venta = Venta::whereHas('detalles.cita', function($query) use ($empleadoId) {
+            $query->where('empleado_id', $empleadoId);
+        })
+        ->where('id', $id)
+        ->with([
+            'cliente',
+            'detalles.producto',
+            'detalles.servicio',
+            'detalles.cita',
+            'detalles.cita.empleado',
+            'detalles.promocion',
+            'pagos.metodoPago',
+        ])
+        ->first();
+
+        if (!$venta) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Venta no encontrada o no tienes permisos para verla',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->formatearVentaCompleta($venta),
+        ]);
+    }
 }

@@ -7,8 +7,8 @@
 
     <!-- Permisos de Cámara (para escáner QR) -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="true" />
 
     <!-- Permisos de Notificaciones Push -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

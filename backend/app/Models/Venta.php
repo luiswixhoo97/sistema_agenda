@@ -89,6 +89,13 @@ class Venta extends Model
         return $query->whereBetween('fecha_venta', [$inicio, $fin]);
     }
 
+    public function scopeDelEmpleado($query, $empleadoId)
+    {
+        return $query->whereHas('detalles.cita', function($query) use ($empleadoId) {
+            $query->where('empleado_id', $empleadoId);
+        });
+    }
+
     // Helpers
     public function estaCompletada(): bool
     {

@@ -12,11 +12,15 @@ Route::prefix('admin')->middleware('tipo:admin')->group(function () {
         Route::post('/crear-parcial', [VentaCitaController::class, 'crearVentaParcialConAnticipo']);
         Route::post('/{venta_id}/productos', [VentaCitaController::class, 'agregarProductos']);
         Route::post('/{venta_id}/finalizar', [VentaCitaController::class, 'finalizar']);
+        Route::post('/validate-qr/{token}', [VentaCitaController::class, 'validarQr']);
+        Route::post('/complete-qr/{token}', [VentaCitaController::class, 'completarQr']);
     });
 });
 
 Route::prefix('empleado')->middleware('tipo:empleado')->group(function () {
     Route::prefix('ventas-citas')->group(function () {
         Route::post('/crear-parcial', [VentaCitaController::class, 'crearVentaParcialConAnticipo']);
+        Route::post('/validate-qr/{token}', [VentaCitaController::class, 'validarQr']);
+        Route::post('/complete-qr/{token}', [VentaCitaController::class, 'completarQr']);
     });
 });

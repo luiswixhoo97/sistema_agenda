@@ -1,4 +1,5 @@
 import api from './api';
+import { useAuthStore } from '@/stores/auth';
 
 // =====================================================
 // CATEGORÍAS DE PRODUCTOS
@@ -182,6 +183,28 @@ export interface VentaFilters {
 export const getVentas = async (filters: VentaFilters = {}) => {
   const response = await api.get('/admin/ventas', { params: filters });
   return response.data;
+};
+
+export const getVentasByUser = async () => {
+  const authStore = useAuthStore();
+  const userType = authStore.userType;
+  const endpoint = userType === 'admin' ? '/admin/ventas' : '/empleado/ventas';
+  const response = await api.get(endpoint);
+  return response.data;
+};
+
+export const validateQrToken = async (token: string) => {
+  const authStore = useAuthStore();
+  const userType = authStore.userType;
+  const endpoint = `/api/${userType}/ventas-citas/validate-qr/${token}`;
+  return api.post(endpoint);
+};
+
+export const completeQrToken = async (token: string) => {
+  const authStore = useAuthStore();
+  const userType = authStore.userType;
+  const endpoint = `/api/${userType}/ventas-citas/complete-qr/${token}`;
+  return api.post(endpoint);
 };
 
 export const getVenta = async (id: number) => {

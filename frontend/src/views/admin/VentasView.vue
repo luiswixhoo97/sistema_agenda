@@ -256,7 +256,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { 
   getVentas,
-  getCitasByTokenQR
+  getVentasByUser
 } from '@/services/inventarioService';
 import NuevaVentaModal from '@/components/ventas/NuevaVentaModal.vue';
 import RegistrarPagoModal from '@/components/ventas/RegistrarPagoModal.vue';
@@ -383,7 +383,7 @@ function getEstadoLabel(estado: string): string {
 async function cargarDatos() {
   loading.value = true;
   try {
-    const res = await getVentas();
+    const res = await getVentasByUser();
     if (res.success) {
       ventas.value = res.data || [];
     }

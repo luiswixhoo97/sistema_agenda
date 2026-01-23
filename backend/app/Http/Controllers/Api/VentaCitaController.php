@@ -263,9 +263,9 @@ class VentaCitaController extends Controller
                 }
                 
                 // Si es empleado, verificar que sea su cita
-                $user = auth()->user();
-                if ($user->isEmpleado() && !$user->isAdmin()) {
-                    $empleado = $user->empleado;
+                $usuario = auth()->user();
+                if ($usuario->isEmpleado() && !$usuario->isAdmin()) {
+                    $empleado = $usuario->empleado;
                     if ($cita->empleado_id !== $empleado->id) {
                         return response()->json([
                             'success' => false,
@@ -408,6 +408,109 @@ class VentaCitaController extends Controller
                 'message' => 'Error al crear venta parcial: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Validar QR sin modificar datos (muestra información para validación)
+     * 
+     * POST /api/admin/ventas-citas/validate-qr/{token}
+     * POST /api/empleado/ventas-citas/validate-qr/{token}
+     */
+    public function validarQr(string $token): JsonResponse
+    {
+        $user = auth()->user();
+        $user->load('role', 'empleado');
+        $esAdmin = $user->isAdmin();
+        $esEmpleado = $user->isEmpleado() && $user->empleado;
+
+        // Validar permisos básicos
+        if (!$esEmpleado && !$esAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permisos para validar QR.',
+                'code' => 403
+            ]);
+        }
+
+        // Buscar citas por token
+        $citas = Cita::where('token_qr', $token)
+            ->whereNull('deleted_at')
+            ->get();
+
+        if ($citas->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Código QR no válido o cita no encontrada.',
+                'code' => 404
+            ]);
+        }
+
+        // Validar permisos de empleado (solo puede ver sus citas)
+        if ($esEmpleado && !$esAdmin) {
+            $empleadoId = $user->empleado->id;
+            $citasNoAsignadas = $citas->filter(function ($cita) use ($empleadoId) {
+                return $cita->empleado_id !== $empleadoId;
+            });
+            
+            if ($citasNoAsignadas->isNotEmpty()) {
+                Log::warning("Empleado intentando validar QR con citas no asignadas", [
+                    'empleado_id' => $empleadoId,
+                    'token_qr' => $token,
+                    'citas_no_asignadas' => $citasNoAsignadas->pluck('id')->toArray(),
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Algunas citas en este QR no te están asignadas.',
+                    'code' => 403
+                ]);
+            }
+        }
+
+        // Cargar relaciones completas para mostrar detalles
+        $citas->load(['cliente', 'servicio', 'empleado']);
+
+        // Verificar si existe venta parcial para estas citas
+        $ventaExistente = null;
+        $citasConVenta = $citas->filter(fn($c) => $c->venta_id !== null);
+        
+        if ($citasConVenta->isNotEmpty()) {
+            $ventaExistente = Venta::find($citasConVenta->first()->venta_id);
+            if ($ventaExistente) {
+                $ventaExistente->load(['cliente', 'detalles.servicio', 'pagos.metodoPago']);
+            }
+        }
+
+        // Calcular totales
+        $totalServicios = $citas->sum('precio_final');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'citas' => $citas,
+                'venta_existente' => $ventaExistente ? true : false,
+                'venta' => $ventaExistente,
+                'total_servicios' => $totalServicios,
+                'cantidad_citas' => $citas->count(),
+            ]
+        ]);
+    }
+
+    /**
+     * Procesar escaneo de QR (completar citas y generar venta)
+     * 
+     * POST /api/admin/ventas-citas/complete-qr/{token}
+     * POST /api/empleado/ventas-citas/complete-qr/{token}
+     */
+    public function completarQr(string $token): JsonResponse
+    {
+        $usuario = auth()->user();
+        
+        // Usar el servicio de QR existente para procesar
+        $qrService = new \App\Services\QrService();
+        $resultado = $qrService->procesarEscaneo($token, $usuario);
+        
+        return response()->json($resultado);
     }
 
     /**

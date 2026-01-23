@@ -19,3 +19,10 @@ Route::prefix('admin')->middleware('tipo:admin')->group(function () {
         Route::delete('/{id}/detalles/{detalleId}', [VentaController::class, 'eliminarDetalle']);
     });
 });
+
+Route::prefix('empleado')->middleware('tipo:empleado')->group(function () {
+    Route::prefix('ventas')->group(function () {
+        Route::get('/', [VentaController::class, 'indexEmpleado']);
+        Route::get('/{id}', [VentaController::class, 'showEmpleado']);
+    });
+});
