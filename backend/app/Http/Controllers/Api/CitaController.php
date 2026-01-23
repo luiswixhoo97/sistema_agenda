@@ -7,15 +7,18 @@ use App\Models\Cita;
 use App\Models\Cliente;
 use App\Models\FotoCita;
 use App\Services\CitaService;
+use App\Services\QrService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class CitaController extends Controller
 {
     public function __construct(
-        private CitaService $citaService
+        private CitaService $citaService,
+        private QrService $qrService
     ) {}
 
     // =====================================================
@@ -837,14 +840,13 @@ class CitaController extends Controller
     }
 
     /**
-     * Escanear QR code y cambiar estado de cita a completada
+     * Escanear QR code y finalizar cita / generar venta
      * 
      * POST /api/empleado/citas/scan-qr/{token}
      * POST /api/admin/citas/scan-qr/{token}
      */
     public function escanearQr(Request $request, string $token): JsonResponse
     {
-        // Validar que el usuario sea empleado o admin
         $user = auth()->user();
         
         if (!$user) {
@@ -854,132 +856,16 @@ class CitaController extends Controller
             ], 401);
         }
 
-        // Cargar relaciones necesarias
-        $user->load('role', 'empleado');
+        // Delegar lógica al servicio
+        $resultado = $this->qrService->procesarEscaneo($token, $user);
 
-        // Verificar que sea empleado o admin usando los métodos helper
-        $esAdmin = $user->isAdmin();
-        $esEmpleado = $user->isEmpleado() && $user->empleado;
-
-        if (!$esEmpleado && !$esAdmin) {
-            // Si es empleado pero no tiene relación empleado, dar mensaje específico
-            if ($user->isEmpleado() && !$user->empleado) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tu cuenta de empleado no está correctamente configurada. Contacta al administrador.',
-                ], 403);
-            }
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permisos para escanear QR. Solo empleados y administradores pueden usar esta función.',
-            ], 403);
+        if (!$resultado['success']) {
+            return response()->json($resultado, $resultado['code'] ?? 422);
         }
 
-        // Buscar todas las citas con el mismo token_qr (citas coordinadas)
-        $citas = Cita::where('token_qr', $token)
-            ->whereNull('deleted_at')
-            ->get();
-
-        if ($citas->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Código QR no válido o cita no encontrada',
-            ], 404);
-        }
-
-        // Si es empleado, buscar SOLO su cita específica (no todas las del grupo)
-        if ($esEmpleado) {
-            $cita = $citas->firstWhere('empleado_id', $user->empleado->id);
-
-            if (!$cita) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Esta cita no está asignada a ti. Este QR corresponde a otras citas coordinadas.',
-                ], 403);
-            }
-
-            // Validar que la cita pueda cambiarse a completada
-            if (!in_array($cita->estado, [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_REAGENDADA])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "La cita no puede marcarse como completada. Estado actual: {$cita->estado}. Solo se pueden completar citas en estado 'confirmada' o 'reagendada'.",
-                ], 422);
-            }
-
-            // Cambiar estado a completada SOLO de la cita del empleado que escanea
-            $resultado = $this->citaService->cambiarEstado($cita->id, Cita::ESTADO_COMPLETADA, $user->empleado->id);
-
-            if ($resultado['success']) {
-                // Obtener información de las otras citas del grupo para mostrar contexto
-                $otrasCitas = $citas->where('id', '!=', $cita->id)->values();
-                
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Tu servicio ha sido marcado como completado exitosamente',
-                    'cita' => $this->citaService->formatearCita($cita->fresh()),
-                    'citas_coordinadas' => [
-                        'total' => $citas->count(),
-                        'completadas' => $citas->where('estado', Cita::ESTADO_COMPLETADA)->count(),
-                        'pendientes' => $citas->whereNotIn('estado', [Cita::ESTADO_COMPLETADA, Cita::ESTADO_CANCELADA])->count(),
-                    ],
-                    'otras_citas' => $otrasCitas->map(fn($c) => [
-                        'id' => $c->id,
-                        'empleado' => $c->empleado->user->nombre ?? 'Empleado',
-                        'estado' => $c->estado,
-                        'fecha_hora' => $c->fecha_hora->format('Y-m-d H:i'),
-                    ]),
-                ]);
-            }
-
-            return response()->json($resultado, 422);
-        }
-
-        // Si es admin, puede completar todas las citas del grupo
-        $citasACompletar = $citas->filter(function ($cita) {
-            return in_array($cita->estado, [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_REAGENDADA]);
-        });
-
-        if ($citasACompletar->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No hay citas que puedan marcarse como completadas. Todas están en un estado inválido.',
-            ], 422);
-        }
-
-        // Marcar todas las citas relacionadas como completadas (solo admin)
-        $citasCompletadas = [];
-        $errores = [];
-
-        foreach ($citasACompletar as $cita) {
-            $resultado = $this->citaService->cambiarEstado($cita->id, Cita::ESTADO_COMPLETADA, null);
-            
-            if ($resultado['success']) {
-                $citasCompletadas[] = $this->citaService->formatearCita($cita->fresh());
-            } else {
-                $errores[] = "Cita ID {$cita->id}: " . ($resultado['message'] ?? 'Error desconocido');
-            }
-        }
-
-        if (empty($citasCompletadas)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se pudo completar ninguna cita. Errores: ' . implode('; ', $errores),
-            ], 422);
-        }
-
-        $mensaje = count($citasCompletadas) === 1 
-            ? 'Cita marcada como completada exitosamente'
-            : count($citasCompletadas) . ' citas coordinadas marcadas como completadas exitosamente';
-
-        return response()->json([
-            'success' => true,
-            'message' => $mensaje,
-            'citas' => $citasCompletadas,
-            'total_completadas' => count($citasCompletadas),
-            'total_en_grupo' => $citas->count(),
-        ]);
+        return response()->json($resultado);
     }
+
 
     /**
      * Obtener citas por token QR (para pre-llenar venta)

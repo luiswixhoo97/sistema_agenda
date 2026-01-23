@@ -152,6 +152,16 @@
         </button>
       </div>
     </div>
+    
+    <!-- Modal de Pago -->
+    <RegistrarPagoModal
+      v-if="ventaParaPago"
+      :visible="mostrarModalPago"
+      :venta="ventaParaPago"
+      @update:visible="mostrarModalPago = $event"
+      @close="onModalPagoClose"
+      @pago-registrado="onPagoRegistrado"
+    />
   </div>
 </template>
 
@@ -163,6 +173,7 @@ import { useQrScanner } from '@/composables/useQrScanner'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { App } from '@capacitor/app'
 import Swal from 'sweetalert2'
+import RegistrarPagoModal from '@/components/ventas/RegistrarPagoModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -190,6 +201,8 @@ const iniciandoEscaner = ref(false)
 const qrReaderRef = ref<HTMLElement | null>(null)
 const autoIniciado = ref(false)
 const errorOcurrido = ref(false)
+const mostrarModalPago = ref(false)
+const ventaParaPago = ref<any>(null)
 
 // Métodos
 const irAlDashboard = async () => {
@@ -512,6 +525,8 @@ const procesarToken = async (token: string) => {
     
     resultado.value = data
     
+    resultado.value = data
+    
     if (data.success) {
       // Vibración de éxito
       try {
@@ -520,7 +535,16 @@ const procesarToken = async (token: string) => {
         }
       } catch (e) {}
       
-      // Mostrar mensaje de éxito
+      // Verificar si hay venta para procesar pago
+      if (data.venta) {
+        ventaParaPago.value = data.venta
+        mostrarModalPago.value = true
+        
+        // No mostramos alerta de éxito todavía, dejamos que el usuario procese el pago
+        return
+      }
+      
+      // Mostrar mensaje de éxito si no hay venta (flujo antiguo o venta ya pagada)
       Swal.fire({
         icon: 'success',
         title: '¡Cita completada!',
@@ -605,6 +629,28 @@ onUnmounted(async () => {
   
   await stopQrScanner()
 })
+
+const onModalPagoClose = () => {
+  mostrarModalPago.value = false
+  // Si se cierra el modal sin pagar, quizás deberíamos preguntar o simplemente dejarlo así.
+  // La cita ya está completada y la venta generada (pero pendiente).
+  
+  // Opcional: mostrar resumen final
+  if (resultado.value) {
+     ventaParaPago.value = null
+  }
+}
+
+const onPagoRegistrado = () => {
+  // El pago fue exitoso
+  Swal.fire({
+    icon: 'success',
+    title: '¡Pago registrado!',
+    text: 'El servicio ha sido completado y pagado.',
+    confirmButtonColor: '#667eea',
+    timer: 3000
+  })
+}
 </script>
 
 <style scoped>
