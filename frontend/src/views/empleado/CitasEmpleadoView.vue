@@ -2791,7 +2791,6 @@ onMounted(() => {
   opacity: 0.8;
   font-size: 12px;
 }
-}
 
 .notas-content {
   padding: 16px;

@@ -84,6 +84,9 @@ export interface Cita {
   metodo_pago: MetodoPago
   notas?: string
   active: boolean
+  requiere_anticipo?: boolean
+  monto_anticipo_requerido?: number
+  venta_id?: number | null
   cliente?: Cliente
   empleado?: Empleado
   servicio?: Servicio
